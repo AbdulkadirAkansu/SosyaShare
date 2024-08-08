@@ -226,32 +226,27 @@ fun ActionButtons(profileViewModel: ProfileViewModel, currentUserId: String, use
 }
 
 @Composable
-<<<<<<< HEAD
 fun PostGrid(posts: List<String>, onPostClick: (Int) -> Unit) {
-=======
-fun PostGrid(posts: List<String>) {
-    val reversedPosts = posts.reversed()
->>>>>>> 9641067574071afac4df3480c11af69b53501646
+    val reversedPosts = posts.reversed() // Posts listesini ters çevir
+
     LazyVerticalGrid(
         columns = GridCells.Fixed(3),
         contentPadding = PaddingValues(1.dp),
         modifier = Modifier.height(500.dp)
     ) {
-<<<<<<< HEAD
-        items(posts) { postUrl ->
-            val index = posts.indexOf(postUrl)
-=======
         items(reversedPosts) { postUrl ->
->>>>>>> 9641067574071afac4df3480c11af69b53501646
+            val index = reversedPosts.indexOf(postUrl) // Ters çevrilmiş listede index bul
+
             Image(
                 painter = rememberAsyncImagePainter(postUrl),
                 contentDescription = "Post",
                 modifier = Modifier
                     .aspectRatio(1f)
                     .padding(1.dp)
-                    .clickable { onPostClick(index) },
+                    .clickable { onPostClick(index) }, // Doğru index ile tıklama işlevi
                 contentScale = ContentScale.Crop
             )
         }
     }
 }
+

@@ -32,6 +32,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import com.akansu.sosyashare.data.model.UserEntity
+import com.akansu.sosyashare.domain.model.User
 import com.akansu.sosyashare.presentation.home.components.NavigationBar
 import com.akansu.sosyashare.presentation.userprofile.viewmodel.UserProfileViewModel
 import com.akansu.sosyashare.presentation.userprofile.viewmodel.UserViewModel
@@ -46,7 +47,7 @@ fun PostDetailScreen(
     userProfileViewModel: UserProfileViewModel = hiltViewModel(),
     userViewModel: UserViewModel = hiltViewModel()
 ) {
-    var user by remember { mutableStateOf<UserEntity?>(null) }
+    var user by remember { mutableStateOf<User?>(null) }
     val profilePictureUrl by userViewModel.profilePictureUrl.collectAsState()
     val listState = rememberLazyListState()
 
