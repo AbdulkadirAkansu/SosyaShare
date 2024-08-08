@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "864651653275",
+    "project_id": "sosyashare",
+    "storage_bucket": "sosyashare.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:864651653275:android:7fb987c3fe12cf6bec963e",
+        "android_client_info": {
+          "package_name": "com.akansu.sosyashare"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAFaAiuihUI7mEyp0dprtgy_MDmGj4ccVQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

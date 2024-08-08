@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<certificates xmlns:tools="http://schemas.android.com/tools"
+    tools:targetApi="31">
+    <cert tools:override="true">
+        <!-- Sertifika verisini buraya ekleyin -->
+        MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAv9x7pPR0Z1XCl5Wi1O/8q9RmF5yERIV0iV8Lr3fCrxK
+        QvWyoOou/IGh/6SRT93q8ntfBfupN2Nx71h4tMt0K5Txx8u0Vh/ZcHgEh5x7Q9ph10PptmgOfO2O5F8rxPZV6I8i
+        6Kdx/K9Pj5zOFpmbOpG4/vvw1rxiy0O5wzT9W6AClbYWv1dcw8F8+oMhBbqk8JGeFwpRJBOAFt7Dp4HkxQH6u7Q
+        U9nv3OtwPOAPG9G6+bb7PTxgReeQWqww5Vq9DBVoC5THps8+EX9+wIFvCmjSmFXbO1Isz5Z0PzFck3bLZaPtP6D
+        P95wIDAQAB
+    </cert>
+</certificates>
