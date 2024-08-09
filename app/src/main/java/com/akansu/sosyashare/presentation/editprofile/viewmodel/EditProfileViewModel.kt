@@ -3,7 +3,9 @@ package com.akansu.sosyashare.presentation.editprofile.viewmodel
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.akansu.sosyashare.domain.model.Post
 import com.akansu.sosyashare.domain.model.User
+import com.akansu.sosyashare.domain.repository.PostRepository
 import com.akansu.sosyashare.domain.usecase.profile.*
 import com.akansu.sosyashare.domain.usecase.UploadProfilePictureUseCase
 import com.akansu.sosyashare.domain.usecase.editprofile.UpdateBioUseCase
@@ -24,7 +26,8 @@ class EditProfileViewModel @Inject constructor(
     private val uploadProfilePictureUseCase: UploadProfilePictureUseCase,
     private val updateUsernameUseCase: UpdateUsernameUseCase,
     private val updateBioUseCase: UpdateBioUseCase,
-    private val deletePostUseCase: DeletePostUseCase
+    private val deletePostUseCase: DeletePostUseCase,
+    private val postRepository: PostRepository // PostRepository'yi ekliyoruz
 ) : ViewModel() {
 
     private val _user = MutableStateFlow<User?>(null)
@@ -39,8 +42,8 @@ class EditProfileViewModel @Inject constructor(
     private val _bio = MutableStateFlow<String>("")
     val bio: StateFlow<String> get() = _bio
 
-    private val _posts = MutableStateFlow<List<String>>(emptyList())
-    val posts: StateFlow<List<String>> get() = _posts
+    private val _posts = MutableStateFlow<List<Post>>(emptyList()) // Post tipini güncelledik
+    val posts: StateFlow<List<Post>> get() = _posts
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> get() = _errorMessage
@@ -67,7 +70,11 @@ class EditProfileViewModel @Inject constructor(
                 _profilePictureUrl.value = user?.profilePictureUrl
                 _username.value = user?.username ?: ""
                 _bio.value = user?.bio ?: ""
-                _posts.value = user?.posts ?: emptyList()
+
+                // Postları PostRepository'den alıyoruz
+                val userPosts = postRepository.getPostsByUser(userId).firstOrNull() ?: emptyList()
+                _posts.value = userPosts
+
                 _canChangeUsername.value = canChangeUsername(user)
                 initialUsername = user?.username ?: ""
                 initialBio = user?.bio ?: ""
@@ -129,13 +136,15 @@ class EditProfileViewModel @Inject constructor(
         }
     }
 
-    fun deletePost(postUrl: String) {
+    fun deletePost(postId: String) {
         viewModelScope.launch {
             try {
-                deletePostUseCase(postUrl)
-                _posts.value = _posts.value.filterNot { it == postUrl }
-                _user.value = _user.value?.copy(posts = _posts.value)
-                _successMessage.value = "Post deleted successfully."
+                val userId = getCurrentUserIdUseCase()
+                if (userId != null) {
+                    deletePostUseCase(postId, userId)
+                    _posts.value = _posts.value.filterNot { it.id == postId }
+                    _successMessage.value = "Post deleted successfully."
+                }
             } catch (e: Exception) {
                 _errorMessage.value = "Failed to delete post: ${e.message}"
             }

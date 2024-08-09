@@ -8,6 +8,7 @@ data class Post(
     val content: String = "",
     val imageUrl: String? = null,
     val likeCount: Int = 0,
+    val likedBy: List<String> = emptyList(),
     val isLiked: Boolean = false,
     val createdAt: Date = Date()
 )

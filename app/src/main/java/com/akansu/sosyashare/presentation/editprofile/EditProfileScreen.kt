@@ -29,6 +29,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.akansu.sosyashare.R
+import com.akansu.sosyashare.domain.model.Post
 import com.akansu.sosyashare.presentation.editprofile.viewmodel.EditProfileViewModel
 import com.akansu.sosyashare.util.PermissionHandler
 import com.akansu.sosyashare.util.poppinsFontFamily
@@ -176,8 +177,8 @@ fun EditProfileScreen(navController: NavHostController, viewModel: EditProfileVi
                 Text("Save", color = MaterialTheme.colorScheme.onPrimary, fontFamily = poppinsFontFamily)
             }
             Spacer(modifier = Modifier.height(12.dp))
-            PostGrid(posts = posts, onDeletePost = { postUrl ->
-                postToDelete = postUrl
+            PostGrid(posts = posts, onDeletePost = { postId ->
+                postToDelete = postId
                 showConfirmDialog = true
             })
         }
@@ -185,7 +186,7 @@ fun EditProfileScreen(navController: NavHostController, viewModel: EditProfileVi
 }
 
 @Composable
-fun PostGrid(posts: List<String>, onDeletePost: (String) -> Unit) {
+fun PostGrid(posts: List<Post>, onDeletePost: (String) -> Unit) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(3),
         contentPadding = PaddingValues(0.dp),
@@ -204,16 +205,17 @@ fun PostGrid(posts: List<String>, onDeletePost: (String) -> Unit) {
             }
         } else {
             items(posts.size) { index ->
+                val post = posts[index]
                 Box(
                     modifier = Modifier
                         .aspectRatio(1f)
                         .padding(1.dp)
                         .clickable {
-                            onDeletePost(posts[index])
+                            onDeletePost(post.id)  // post.id'yi gönderiyoruz
                         }
                 ) {
                     Image(
-                        painter = rememberAsyncImagePainter(posts[index]),
+                        painter = rememberAsyncImagePainter(post.imageUrl),
                         contentDescription = "Post",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
@@ -225,7 +227,7 @@ fun PostGrid(posts: List<String>, onDeletePost: (String) -> Unit) {
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(4.dp)
-                            .clickable { onDeletePost(posts[index]) }
+                            .clickable { onDeletePost(post.id) }  // post.id'yi gönderiyoruz
                     )
                 }
             }

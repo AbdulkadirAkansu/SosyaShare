@@ -1,14 +1,18 @@
 package com.akansu.sosyashare.data.remote
 
+import android.system.Os.remove
+import android.util.Log
 import com.akansu.sosyashare.data.local.UserDao
 import com.akansu.sosyashare.data.model.UserEntity
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 class FirebaseAuthService @Inject constructor(
-    private val userDao: UserDao
+    private val userDao: UserDao,
+    private val firebaseStorage: FirebaseStorage
 ) {
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
     private val firestore = FirebaseFirestore.getInstance()
@@ -117,18 +121,20 @@ class FirebaseAuthService @Inject constructor(
     }
 
     suspend fun followUser(currentUserId: String, followUserId: String) {
+        val currentUserRef = firestore.collection("users").document(currentUserId)
+        val followUserRef = firestore.collection("users").document(followUserId)
+
         firestore.runTransaction { transaction ->
-            val currentUserRef = firestore.collection("users").document(currentUserId)
-            val followUserRef = firestore.collection("users").document(followUserId)
+            val currentUserSnapshot = transaction.get(currentUserRef)
+            val followUserSnapshot = transaction.get(followUserRef)
 
-            val currentUser = transaction.get(currentUserRef).toObject(UserEntity::class.java)
-            val followUser = transaction.get(followUserRef).toObject(UserEntity::class.java)
-
-            val currentUserFollowing = currentUser?.following?.toMutableList() ?: mutableListOf()
-            val followUserFollowers = followUser?.followers?.toMutableList() ?: mutableListOf()
+            val currentUserFollowing = currentUserSnapshot.get("following") as? MutableList<String> ?: mutableListOf()
+            val followUserFollowers = followUserSnapshot.get("followers") as? MutableList<String> ?: mutableListOf()
 
             if (!currentUserFollowing.contains(followUserId)) {
                 currentUserFollowing.add(followUserId)
+            }
+            if (!followUserFollowers.contains(currentUserId)) {
                 followUserFollowers.add(currentUserId)
             }
 
@@ -168,17 +174,19 @@ class FirebaseAuthService @Inject constructor(
         }
     }
 
-    suspend fun deletePost(userId: String, postUrl: String) {
-        val userDoc = firestore.collection("users").document(userId)
-        firestore.runTransaction { transaction ->
-            val snapshot = transaction.get(userDoc)
-            val user = snapshot.toObject(UserEntity::class.java)
-            user?.let {
-                val updatedPosts = it.posts.toMutableList().apply { remove(postUrl) }
-                transaction.update(userDoc, "posts", updatedPosts)
-            }
-        }.await()
+    suspend fun deletePost(userId: String, postId: String, postImageUrl: String) {
+        // Gönderiyi Firestore'dan silme
+        val postRef = firestore.collection("users").document(userId).collection("posts").document(postId)
+        postRef.delete().await()
+
+        // Gönderiye ait resmi Firebase Storage'dan silme
+        if (postImageUrl.isNotEmpty()) {
+            val storageRef = firebaseStorage.getReferenceFromUrl(postImageUrl)
+            storageRef.delete().await()
+        }
+        Log.d("FirebaseUserService", "Deleted post with postId: $postId for userId: $userId")
     }
+
 }
 
 

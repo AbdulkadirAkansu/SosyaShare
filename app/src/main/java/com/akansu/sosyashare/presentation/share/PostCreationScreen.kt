@@ -39,64 +39,38 @@ fun PostCreationScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var showSnackbar by remember { mutableStateOf(false) }
 
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        uri?.let {
-            navController.navigate("post_creation?imageUri=$it") {
-                popUpTo("post_creation") { inclusive = true }
-            }
-        }
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("New Post", fontFamily = poppinsFontFamily, fontWeight = FontWeight.Normal, color = MaterialTheme.colorScheme.onBackground) },
+                title = { Text("New Post") },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onBackground)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
+                }
             )
         },
         snackbarHost = {
-            SnackbarHost(snackbarHostState) { data ->
-                Snackbar(
-                    snackbarData = data,
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            }
+            SnackbarHost(snackbarHostState)
         }
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(16.dp)
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(1f)
                     .clip(RoundedCornerShape(16.dp))
-                    .clickable { launcher.launch("image/*") },
-                contentAlignment = Alignment.Center
             ) {
                 if (isUploading) {
-                    CircularProgressIndicator()
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 } else {
                     Image(
-                        painter = rememberAsyncImagePainter(
-                            ImageRequest.Builder(LocalContext.current).data(data = imageUri)
-                                .apply {
-                                    crossfade(true)
-                                    placeholder(R.drawable.profile)
-                                }.build()
-                        ),
+                        painter = rememberAsyncImagePainter(imageUri),
                         contentDescription = "Selected Image",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
@@ -106,17 +80,8 @@ fun PostCreationScreen(
             OutlinedTextField(
                 value = comment,
                 onValueChange = { comment = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp),
-                placeholder = { Text("Write a caption...", fontFamily = poppinsFontFamily, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)) },
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
-                    focusedTextColor = MaterialTheme.colorScheme.onBackground
-                ),
-                shape = RoundedCornerShape(12.dp),
-                textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = poppinsFontFamily, color = MaterialTheme.colorScheme.onBackground)
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Write a caption...") }
             )
             Spacer(modifier = Modifier.height(24.dp))
             Button(
@@ -130,13 +95,9 @@ fun PostCreationScreen(
                         }
                     }
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Share", color = MaterialTheme.colorScheme.onPrimary, fontFamily = poppinsFontFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text("Share")
             }
         }
     }

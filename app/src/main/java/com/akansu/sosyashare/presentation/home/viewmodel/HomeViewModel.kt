@@ -3,8 +3,10 @@ package com.akansu.sosyashare.presentation.home.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.akansu.sosyashare.data.remote.FirebasePostService
 import com.akansu.sosyashare.domain.model.Post
 import com.akansu.sosyashare.domain.model.User
+import com.akansu.sosyashare.domain.repository.PostRepository
 import com.akansu.sosyashare.domain.repository.UserRepository
 import com.akansu.sosyashare.domain.usecase.profile.GetCurrentUserIdUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,7 +18,9 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val userRepository: UserRepository,
-    private val getCurrentUserIdUseCase: GetCurrentUserIdUseCase
+    private val getCurrentUserIdUseCase: GetCurrentUserIdUseCase,
+    private val postRepository: PostRepository,
+    private val firebasePostService: FirebasePostService // FirebasePostService burada enjekte ediliyor
 ) : ViewModel() {
 
     private val _posts = MutableStateFlow<List<Post>>(emptyList())
@@ -32,13 +36,15 @@ class HomeViewModel @Inject constructor(
                 userRepository.getUserById(it).collect { user ->
                     user?.let {
                         userRepository.getFollowedUsersPosts(user.following).collect { followedUsersPosts ->
-                            _posts.value = followedUsersPosts
+                            _posts.value = followedUsersPosts.map { post ->
+                                val likedByUser = post.likedBy.contains(currentUserId)
+                                post.copy(isLiked = likedByUser)
+                            }
 
-                            // Load user details for each post
                             followedUsersPosts.forEach { post ->
                                 userRepository.getUserById(post.userId).collect { userDetails ->
                                     userDetails?.let { user ->
-                                        _users.value = _users.value + (user.id to user)
+                                        _users.value += (user.id to user)
                                     }
                                 }
                             }
@@ -49,19 +55,27 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun likePost(postId: String) {
+    fun likePost(postId: String, postUserId: String) {
         viewModelScope.launch {
             val currentUserId = userRepository.getCurrentUserId() ?: return@launch
-            userRepository.likePost(postId, currentUserId)
-            loadFollowedUsersPosts()
+            firebasePostService.likePost(postId, postUserId, currentUserId)
+            _posts.value = _posts.value.map { post ->
+                if (post.id == postId) {
+                    post.copy(isLiked = true, likeCount = post.likeCount + 1)
+                } else post
+            }
         }
     }
 
-    fun unlikePost(postId: String) {
+    fun unlikePost(postId: String, postUserId: String) {
         viewModelScope.launch {
             val currentUserId = userRepository.getCurrentUserId() ?: return@launch
-            userRepository.unlikePost(postId, currentUserId)
-            loadFollowedUsersPosts()
+            firebasePostService.unlikePost(postId, postUserId, currentUserId)
+            _posts.value = _posts.value.map { post ->
+                if (post.id == postId) {
+                    post.copy(isLiked = false, likeCount = post.likeCount - 1)
+                } else post
+            }
         }
     }
 

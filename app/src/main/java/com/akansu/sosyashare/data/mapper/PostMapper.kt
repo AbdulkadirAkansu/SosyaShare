@@ -10,6 +10,7 @@ fun PostEntity.toDomainModel(): Post {
         content = content,
         imageUrl = imageUrl,
         likeCount = likeCount,
+        likedBy = likedBy,
         createdAt = createdAt
     )
 }
@@ -21,6 +22,7 @@ fun Post.toEntityModel(): PostEntity {
         content = content,
         imageUrl = imageUrl,
         likeCount = likeCount,
+        likedBy = likedBy,
         createdAt = createdAt
     )
 }

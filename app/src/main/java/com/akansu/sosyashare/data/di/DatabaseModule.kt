@@ -1,6 +1,7 @@
 package com.akansu.sosyashare.data.di
 
 import android.content.Context
+import android.util.Log
 import androidx.room.Room
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
@@ -25,7 +26,6 @@ object DatabaseModule {
             AppDatabase::class.java,
             "sosyashare_database"
         )
-            .addMigrations(MIGRATION_8_9)
             .fallbackToDestructiveMigration()
             .build()
     }
@@ -34,10 +34,5 @@ object DatabaseModule {
     fun provideUserDao(database: AppDatabase): UserDao {
         return database.userDao()
     }
-
-    private val MIGRATION_8_9 = object : Migration(8, 9) {
-        override fun migrate(db: SupportSQLiteDatabase) {
-            db.execSQL("ALTER TABLE users ADD COLUMN lastUsernameChange INTEGER DEFAULT NULL")
-        }
-    }
 }
+

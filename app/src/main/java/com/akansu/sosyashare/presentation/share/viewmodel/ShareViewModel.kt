@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.akansu.sosyashare.domain.model.Post
 import com.akansu.sosyashare.domain.usecase.share.DeletePostUseCase
 import com.akansu.sosyashare.domain.usecase.share.GetCurrentUserIdUseCase
 import com.akansu.sosyashare.domain.usecase.share.RefreshUserPostsUseCase
@@ -24,12 +25,8 @@ class ShareViewModel @Inject constructor(
     private val refreshUserPostsUseCase: RefreshUserPostsUseCase
 ) : ViewModel() {
 
-    private var _cameraImageUri: Uri? = null
-    val cameraImageUri: Uri?
-        get() = _cameraImageUri
-
-    private val _userPosts = MutableStateFlow<List<String>>(emptyList())
-    val userPosts: StateFlow<List<String>> = _userPosts
+    private val _userPosts = MutableStateFlow<List<Post>>(emptyList())
+    val userPosts: StateFlow<List<Post>> = _userPosts
 
     init {
         viewModelScope.launch {
@@ -42,33 +39,17 @@ class ShareViewModel @Inject constructor(
 
     fun uploadPostPicture(uri: Uri, comment: String, onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
-            val updatedPosts = uploadPostPictureUseCase(uri, comment)
-            _userPosts.value = updatedPosts
+            val newPost = uploadPostPictureUseCase(uri, comment)
+            _userPosts.value += newPost
             onSuccess()
-        }
-    }
-
-    fun createImageFileUri(context: Context): Uri {
-        val storageDir: File = context.getExternalFilesDir(null) ?: throw IllegalStateException("External storage not available")
-        val file = File.createTempFile("IMG_", ".jpg", storageDir)
-        return FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
-    }
-
-    fun setCameraImageUri(uri: Uri) {
-        _cameraImageUri = uri
-    }
-
-    fun deletePost(postUrl: String) {
-        viewModelScope.launch {
-            deletePostUseCase(postUrl)
-            refreshUserPosts()
         }
     }
 
     fun refreshUserPosts(userId: String? = null) {
         viewModelScope.launch {
-            val posts = refreshUserPostsUseCase(userId)
-            _userPosts.value = posts
+            refreshUserPostsUseCase(userId).collect { posts ->
+                _userPosts.value = posts
+            }
         }
     }
 }

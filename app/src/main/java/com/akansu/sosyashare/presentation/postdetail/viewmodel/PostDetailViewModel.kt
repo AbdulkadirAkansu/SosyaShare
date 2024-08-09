@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.akansu.sosyashare.domain.model.Post
 import com.akansu.sosyashare.domain.model.User
+import com.akansu.sosyashare.domain.repository.PostRepository
 import com.akansu.sosyashare.domain.usecase.profile.GetUserDetailsUseCase
 import com.akansu.sosyashare.domain.usecase.postdetail.GetPostDetailsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -17,7 +18,9 @@ import javax.inject.Inject
 
 @HiltViewModel
 class PostDetailViewModel @Inject constructor(
-    private val getUserDetailsUseCase: GetUserDetailsUseCase
+    private val getUserDetailsUseCase: GetUserDetailsUseCase,
+    private val getPostDetailsUseCase: GetPostDetailsUseCase, // Postları almak için kullanacağız
+    private val postRepository: PostRepository // PostRepository'yi ekleyin
 ) : ViewModel() {
 
     private val _user = MutableStateFlow<User?>(null)
@@ -36,21 +39,12 @@ class PostDetailViewModel @Inject constructor(
                 _user.value = userDetails
                 _profilePictureUrl.value = userDetails?.profilePictureUrl
 
-                // User modelindeki posts alanını kullanarak postları yükle
-                val postsList = userDetails?.posts?.map { postUrl ->
-                    Post(
-                        id = "", // ID kullanmıyoruz
-                        userId = userDetails.id,
-                        content = "", // İçerik yoksa boş bırakıyoruz
-                        imageUrl = postUrl,
-                        likeCount = 0, // Like sayısı kullanmıyoruz
-                        createdAt = Date() // Tarih kullanmıyoruz
-                    )
-                } ?: emptyList()
+                // Kullanıcının postlarını PostRepository üzerinden alın
+                val userPosts = postRepository.getPostsByUser(userId).firstOrNull() ?: emptyList()
+                _posts.value = userPosts
 
-                _posts.value = postsList
                 Log.d("PostDetailViewModel", "User details loaded: $userDetails")
-                Log.d("PostDetailViewModel", "Posts loaded: $postsList")
+                Log.d("PostDetailViewModel", "Posts loaded: $userPosts")
             } catch (e: Exception) {
                 Log.e("PostDetailViewModel", "Error loading user details", e)
             }

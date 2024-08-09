@@ -11,13 +11,12 @@ interface UserRepository {
     suspend fun updateUsernameInFirebase(userId: String, username: String)
     suspend fun updateBioInFirebase(userId: String, bio: String)
     suspend fun updateUser(user: User)
-    suspend fun updateUserPosts(userId: String, posts: List<String>)
     suspend fun followUser(currentUserId: String, followUserId: String)
     suspend fun unfollowUser(currentUserId: String, unfollowUserId: String)
     suspend fun getFollowedUsersPosts(userIds: List<String>): Flow<List<Post>>
     suspend fun uploadProfilePicture(uri: Uri): String
     suspend fun uploadPostPicture(uri: Uri): String
-    suspend fun deletePost(userId: String, postUrl: String)
+    suspend fun deletePost(userId: String, postId: String, postImageUrl: String)
     suspend fun registerUser(email: String, password: String, username: String)
     suspend fun getUserDetails(userId: String): User?
     suspend fun syncAllUsers()

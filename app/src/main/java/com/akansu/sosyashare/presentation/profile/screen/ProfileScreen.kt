@@ -26,6 +26,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.akansu.sosyashare.R
+import com.akansu.sosyashare.domain.model.Post
 import com.akansu.sosyashare.presentation.home.components.NavigationBar
 import com.akansu.sosyashare.presentation.profile.ProfileViewModel
 import com.akansu.sosyashare.presentation.userprofile.viewmodel.UserViewModel
@@ -53,7 +54,7 @@ fun ProfileScreen(
     }
 
     val username = userDetails?.username ?: "Unknown"
-    val userPosts = userDetails?.posts ?: emptyList()
+    val userPosts = profileViewModel.userPosts.collectAsState().value
     val followersCount = userDetails?.followers?.size ?: 0
     val followingCount = userDetails?.following?.size ?: 0
 
@@ -99,14 +100,13 @@ fun ProfileScreen(
                     )
                 }
                 Spacer(modifier = Modifier.height(8.dp))
-                PostGrid(posts = userPosts) { postIndex ->
+                PostGrid(posts = userPosts, onPostClick = { postIndex ->
                     navController.navigate("post_detail/${userId}/${postIndex}")
-                }
+                })
             }
         }
     }
 }
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopBar(navController: NavHostController, username: String) {
@@ -226,27 +226,24 @@ fun ActionButtons(profileViewModel: ProfileViewModel, currentUserId: String, use
 }
 
 @Composable
-fun PostGrid(posts: List<String>, onPostClick: (Int) -> Unit) {
-    val reversedPosts = posts.reversed() // Posts listesini ters çevir
-
+fun PostGrid(posts: List<Post>, onPostClick: (Int) -> Unit) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(3),
         contentPadding = PaddingValues(1.dp),
         modifier = Modifier.height(500.dp)
     ) {
-        items(reversedPosts) { postUrl ->
-            val index = reversedPosts.indexOf(postUrl) // Ters çevrilmiş listede index bul
+        items(posts.reversed()) { post ->
+            val index = posts.indexOf(post)
 
             Image(
-                painter = rememberAsyncImagePainter(postUrl),
+                painter = rememberAsyncImagePainter(post.imageUrl),
                 contentDescription = "Post",
                 modifier = Modifier
                     .aspectRatio(1f)
                     .padding(1.dp)
-                    .clickable { onPostClick(index) }, // Doğru index ile tıklama işlevi
+                    .clickable { onPostClick(index) },
                 contentScale = ContentScale.Crop
             )
         }
     }
 }
-

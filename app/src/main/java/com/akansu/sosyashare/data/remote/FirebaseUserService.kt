@@ -1,6 +1,7 @@
 package com.akansu.sosyashare.data.remote
 
 import android.net.Uri
+import android.system.Os.remove
 import android.util.Log
 import com.akansu.sosyashare.data.local.UserDao
 import com.akansu.sosyashare.data.model.PostEntity
@@ -28,8 +29,7 @@ class FirebaseUserService @Inject constructor(
             "email" to email,
             "isEmailVerified" to false,
             "following" to emptyList<String>(),
-            "followers" to emptyList<String>(),
-            "posts" to emptyList<String>()
+            "followers" to emptyList<String>()
         )
         firestore.collection("users").document(userId).set(userMap).await()
         val userEntity = UserEntity(id = userId, username = username, email = email, profilePictureUrl = null)
@@ -38,9 +38,17 @@ class FirebaseUserService @Inject constructor(
     }
 
     suspend fun getUserDetails(userId: String): UserEntity? {
-        val document = firestore.collection("users").document(userId).get().await()
-        Log.d("FirebaseUserService", "Fetched user details for userId: $userId")
-        return document.toObject(UserEntity::class.java)?.copy(id = userId)
+        return try {
+            val document = firestore.collection("users")
+                .document(userId)
+                .get()
+                .await()
+            Log.d("FirebaseUserService", "Fetched user details for userId: $userId")
+            document.toObject(UserEntity::class.java)?.copy(id = userId)
+        } catch (e: Exception) {
+            Log.e("FirebaseUserService", "Error fetching user details for userId: $userId", e)
+            null
+        }
     }
 
     suspend fun updateUsername(userId: String, username: String) {
@@ -57,9 +65,6 @@ class FirebaseUserService @Inject constructor(
             .await()
     }
 
-    suspend fun updateUserPosts(userId: String, posts: List<String>) {
-        firestore.collection("users").document(userId).update("posts", posts).await()
-    }
 
     suspend fun searchUsers(query: String): List<UserEntity> {
         val users = mutableListOf<UserEntity>()
@@ -130,22 +135,17 @@ class FirebaseUserService @Inject constructor(
         }
     }
 
-    suspend fun deletePost(userId: String, postUrl: String) {
-        val userDoc = firestore.collection("users").document(userId)
-        firestore.runTransaction { transaction ->
-            val snapshot = transaction.get(userDoc)
-            val user = snapshot.toObject(UserEntity::class.java)
-            user?.let {
-                val updatedPosts = it.posts.toMutableList().apply { remove(postUrl) }
-                transaction.update(userDoc, "posts", updatedPosts)
-            }
-        }.await()
-        if (postUrl.isNotEmpty()) {
-            val storageRef = firebaseStorage.getReferenceFromUrl(postUrl)
+    suspend fun deletePost(userId: String, postId: String, postImageUrl: String) {
+        val postRef = firestore.collection("users").document(userId).collection("posts").document(postId)
+        postRef.delete().await()
+        if (postImageUrl.isNotEmpty()) {
+            val storageRef = firebaseStorage.getReferenceFromUrl(postImageUrl)
             storageRef.delete().await()
         }
-        Log.d("FirebaseUserService", "Deleted post with postUrl: $postUrl for userId: $userId")
+        Log.d("FirebaseUserService", "Deleted post with postId: $postId for userId: $userId")
     }
+
+
 
     suspend fun uploadProfilePicture(uri: Uri): String {
         val ref = firebaseStorage.reference.child("profile_pictures/${uri.lastPathSegment}")
@@ -218,11 +218,13 @@ class FirebaseUserService @Inject constructor(
         val posts = mutableListOf<PostEntity>()
         for (userId in userIds) {
             Log.d("FirebaseUserService", "Fetching posts for userId: $userId")
-            val document = firestore.collection("users").document(userId).get().await()
-            val user = document.toObject(UserEntity::class.java)?.copy(id = userId)
-            user?.posts?.forEach { postUrl ->
-                posts.add(PostEntity(userId = userId, imageUrl = postUrl, content = ""))
-            }
+            val postsSnapshot = firestore.collection("users")
+                .document(userId)
+                .collection("posts")
+                .get()
+                .await()
+            val userPosts = postsSnapshot.toObjects(PostEntity::class.java)
+            posts.addAll(userPosts)
         }
         Log.d("FirebaseUserService", "All posts fetched: $posts")
         emit(posts)

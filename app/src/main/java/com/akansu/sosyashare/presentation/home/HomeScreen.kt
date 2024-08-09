@@ -57,17 +57,17 @@ fun HomeScreen(
                 Post(
                     postUrl = post.imageUrl ?: "",
                     postId = post.id,
-                    postUserId = post.userId,
+                    postUserId = post.userId, // Bu satırda postUserId parametresi doğru şekilde iletiliyor
                     username = user?.username ?: "Unknown",
                     profilePictureUrl = user?.profilePictureUrl,
                     comment = post.content,
                     isLiked = post.isLiked,
                     likeCount = post.likeCount,
                     onLikeClick = {
-                        homeViewModel.likePost(post.id)
+                        homeViewModel.likePost(post.id, post.userId) // Burada postUserId parametresi iletiliyor
                     },
                     onUnlikeClick = {
-                        homeViewModel.unlikePost(post.id)
+                        homeViewModel.unlikePost(post.id, post.userId) // Burada postUserId parametresi iletiliyor
                     }
                 )
             }

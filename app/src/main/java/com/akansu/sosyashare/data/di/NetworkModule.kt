@@ -18,7 +18,8 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideFirebaseAuthService(userDao: UserDao): FirebaseAuthService {
-        return FirebaseAuthService(userDao)
+        val firebaseStorage = FirebaseStorage.getInstance()
+        return FirebaseAuthService(userDao,firebaseStorage)
     }
 
     @Provides
@@ -36,7 +37,8 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideFirebasePostService(): FirebasePostService {
-        return FirebasePostService()
+        val firebaseStorage = FirebaseStorage.getInstance()
+        return FirebasePostService(firebaseStorage)
     }
 
     @Provides

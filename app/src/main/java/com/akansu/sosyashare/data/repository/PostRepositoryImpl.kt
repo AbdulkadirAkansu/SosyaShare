@@ -1,9 +1,7 @@
 package com.akansu.sosyashare.data.repository
 
-import android.util.Log
 import com.akansu.sosyashare.data.mapper.toDomainModel
 import com.akansu.sosyashare.data.mapper.toEntityModel
-import com.akansu.sosyashare.data.model.PostEntity
 import com.akansu.sosyashare.data.remote.FirebasePostService
 import com.akansu.sosyashare.domain.model.Post
 import com.akansu.sosyashare.domain.repository.PostRepository
@@ -16,34 +14,39 @@ class PostRepositoryImpl @Inject constructor(
 ) : PostRepository {
 
     override fun getAllPosts(): Flow<List<Post>> = flow {
-        val posts = postService.getAllPosts().map { it.toDomainModel() }
-        emit(posts)
-        Log.d("PostRepositoryImpl", "All posts: $posts")
+        val posts = postService.getAllPosts()
+        emit(posts.map { it.toDomainModel() })
+    }
+
+    override fun getPostsByUser(userId: String): Flow<List<Post>> = flow {
+        val posts = postService.getPostsByUser(userId)
+        emit(posts.map { it.toDomainModel() })  // Verileri Flow olarak yayımlıyoruz
     }
 
     override suspend fun createPost(post: Post) {
-        postService.createPost(post.toEntityModel())
-        Log.d("PostRepositoryImpl", "Post created: $post")
+        val userId = post.userId
+        val postEntity = post.toEntityModel()
+        postService.createPost(userId, postEntity)
     }
 
-    override suspend fun deletePost(postId: String) {
-        postService.deletePost(postId)
-        Log.d("PostRepositoryImpl", "Post deleted: $postId")
+    override suspend fun deletePost(postId: String, userId: String) {
+        val postEntity = postService.getPostById(postId, userId)
+        val postImageUrl = postEntity?.imageUrl ?: ""
+
+        // Post'u sil
+        postService.deletePost(postId, userId, postImageUrl)
     }
 
     override suspend fun likePost(postId: String, userId: String) {
-        postService.likePost(postId, userId)
-        Log.d("PostRepositoryImpl", "Post liked: $postId by user: $userId")
+        postService.likePost(postId, userId, userId)
     }
 
     override suspend fun unlikePost(postId: String, userId: String) {
-        postService.unlikePost(postId, userId)
-        Log.d("PostRepositoryImpl", "Post unliked: $postId by user: $userId")
+        postService.unlikePost(postId, userId, userId)
     }
 
-    override suspend fun getPostById(postId: String): Post? {
-        val postEntity = postService.getPostById(postId)
-        Log.d("PostRepositoryImpl", "Fetched post for postId $postId: $postEntity")
+    override suspend fun getPostById(postId: String, userId: String): Post? {
+        val postEntity = postService.getPostById(postId, userId)
         return postEntity?.toDomainModel()
     }
 }

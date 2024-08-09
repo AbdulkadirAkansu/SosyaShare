@@ -40,7 +40,6 @@ class UserRepositoryImpl @Inject constructor(
         user.profilePictureUrl?.let {
             firebaseUserService.updateUserProfilePicture(user.id, it)
         }
-        firebaseUserService.updateUserPosts(user.id, user.posts)
     }
 
     override suspend fun likePost(postId: String, userId: String) {
@@ -51,9 +50,6 @@ class UserRepositoryImpl @Inject constructor(
         firebaseUserService.unlikePost(postId, userId)
     }
 
-    override suspend fun updateUserPosts(userId: String, posts: List<String>) {
-        firebaseUserService.updateUserPosts(userId, posts)
-    }
 
     override suspend fun followUser(currentUserId: String, followUserId: String) {
         firebaseUserService.followUser(currentUserId, followUserId)
@@ -77,9 +73,10 @@ class UserRepositoryImpl @Inject constructor(
         return firebaseUserService.uploadPostPicture(uri)
     }
 
-    override suspend fun deletePost(userId: String, postUrl: String) {
-        firebaseUserService.deletePost(userId, postUrl)
+    override suspend fun deletePost(userId: String, postId: String, postImageUrl: String) {
+        firebaseUserService.deletePost(userId, postId, postImageUrl)
     }
+
 
     override suspend fun registerUser(email: String, password: String, username: String) {
         firebaseUserService.registerUser(email, password, username)

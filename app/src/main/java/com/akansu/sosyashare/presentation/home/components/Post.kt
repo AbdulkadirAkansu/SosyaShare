@@ -43,42 +43,20 @@ fun Post(
     onUnlikeClick: () -> Unit
 ) {
     var liked by remember { mutableStateOf(isLiked) }
-    var likes by remember { mutableStateOf(likeCount) }
+    var likes by remember { mutableIntStateOf(likeCount) }
     val scale by animateFloatAsState(if (liked) 1.2f else 1f, tween(300))
+
+    LaunchedEffect(isLiked, likeCount) {
+        liked = isLiked
+        likes = likeCount
+    }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 8.dp)
     ) {
-        // Post header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Image(
-                painter = rememberAsyncImagePainter(profilePictureUrl ?: R.drawable.profile),
-                contentDescription = "Profile Picture",
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape),
-                contentScale = ContentScale.Crop
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Column {
-                Text(
-                    username,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = poppinsFontFamily,
-                    fontSize = 14.sp
-                )
-            }
-            Spacer(modifier = Modifier.weight(1f))
-        }
-
-        // Post image
+        // Post image (beğenme işlemi burada yönetiliyor)
         Image(
             painter = rememberAsyncImagePainter(postUrl),
             contentDescription = "Post Image",
@@ -121,14 +99,14 @@ fun Post(
                     tint = if (liked) Color.Red else Color.Gray
                 )
             }
-            IconButton(onClick = { /* TODO */ }) {
+            IconButton(onClick = { /* TODO: Yorum ekleme işlemi yapılabilir */ }) {
                 Icon(Icons.Filled.Check, contentDescription = "Comment", modifier = Modifier.size(24.dp))
             }
-            IconButton(onClick = { /* TODO */ }) {
+            IconButton(onClick = { /* TODO: Paylaşma işlemi yapılabilir */ }) {
                 Icon(Icons.Filled.Share, contentDescription = "Share", modifier = Modifier.size(24.dp))
             }
             Spacer(modifier = Modifier.weight(1f))
-            IconButton(onClick = { /* TODO */ }) {
+            IconButton(onClick = { /* TODO: Kaydetme işlemi yapılabilir */ }) {
                 Icon(Icons.Filled.Star, contentDescription = "Save", modifier = Modifier.size(24.dp))
             }
         }

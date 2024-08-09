@@ -13,7 +13,6 @@ data class UserEntity(
     val username: String = "",
     val email: String = "",
     val profilePictureUrl: String? = null,
-    val posts: List<String> = emptyList(),
     val comments: List<String> = emptyList(),
     val following: List<String> = emptyList(),
     val followers: List<String> = emptyList(),

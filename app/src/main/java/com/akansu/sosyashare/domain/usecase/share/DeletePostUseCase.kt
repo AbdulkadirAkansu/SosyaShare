@@ -1,15 +1,14 @@
 package com.akansu.sosyashare.domain.usecase.share
 
+import com.akansu.sosyashare.domain.repository.PostRepository
 import com.akansu.sosyashare.domain.repository.UserRepository
 import javax.inject.Inject
 
 class DeletePostUseCase @Inject constructor(
-    private val userRepository: UserRepository
+    private val postRepository: PostRepository
 ) {
-    suspend operator fun invoke(postUrl: String) {
-        val currentUserId = userRepository.getCurrentUserId()
-        currentUserId?.let {
-            userRepository.deletePost(it, postUrl)
-        }
+    suspend operator fun invoke(postId: String, userId: String) {
+        postRepository.deletePost(postId, userId)
     }
 }
+

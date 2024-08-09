@@ -130,7 +130,9 @@ fun UserProfileScreen(
                 )
                 ActionButtons(navController)
                 Spacer(modifier = Modifier.height(8.dp))
-                PostGrid(posts = posts, userId = currentUser?.uid ?: "", navController = navController)
+                PostGrid(posts = posts.mapNotNull { it.imageUrl }, userId = currentUser?.uid ?: "", navController = navController)
+
+
             }
         }
     }
@@ -255,7 +257,7 @@ fun ActionButtons(navController: NavHostController) {
 }
 
 @Composable
-fun PostGrid(posts: List<String>?, userId: String, navController: NavHostController) {
+fun PostGrid(posts: List<String>, userId: String, navController: NavHostController) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(3),
         contentPadding = PaddingValues(0.dp),
@@ -269,7 +271,7 @@ fun PostGrid(posts: List<String>?, userId: String, navController: NavHostControl
                         .aspectRatio(1f),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = "No posts yet", fontFamily = poppinsFontFamily, color = MaterialTheme.colorScheme.onBackground)
+                    Text(text = "No posts yet")
                 }
             }
         } else {
