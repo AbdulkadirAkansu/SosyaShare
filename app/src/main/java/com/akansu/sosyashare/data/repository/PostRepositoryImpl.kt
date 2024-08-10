@@ -7,6 +7,7 @@ import com.akansu.sosyashare.domain.model.Post
 import com.akansu.sosyashare.domain.repository.PostRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 class PostRepositoryImpl @Inject constructor(
@@ -20,33 +21,32 @@ class PostRepositoryImpl @Inject constructor(
 
     override fun getPostsByUser(userId: String): Flow<List<Post>> = flow {
         val posts = postService.getPostsByUser(userId)
-        emit(posts.map { it.toDomainModel() })  // Verileri Flow olarak yayımlıyoruz
+        emit(posts.map { it.toDomainModel() })
     }
 
     override suspend fun createPost(post: Post) {
-        val userId = post.userId
         val postEntity = post.toEntityModel()
-        postService.createPost(userId, postEntity)
+        postService.createPost(postEntity.userId, postEntity)
     }
 
-    override suspend fun deletePost(postId: String, userId: String) {
-        val postEntity = postService.getPostById(postId, userId)
-        val postImageUrl = postEntity?.imageUrl ?: ""
-
-        // Post'u sil
-        postService.deletePost(postId, userId, postImageUrl)
+    override suspend fun deletePost(postId: String, postImageUrl: String) {
+        postService.deletePost(postId, postImageUrl)
     }
 
-    override suspend fun likePost(postId: String, userId: String) {
-        postService.likePost(postId, userId, userId)
+    override suspend fun likePost(postId: String, likerId: String) {
+        postService.likePost(postId, likerId)
     }
 
-    override suspend fun unlikePost(postId: String, userId: String) {
-        postService.unlikePost(postId, userId, userId)
+    override suspend fun unlikePost(postId: String, likerId: String) {
+        postService.unlikePost(postId, likerId)
     }
 
-    override suspend fun getPostById(postId: String, userId: String): Post? {
-        val postEntity = postService.getPostById(postId, userId)
+    override suspend fun getPostById(postId: String): Post? {
+        val postEntity = postService.getPostById(postId)
         return postEntity?.toDomainModel()
+    }
+
+    override suspend fun getLikeStatus(postId: String, likerId: String): Boolean {
+        return postService.getLikeStatus(postId, likerId)
     }
 }

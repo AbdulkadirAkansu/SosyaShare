@@ -5,101 +5,94 @@ import com.akansu.sosyashare.data.model.PostEntity
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.tasks.await
-import java.util.UUID
 import javax.inject.Inject
 
 class FirebasePostService @Inject constructor(
-    private val firebaseStorage: FirebaseStorage // FirebaseStorage burada enjekte ediliyor
+    private val firebaseStorage: FirebaseStorage
 ) {
     private val firestore = FirebaseFirestore.getInstance()
 
     suspend fun createPost(userId: String, post: PostEntity) {
-        val postRef = firestore.collection("users")
-            .document(userId)
-            .collection("posts")
+        val postRef = firestore.collection("posts")
             .document(post.id)
         postRef.set(post).await()
     }
 
-    suspend fun deletePost(userId: String, postId: String, postImageUrl: String) {
-        // Gönderiyi Firestore'dan silme
-        val postRef = firestore.collection("users").document(userId).collection("posts").document(postId)
-        postRef.delete().await()
-
-        // Gönderiye ait resmi Firebase Storage'dan silme
-        if (postImageUrl.isNotEmpty()) {
-            val storageRef = firebaseStorage.getReferenceFromUrl(postImageUrl)
-            storageRef.delete().await()
-        }
-        Log.d("FirebasePostService", "Deleted post with postId: $postId for userId: $userId")
-    }
-
-    suspend fun likePost(postId: String, userId: String, likerId: String) {
+    suspend fun deletePost(postId: String, postImageUrl: String) {
         try {
-            val postRef = firestore.collection("users")
-                .document(userId)
-                .collection("posts")
-                .document(postId)
+            val postRef = firestore.collection("posts").document(postId)
+            postRef.delete().await()
 
-            firestore.runTransaction { transaction ->
-                val snapshot = transaction.get(postRef)
-                if (snapshot.exists()) {
-                    val post = snapshot.toObject(PostEntity::class.java)
-                    val updatedLikeCount = post?.likeCount?.plus(1) ?: 1
-                    val likedBy = post?.likedBy?.toMutableList() ?: mutableListOf()
-
-                    if (!likedBy.contains(likerId)) {
-                        likedBy.add(likerId)
-                    }
-
-                    transaction.update(postRef, mapOf("likeCount" to updatedLikeCount, "likedBy" to likedBy))
-                } else {
-                    transaction.set(postRef, mapOf(
-                        "id" to postId,
-                        "likeCount" to 1,
-                        "likedBy" to listOf(likerId)
-                    ))
-                }
-            }.await()
+            if (postImageUrl.isNotEmpty()) {
+                val storageRef = firebaseStorage.getReferenceFromUrl(postImageUrl)
+                storageRef.delete().await()
+                Log.d("FirebasePostService", "Deleted image at: $postImageUrl")
+            }
+            Log.d("FirebasePostService", "Deleted post with postId: $postId")
+        } catch (e: IllegalArgumentException) {
+            Log.e("FirebasePostService", "Invalid URL: ${e.message}")
         } catch (e: Exception) {
-            Log.e("FirebasePostService", "Error liking post with postId: $postId", e)
+            Log.e("FirebasePostService", "Error deleting post or image: ${e.message}")
         }
     }
 
-    suspend fun unlikePost(postId: String, userId: String, likerId: String) {
-        try {
-            val postRef = firestore.collection("users")
-                .document(userId)
-                .collection("posts")
-                .document(postId)
+    suspend fun likePost(postId: String, likerId: String) {
+        Log.d("FirebasePostService", "Liking Post: postId=$postId by User: $likerId")
+        val postRef = firestore.collection("posts").document(postId)
+        val likeRef = postRef.collection("likes").document(likerId)
 
-            firestore.runTransaction { transaction ->
-                val snapshot = transaction.get(postRef)
-                val post = snapshot.toObject(PostEntity::class.java)
-                val updatedLikeCount = post?.likeCount?.minus(1) ?: 0
-                val likedBy = post?.likedBy?.toMutableList() ?: mutableListOf()
+        firestore.runTransaction { transaction ->
+            val postSnapshot = transaction.get(postRef)
+            val likeSnapshot = transaction.get(likeRef)
 
-                if (likedBy.contains(likerId)) {
-                    likedBy.remove(likerId)
-                }
+            if (!likeSnapshot.exists()) {
+                val newLikeCount = (postSnapshot.getLong("likeCount") ?: 0) + 1
+                transaction.update(postRef, "likeCount", newLikeCount)
+                val likedByList = postSnapshot.get("likedBy") as? MutableList<String> ?: mutableListOf()
+                likedByList.add(likerId)
+                transaction.update(postRef, "likedBy", likedByList)
 
-                transaction.update(postRef, mapOf("likeCount" to updatedLikeCount, "likedBy" to likedBy))
-            }.await()
-        } catch (e: Exception) {
-            Log.e("FirebasePostService", "Error unliking post with postId: $postId", e)
-        }
+                transaction.set(likeRef, mapOf("userId" to likerId))
+
+                Log.d("FirebasePostService", "Post Liked: postId=$postId, newLikeCount=$newLikeCount, likedBy=$likedByList")
+            } else {
+                Log.d("FirebasePostService", "User $likerId has already liked post $postId")
+            }
+        }.await()
     }
 
-    suspend fun getAllPosts(): List<PostEntity> {
-        val result = firestore.collectionGroup("posts").get().await()
-        return result.toObjects(PostEntity::class.java)
+    suspend fun unlikePost(postId: String, likerId: String) {
+        Log.d("FirebasePostService", "Unliking Post: postId=$postId by User: $likerId")
+        val postRef = firestore.collection("posts").document(postId)
+        val likeRef = postRef.collection("likes").document(likerId)
+
+        firestore.runTransaction { transaction ->
+            val postSnapshot = transaction.get(postRef)
+            val likeSnapshot = transaction.get(likeRef)
+
+            if (likeSnapshot.exists()) {
+                // Post güncellemesi
+                val newLikeCount = (postSnapshot.getLong("likeCount") ?: 0) - 1
+                transaction.update(postRef, "likeCount", newLikeCount)
+
+                // likedBy listesi güncellemesi
+                val likedByList = postSnapshot.get("likedBy") as? MutableList<String> ?: mutableListOf()
+                likedByList.remove(likerId)
+                transaction.update(postRef, "likedBy", likedByList)
+
+                // Beğeni kaydının silinmesi
+                transaction.delete(likeRef)
+
+                Log.d("FirebasePostService", "Post Unliked: postId=$postId, newLikeCount=$newLikeCount, likedBy=$likedByList")
+            } else {
+                Log.d("FirebasePostService", "User $likerId had not liked post $postId")
+            }
+        }.await()
     }
 
-    suspend fun getPostById(postId: String, userId: String): PostEntity? {
+    suspend fun getPostById(postId: String): PostEntity? {
         return try {
-            val document = firestore.collection("users")
-                .document(userId)
-                .collection("posts")
+            val document = firestore.collection("posts")
                 .document(postId)
                 .get()
                 .await()
@@ -110,23 +103,27 @@ class FirebasePostService @Inject constructor(
         }
     }
 
+    suspend fun getAllPosts(): List<PostEntity> {
+        val result = firestore.collection("posts").get().await()
+        return result.toObjects(PostEntity::class.java)
+    }
+
     suspend fun getPostsByUser(userId: String): List<PostEntity> {
-        val postsRef = firestore.collection("users")
-            .document(userId)
-            .collection("posts")
+        val postsRef = firestore.collection("posts")
+            .whereEqualTo("userId", userId)
 
         val result = postsRef.get().await()
         return result.toObjects(PostEntity::class.java)
     }
 
-    suspend fun migrateOldPosts(userId: String, oldPosts: List<String>) {
-        oldPosts.forEach { imageUrl ->
-            val post = PostEntity(
-                id = UUID.randomUUID().toString(),
-                content = "Old post migrated", // İçeriği burada belirleyin
-                imageUrl = imageUrl
-            )
-            createPost(userId, post)
-        }
+    suspend fun getLikeStatus(postId: String, likerId: String): Boolean {
+        val likeRef = firestore.collection("posts")
+            .document(postId)
+            .collection("likes")
+            .document(likerId)
+            .get()
+            .await()
+
+        return likeRef.exists()
     }
 }

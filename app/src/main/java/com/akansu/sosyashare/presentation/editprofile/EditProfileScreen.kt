@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,7 +25,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
@@ -39,7 +39,6 @@ import com.akansu.sosyashare.util.poppinsFontFamily
 fun EditProfileScreen(navController: NavHostController, viewModel: EditProfileViewModel = hiltViewModel()) {
     val context = LocalContext.current
 
-    val user by viewModel.user.collectAsState()
     val profilePictureUrl by viewModel.profilePictureUrl.collectAsState()
     var username by remember { mutableStateOf(viewModel.username.value) }
     var bio by remember { mutableStateOf(viewModel.bio.value) }
@@ -54,6 +53,8 @@ fun EditProfileScreen(navController: NavHostController, viewModel: EditProfileVi
         }
     }
 
+    var isUploading by remember { mutableStateOf(false) }
+
     LaunchedEffect(errorMessage, successMessage) {
         errorMessage?.let {
             Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
@@ -64,7 +65,6 @@ fun EditProfileScreen(navController: NavHostController, viewModel: EditProfileVi
     }
 
     var showConfirmDialog by remember { mutableStateOf(false) }
-    var showSaveChangesDialog by remember { mutableStateOf(false) }
     var postToDelete by remember { mutableStateOf<String?>(null) }
 
     if (showConfirmDialog) {
@@ -90,30 +90,6 @@ fun EditProfileScreen(navController: NavHostController, viewModel: EditProfileVi
         )
     }
 
-    if (showSaveChangesDialog) {
-        AlertDialog(
-            onDismissRequest = { showSaveChangesDialog = false },
-            title = { Text("Save Changes") },
-            text = { Text("Do you want to save the changes?") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.saveChanges(username, bio)
-                        navController.navigateUp()
-                        showSaveChangesDialog = false
-                    }
-                ) {
-                    Text("Yes")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showSaveChangesDialog = false }) {
-                    Text("No")
-                }
-            }
-        )
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -133,6 +109,10 @@ fun EditProfileScreen(navController: NavHostController, viewModel: EditProfileVi
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
+            if (isUploading) {
+                CircularProgressIndicator()
+            }
+
             Image(
                 painter = rememberAsyncImagePainter(profilePictureUrl ?: R.drawable.profile),
                 contentDescription = "Profile Picture",
@@ -142,6 +122,7 @@ fun EditProfileScreen(navController: NavHostController, viewModel: EditProfileVi
                     .border(3.dp, MaterialTheme.colorScheme.primary, CircleShape)
                     .clickable {
                         if (PermissionHandler.hasReadExternalStoragePermission(context as Activity)) {
+                            isUploading = true
                             launcher.launch("image/*")
                         } else {
                             PermissionHandler.requestReadExternalStoragePermission(context as Activity)
@@ -150,31 +131,36 @@ fun EditProfileScreen(navController: NavHostController, viewModel: EditProfileVi
                 contentScale = ContentScale.Crop
             )
             Spacer(modifier = Modifier.height(12.dp))
-            OutlinedTextField(
-                value = username,
-                onValueChange = { username = it },
-                label = { Text("Username", fontFamily = poppinsFontFamily) },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = canChangeUsername
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            OutlinedTextField(
-                value = bio,
-                onValueChange = { bio = it },
-                label = { Text("Bio", fontFamily = poppinsFontFamily) },
-                modifier = Modifier.fillMaxWidth(),
-                maxLines = 3
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            Button(
-                onClick = {
-                    showSaveChangesDialog = true
-                },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                shape = MaterialTheme.shapes.medium
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Save", color = MaterialTheme.colorScheme.onPrimary, fontFamily = poppinsFontFamily)
+                OutlinedTextField(
+                    value = username,
+                    onValueChange = { username = it },
+                    label = { Text("Username", fontFamily = poppinsFontFamily) },
+                    modifier = Modifier.weight(1f),
+                    enabled = canChangeUsername
+                )
+                IconButton(onClick = { viewModel.updateUsername(username) }) {
+                    Icon(imageVector = Icons.Default.Check, contentDescription = "Save Username")
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = bio,
+                    onValueChange = { bio = it },
+                    label = { Text("Bio", fontFamily = poppinsFontFamily) },
+                    modifier = Modifier.weight(1f),
+                    maxLines = 3
+                )
+                IconButton(onClick = { viewModel.updateBio(bio) }) {
+                    Icon(imageVector = Icons.Default.Check, contentDescription = "Save Bio")
+                }
             }
             Spacer(modifier = Modifier.height(12.dp))
             PostGrid(posts = posts, onDeletePost = { postId ->
@@ -211,7 +197,7 @@ fun PostGrid(posts: List<Post>, onDeletePost: (String) -> Unit) {
                         .aspectRatio(1f)
                         .padding(1.dp)
                         .clickable {
-                            onDeletePost(post.id)  // post.id'yi gönderiyoruz
+                            onDeletePost(post.id)
                         }
                 ) {
                     Image(
@@ -227,7 +213,7 @@ fun PostGrid(posts: List<Post>, onDeletePost: (String) -> Unit) {
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(4.dp)
-                            .clickable { onDeletePost(post.id) }  // post.id'yi gönderiyoruz
+                            .clickable { onDeletePost(post.id) }
                     )
                 }
             }

@@ -43,6 +43,8 @@ fun SearchScreen(navController: NavHostController, searchViewModel: SearchViewMo
     var selectedItem by remember { mutableIntStateOf(4) }
     val profilePictureUrl by userViewModel.profilePictureUrl.collectAsState()
 
+    val currentUser = searchViewModel.getCurrentUser()
+
     Scaffold(
         bottomBar = {
             NavigationBar(
@@ -106,7 +108,6 @@ fun SearchScreen(navController: NavHostController, searchViewModel: SearchViewMo
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f)
                         .clip(RoundedCornerShape(20))
                         .border(1.dp, MaterialTheme.colorScheme.onBackground, RoundedCornerShape(20))
                         .background(MaterialTheme.colorScheme.surface)
@@ -127,7 +128,11 @@ fun SearchScreen(navController: NavHostController, searchViewModel: SearchViewMo
                             .clickable {
                                 try {
                                     if (user.id.isNotEmpty()) {
-                                        navController.navigate("profile/${user.id}")
+                                        if (user.id == currentUser?.uid) {
+                                            navController.navigate("userprofile")
+                                        } else {
+                                            navController.navigate("profile/${user.id}")
+                                        }
                                     } else {
                                         Log.e("Navigation", "User ID is null or empty")
                                     }

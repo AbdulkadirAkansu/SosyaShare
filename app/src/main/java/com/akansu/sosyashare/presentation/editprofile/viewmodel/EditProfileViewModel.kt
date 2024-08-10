@@ -5,29 +5,24 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.akansu.sosyashare.domain.model.Post
 import com.akansu.sosyashare.domain.model.User
+import com.akansu.sosyashare.domain.repository.AuthRepository
 import com.akansu.sosyashare.domain.repository.PostRepository
-import com.akansu.sosyashare.domain.usecase.profile.*
-import com.akansu.sosyashare.domain.usecase.UploadProfilePictureUseCase
-import com.akansu.sosyashare.domain.usecase.editprofile.UpdateBioUseCase
-import com.akansu.sosyashare.domain.usecase.editprofile.UpdateUsernameUseCase
-import com.akansu.sosyashare.domain.usecase.share.DeletePostUseCase
+import com.akansu.sosyashare.domain.repository.UserRepository
+import com.google.firebase.storage.FirebaseStorage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import java.util.*
 import javax.inject.Inject
 
 @HiltViewModel
 class EditProfileViewModel @Inject constructor(
-    private val getCurrentUserIdUseCase: GetCurrentUserIdUseCase,
-    private val getUserDetailsUseCase: GetUserDetailsUseCase,
-    private val uploadProfilePictureUseCase: UploadProfilePictureUseCase,
-    private val updateUsernameUseCase: UpdateUsernameUseCase,
-    private val updateBioUseCase: UpdateBioUseCase,
-    private val deletePostUseCase: DeletePostUseCase,
-    private val postRepository: PostRepository // PostRepository'yi ekliyoruz
+    private val authRepository: AuthRepository,
+    private val userRepository: UserRepository,
+    private val postRepository: PostRepository
 ) : ViewModel() {
 
     private val _user = MutableStateFlow<User?>(null)
@@ -42,7 +37,7 @@ class EditProfileViewModel @Inject constructor(
     private val _bio = MutableStateFlow<String>("")
     val bio: StateFlow<String> get() = _bio
 
-    private val _posts = MutableStateFlow<List<Post>>(emptyList()) // Post tipini güncelledik
+    private val _posts = MutableStateFlow<List<Post>>(emptyList())
     val posts: StateFlow<List<Post>> get() = _posts
 
     private val _errorMessage = MutableStateFlow<String?>(null)
@@ -63,9 +58,9 @@ class EditProfileViewModel @Inject constructor(
 
     private fun getCurrentUser() {
         viewModelScope.launch {
-            val userId = getCurrentUserIdUseCase()
+            val userId = authRepository.getCurrentUser()?.uid
             if (userId != null) {
-                val user = getUserDetailsUseCase(userId).firstOrNull()
+                val user = userRepository.getUserById(userId).firstOrNull()
                 _user.value = user
                 _profilePictureUrl.value = user?.profilePictureUrl
                 _username.value = user?.username ?: ""
@@ -90,47 +85,60 @@ class EditProfileViewModel @Inject constructor(
     fun updateProfilePicture(uri: Uri) {
         viewModelScope.launch {
             try {
-                val url = uploadProfilePictureUseCase(uri)
+                val url = userRepository.uploadProfilePicture(uri)
                 _profilePictureUrl.value = url
                 _user.value = _user.value?.copy(profilePictureUrl = url)
-                _successMessage.value = "Profile picture updated successfully."
+                _successMessage.value = "Profil resmi başarıyla güncellendi."
             } catch (e: Exception) {
-                _errorMessage.value = "Failed to update profile picture: ${e.message}"
+                _errorMessage.value = "Profil resmi güncellenemedi: ${e.message}"
             }
         }
     }
 
-    fun saveChanges(newUsername: String, newBio: String) {
+    fun updateUsername(newUsername: String) {
         if (newUsername.isBlank()) {
-            _errorMessage.value = "Username cannot be empty."
+            _errorMessage.value = "Kullanıcı adı boş olamaz."
             return
         }
         if (newUsername.length > 20) {
-            _errorMessage.value = "Username cannot exceed 20 characters."
-            return
-        }
-        if (newBio.length > 50) {
-            _errorMessage.value = "Bio cannot exceed 50 characters."
+            _errorMessage.value = "Kullanıcı adı 20 karakterden uzun olamaz."
             return
         }
         viewModelScope.launch {
-            val userId = getCurrentUserIdUseCase()
+            val userId = authRepository.getCurrentUser()?.uid
             if (userId != null) {
                 try {
                     if (_canChangeUsername.value && newUsername != initialUsername) {
-                        updateUsernameUseCase(userId, newUsername)
+                        userRepository.updateUsernameInFirebase(userId, newUsername)
                         _username.value = newUsername
                         _user.value = _user.value?.copy(username = newUsername)
                         _canChangeUsername.value = false
+                        _successMessage.value = "Kullanıcı adı başarıyla güncellendi."
                     }
+                } catch (e: Exception) {
+                    _errorMessage.value = "Kullanıcı adı güncellenemedi: ${e.message}"
+                }
+            }
+        }
+    }
+
+    fun updateBio(newBio: String) {
+        if (newBio.length > 50) {
+            _errorMessage.value = "Biyografi 50 karakterden uzun olamaz."
+            return
+        }
+        viewModelScope.launch {
+            val userId = authRepository.getCurrentUser()?.uid
+            if (userId != null) {
+                try {
                     if (newBio != initialBio) {
-                        updateBioUseCase(userId, newBio)
+                        userRepository.updateBioInFirebase(userId, newBio)
                         _bio.value = newBio
                         _user.value = _user.value?.copy(bio = newBio)
+                        _successMessage.value = "Biyografi başarıyla güncellendi."
                     }
-                    _successMessage.value = "Profile updated successfully."
                 } catch (e: Exception) {
-                    _errorMessage.value = "Failed to update profile: ${e.message}"
+                    _errorMessage.value = "Biyografi güncellenemedi: ${e.message}"
                 }
             }
         }
@@ -139,15 +147,25 @@ class EditProfileViewModel @Inject constructor(
     fun deletePost(postId: String) {
         viewModelScope.launch {
             try {
-                val userId = getCurrentUserIdUseCase()
-                if (userId != null) {
-                    deletePostUseCase(postId, userId)
+                val post = postRepository.getPostById(postId)
+                val imageUrl = post?.imageUrl
+
+                if (imageUrl != null && imageUrl.isNotBlank()) {
+                    val storageRef = FirebaseStorage.getInstance().getReferenceFromUrl(imageUrl)
+                    storageRef.delete().await()
+
+                    postRepository.deletePost(postId, post.userId)
                     _posts.value = _posts.value.filterNot { it.id == postId }
-                    _successMessage.value = "Post deleted successfully."
+                    _successMessage.value = "Gönderi başarıyla silindi."
+                } else {
+                    _errorMessage.value = "Silinecek dosya bulunamadı."
                 }
+            } catch (e: IllegalArgumentException) {
+                _errorMessage.value = "Geçersiz URI: ${e.message}"
             } catch (e: Exception) {
-                _errorMessage.value = "Failed to delete post: ${e.message}"
+                _errorMessage.value = "Gönderi silinemedi: ${e.message}"
             }
         }
     }
-}
+ }
+

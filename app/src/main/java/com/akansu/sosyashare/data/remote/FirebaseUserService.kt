@@ -214,20 +214,19 @@ class FirebaseUserService @Inject constructor(
         return user?.following ?: emptyList()
     }
 
-    fun getFollowedUsersPosts(userIds: List<String>): Flow<List<PostEntity>> = flow {
-        val posts = mutableListOf<PostEntity>()
-        for (userId in userIds) {
-            Log.d("FirebaseUserService", "Fetching posts for userId: $userId")
-            val postsSnapshot = firestore.collection("users")
-                .document(userId)
-                .collection("posts")
-                .get()
-                .await()
-            val userPosts = postsSnapshot.toObjects(PostEntity::class.java)
-            posts.addAll(userPosts)
+    suspend fun getFollowedUsersPosts(userIds: List<String>): Flow<List<PostEntity>> = flow {
+        if (userIds.isEmpty()) {
+            emit(emptyList<PostEntity>())
+            return@flow
         }
-        Log.d("FirebaseUserService", "All posts fetched: $posts")
-        emit(posts)
+
+        val postsSnapshot = firestore.collection("posts")
+            .whereIn("userId", userIds)
+            .get()
+            .await()
+
+        val userPosts = postsSnapshot.toObjects(PostEntity::class.java)
+        emit(userPosts)
     }
 
 

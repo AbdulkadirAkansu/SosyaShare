@@ -1,3 +1,5 @@
+/*
+
 package com.akansu.sosyashare.presentation.home
 
 import androidx.compose.foundation.layout.height
@@ -47,3 +49,4 @@ fun TopBar(navController: NavController, authViewModel: AuthViewModel) {
         modifier = Modifier.height(70.dp)
     )
 }
+*/

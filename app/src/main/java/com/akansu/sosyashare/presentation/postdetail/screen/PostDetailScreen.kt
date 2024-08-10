@@ -1,6 +1,8 @@
 package com.akansu.sosyashare.presentation.postdetail.screen
 
 import android.util.Log
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,17 +15,17 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Send
-import androidx.compose.material.icons.outlined.Create
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -32,9 +34,11 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
+import com.akansu.sosyashare.R
 import com.akansu.sosyashare.domain.model.Post
 import com.akansu.sosyashare.presentation.home.components.NavigationBar
 import com.akansu.sosyashare.presentation.postdetail.viewmodel.PostDetailViewModel
+import com.akansu.sosyashare.util.poppinsFontFamily
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -51,7 +55,6 @@ fun PostDetailScreen(
 
     LaunchedEffect(userId) {
         postDetailViewModel.loadUserDetails(userId)
-        Log.d("PostDetailScreen", "Loading user details for userId: $userId")
     }
 
     LaunchedEffect(initialPostIndex) {
@@ -61,17 +64,13 @@ fun PostDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text("Gönderiler", color = MaterialTheme.colorScheme.onBackground)
-                },
+                title = { Text("Gönderiler", color = MaterialTheme.colorScheme.onBackground) },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
         bottomBar = {
@@ -96,14 +95,13 @@ fun PostDetailScreen(
                         post = post,
                         username = user!!.username,
                         profilePictureUrl = user!!.profilePictureUrl,
-                        timestamp = "1 saat önce", // timestamp'i buraya geçici olarak ekliyorum, gerçek veriyle değiştirilmeli
-                        onLike = { /* TODO: Beğeni işlemi */ },
-                        isLiked = false // Bu örnekte sabit false, değişken yapılabilir
+                        timestamp = "1 saat önce",
+                        isLiked = post.isLiked,
+                        onLike = { postDetailViewModel.likePost(post.id) },
+                        onUnlike = { postDetailViewModel.unlikePost(post.id) }
                     )
                 }
             }
-        } else {
-            Log.d("PostDetailScreen", "User details or posts are null")
         }
     }
 }
@@ -114,16 +112,25 @@ fun PostContent(
     username: String,
     profilePictureUrl: String?,
     timestamp: String,
+    isLiked: Boolean,
     onLike: () -> Unit,
-    isLiked: Boolean
+    onUnlike: () -> Unit
 ) {
-    var isImageClicked by remember { mutableStateOf(false) }
+    var liked by remember { mutableStateOf(isLiked) }
+    var likes by remember { mutableIntStateOf(post.likeCount) }
+    val scale by animateFloatAsState(if (liked) 1.2f else 1f, tween(300))
+
+    LaunchedEffect(isLiked, post.likeCount) {
+        liked = isLiked
+        likes = post.likeCount
+    }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp, horizontal = 16.dp)
     ) {
+        // User profile picture and name
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -148,13 +155,14 @@ fun PostContent(
             }
         }
 
+        // Post image
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(400.dp)
                 .clip(RoundedCornerShape(16.dp))
                 .background(MaterialTheme.colorScheme.surface)
-                .clickable { isImageClicked = true }
+                .clickable { /* Full screen image handling */ }
         ) {
             AsyncImage(
                 model = post.imageUrl,
@@ -164,23 +172,44 @@ fun PostContent(
             )
         }
 
-        if (isImageClicked) {
-            FullScreenImage(imageUrl = post.imageUrl ?: "", onDismiss = { isImageClicked = false })
-        }
-
+        // Like and unlike buttons
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            InteractionButton(icon = Icons.Default.FavoriteBorder, onClick = onLike, isLiked = isLiked)
-            InteractionButton(icon = Icons.Outlined.Create, onClick = { /* TODO: Yorum işlemi */ })
-            InteractionButton(icon = Icons.Default.Send, onClick = { /* TODO: Paylaşım işlemi */ })
+            IconButton(onClick = {
+                if (!liked) {  // If the post is not already liked
+                    liked = true
+                    likes += 1
+                    onLike()
+                } else {
+                    liked = false
+                    likes -= 1
+                    onUnlike()
+                }
+            }) {
+                Icon(
+                    imageVector = if (liked) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                    contentDescription = "Like",
+                    modifier = Modifier.size(24.dp).scale(scale),
+                    tint = if (liked) Color.Red else Color.Gray
+                )
+            }
             Spacer(modifier = Modifier.weight(1f))
-            InteractionButton(icon = Icons.Default.FavoriteBorder, onClick = { /* TODO: Kaydetme işlemi */ })
         }
 
+        // Like count
+        Text(
+            "$likes beğenme",
+            fontWeight = FontWeight.Bold,
+            fontFamily = poppinsFontFamily,
+            fontSize = 14.sp,
+            modifier = Modifier.padding(horizontal = 12.dp)
+        )
+
+        // Post content
         Text(
             text = post.content,
             style = MaterialTheme.typography.bodyLarge,
@@ -188,6 +217,7 @@ fun PostContent(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
         )
 
+        // Timestamp
         Text(
             text = timestamp,
             style = MaterialTheme.typography.bodySmall,
@@ -198,6 +228,7 @@ fun PostContent(
         )
     }
 }
+
 
 @Composable
 fun FullScreenImage(imageUrl: String, onDismiss: () -> Unit) {
@@ -237,22 +268,5 @@ fun FullScreenImage(imageUrl: String, onDismiss: () -> Unit) {
                 darkIcons = isLight
             )
         }
-    }
-}
-
-@Composable
-fun InteractionButton(icon: ImageVector, onClick: () -> Unit, isLiked: Boolean = false) {
-    IconButton(
-        onClick = onClick,
-        modifier = Modifier
-            .size(48.dp)
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.2f), CircleShape)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = if (isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.size(24.dp)
-        )
     }
 }

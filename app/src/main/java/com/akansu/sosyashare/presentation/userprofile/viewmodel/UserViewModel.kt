@@ -2,7 +2,7 @@ package com.akansu.sosyashare.presentation.userprofile.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.akansu.sosyashare.domain.usecase.GetCurrentUserProfilePictureUrlUseCase
+import com.akansu.sosyashare.domain.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -11,7 +11,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class UserViewModel @Inject constructor(
-    private val getCurrentUserProfilePictureUrlUseCase: GetCurrentUserProfilePictureUrlUseCase
+    private val userRepository: UserRepository
 ) : ViewModel() {
 
     private val _profilePictureUrl = MutableStateFlow<String?>(null)
@@ -23,7 +23,7 @@ class UserViewModel @Inject constructor(
 
     private fun getCurrentUserProfilePicture() {
         viewModelScope.launch {
-            val profilePictureUrl = getCurrentUserProfilePictureUrlUseCase()
+            val profilePictureUrl = userRepository.getCurrentUserProfilePictureUrl()
             _profilePictureUrl.value = profilePictureUrl
         }
     }

@@ -1,3 +1,5 @@
+/*
+
 package com.akansu.sosyashare.presentation.home.components
 
 import androidx.compose.animation.core.animateFloatAsState
@@ -22,6 +24,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -42,21 +45,22 @@ fun Post(
     onLikeClick: () -> Unit,
     onUnlikeClick: () -> Unit
 ) {
+    // State management for the like status and like count
     var liked by remember { mutableStateOf(isLiked) }
     var likes by remember { mutableIntStateOf(likeCount) }
-    val scale by animateFloatAsState(if (liked) 1.2f else 1f, tween(300))
 
+    // Ensure UI updates when the external state changes
     LaunchedEffect(isLiked, likeCount) {
         liked = isLiked
         likes = likeCount
     }
 
+    // UI representation
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 8.dp)
     ) {
-        // Post image (beğenme işlemi burada yönetiliyor)
         Image(
             painter = rememberAsyncImagePainter(postUrl),
             contentDescription = "Post Image",
@@ -64,70 +68,51 @@ fun Post(
                 .fillMaxWidth()
                 .height(400.dp)
                 .clickable {
-                    liked = !liked
                     if (liked) {
-                        likes += 1
-                        onLikeClick()
-                    } else {
                         likes -= 1
                         onUnlikeClick()
+                    } else {
+                        likes += 1
+                        onLikeClick()
                     }
+                    liked = !liked // Toggle the like status
                 },
             contentScale = ContentScale.Crop
         )
 
-        // Post actions
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp, vertical = 8.dp)
         ) {
             IconButton(onClick = {
-                liked = !liked
                 if (liked) {
-                    likes += 1
-                    onLikeClick()
-                } else {
                     likes -= 1
                     onUnlikeClick()
+                } else {
+                    likes += 1
+                    onLikeClick()
                 }
+                liked = !liked // Toggle the like status
             }) {
-                Icon(
-                    if (liked) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                    contentDescription = "Like",
-                    modifier = Modifier.size(24.dp).scale(scale),
-                    tint = if (liked) Color.Red else Color.Gray
+                Image(
+                    painter = if (liked) {
+                        painterResource(id = R.drawable.red_heart_icon) // Dolu kırmızı kalp ikonu
+                    } else {
+                        painterResource(id = R.drawable.heart_icon) // Boş kalp ikonu
+                    },
+                    contentDescription = "Like Icon",
+                    modifier = Modifier.size(24.dp)
                 )
             }
-            IconButton(onClick = { /* TODO: Yorum ekleme işlemi yapılabilir */ }) {
-                Icon(Icons.Filled.Check, contentDescription = "Comment", modifier = Modifier.size(24.dp))
-            }
-            IconButton(onClick = { /* TODO: Paylaşma işlemi yapılabilir */ }) {
-                Icon(Icons.Filled.Share, contentDescription = "Share", modifier = Modifier.size(24.dp))
-            }
-            Spacer(modifier = Modifier.weight(1f))
-            IconButton(onClick = { /* TODO: Kaydetme işlemi yapılabilir */ }) {
-                Icon(Icons.Filled.Star, contentDescription = "Save", modifier = Modifier.size(24.dp))
-            }
-        }
-
-        // Likes count
-        Text(
-            "$likes beğenme",
-            fontWeight = FontWeight.Bold,
-            fontFamily = poppinsFontFamily,
-            fontSize = 14.sp,
-            modifier = Modifier.padding(horizontal = 12.dp)
-        )
-
-        // User comment
-        comment.let {
             Text(
-                it,
+                "$likes beğenme",
+                fontWeight = FontWeight.Bold,
                 fontFamily = poppinsFontFamily,
-                fontSize = 12.sp,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
+                fontSize = 14.sp,
+                modifier = Modifier.padding(horizontal = 12.dp)
             )
         }
     }
 }
+*/
