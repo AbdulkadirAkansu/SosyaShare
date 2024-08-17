@@ -7,6 +7,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.NavType
+import com.akansu.sosyashare.presentation.comment.screen.CommentScreen
 import com.akansu.sosyashare.presentation.editprofile.EditProfileScreen
 import com.akansu.sosyashare.presentation.login.screen.*
 import com.akansu.sosyashare.presentation.login.viewmodel.AuthViewModel
@@ -87,6 +88,38 @@ fun NavGraph(navController: NavHostController, authViewModel: AuthViewModel) {
         }
         composable("editprofile") {
             EditProfileScreen(navController = navController)
+        }
+
+        composable(
+            route = "comments/{postId}/{currentUserId}",
+            arguments = listOf(
+                navArgument("postId") { type = NavType.StringType },
+                navArgument("currentUserId") { type = NavType.StringType } // Bu kullanıcı kimliği login olan kullanıcıya ait olacak.
+            )
+        ) { backStackEntry ->
+            val postId = backStackEntry.arguments?.getString("postId") ?: return@composable
+            val currentUserId = backStackEntry.arguments?.getString("currentUserId") ?: return@composable
+            val currentUserProfileUrl = authViewModel.getCurrentUserProfilePictureUrl()
+
+            if (currentUserProfileUrl != null) {
+                CommentScreen(
+                    postId = postId,
+                    currentUserId = currentUserId,
+                    currentUserProfileUrl = currentUserProfileUrl,
+                    backgroundContent = {
+                        PostDetailScreen(navController = navController, userId = currentUserId, initialPostIndex = 0)
+                    }
+                )
+            } else {
+                CommentScreen(
+                    postId = postId,
+                    currentUserId = currentUserId,
+                    currentUserProfileUrl = "",
+                    backgroundContent = {
+                        PostDetailScreen(navController = navController, userId = currentUserId, initialPostIndex = 0)
+                    }
+                )
+            }
         }
     }
 }

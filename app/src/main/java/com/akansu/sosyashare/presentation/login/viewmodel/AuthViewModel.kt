@@ -10,6 +10,7 @@ import com.google.firebase.auth.FirebaseUser
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 
 @HiltViewModel
@@ -131,5 +132,9 @@ class AuthViewModel @Inject constructor(
                 onFailure(e)
             }
         }
+    }
+
+    fun getCurrentUserProfilePictureUrl(): String? {
+        return runBlocking { authRepository.getCurrentUserProfilePictureUrl() }
     }
 }

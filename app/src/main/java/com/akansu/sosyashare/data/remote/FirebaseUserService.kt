@@ -228,6 +228,4 @@ class FirebaseUserService @Inject constructor(
         val userPosts = postsSnapshot.toObjects(PostEntity::class.java)
         emit(userPosts)
     }
-
-
 }

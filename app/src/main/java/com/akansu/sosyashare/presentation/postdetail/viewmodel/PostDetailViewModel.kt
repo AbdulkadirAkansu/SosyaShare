@@ -29,6 +29,19 @@ class PostDetailViewModel @Inject constructor(
     private val _profilePictureUrl = MutableStateFlow<String?>(null)
     val profilePictureUrl: StateFlow<String?> = _profilePictureUrl
 
+    private val _currentUserId = MutableStateFlow<String?>(null)
+    val currentUserId: StateFlow<String?> get() = _currentUserId
+
+    init {
+        loadCurrentUserId()
+    }
+
+    private fun loadCurrentUserId() {
+        viewModelScope.launch {
+            _currentUserId.value = userRepository.getCurrentUserId()
+        }
+    }
+
     fun loadUserDetails(userId: String) {
         viewModelScope.launch {
             try {
@@ -38,7 +51,7 @@ class PostDetailViewModel @Inject constructor(
 
                 val userPosts = postRepository.getPostsByUser(userId).firstOrNull() ?: emptyList()
                 _posts.value = userPosts.map { post ->
-                    val isLiked = post.likedBy.contains(userRepository.getCurrentUserId())
+                    val isLiked = post.likedBy.contains(_currentUserId.value)
                     post.copy(isLiked = isLiked)
                 }
 
@@ -52,7 +65,7 @@ class PostDetailViewModel @Inject constructor(
 
     fun likePost(postId: String) {
         viewModelScope.launch {
-            val currentUserId = userRepository.getCurrentUserId() ?: return@launch
+            val currentUserId = _currentUserId.value ?: return@launch
             postRepository.likePost(postId, currentUserId)
             updatePostLikeStatus(postId, true)
         }
@@ -60,7 +73,7 @@ class PostDetailViewModel @Inject constructor(
 
     fun unlikePost(postId: String) {
         viewModelScope.launch {
-            val currentUserId = userRepository.getCurrentUserId() ?: return@launch
+            val currentUserId = _currentUserId.value ?: return@launch
             postRepository.unlikePost(postId, currentUserId)
             updatePostLikeStatus(postId, false)
         }

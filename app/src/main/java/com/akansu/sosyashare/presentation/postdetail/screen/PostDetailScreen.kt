@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.*
@@ -52,6 +53,7 @@ fun PostDetailScreen(
     val user by postDetailViewModel.user.collectAsState()
     val posts by postDetailViewModel.posts.collectAsState()
     val listState = rememberLazyListState()
+    val currentUserId by postDetailViewModel.currentUserId.collectAsState()
 
     LaunchedEffect(userId) {
         postDetailViewModel.loadUserDetails(userId)
@@ -98,7 +100,10 @@ fun PostDetailScreen(
                         timestamp = "1 saat önce",
                         isLiked = post.isLiked,
                         onLike = { postDetailViewModel.likePost(post.id) },
-                        onUnlike = { postDetailViewModel.unlikePost(post.id) }
+                        onUnlike = { postDetailViewModel.unlikePost(post.id) },
+                        navController = navController,
+                        currentUserId = currentUserId ?: "",
+                        postId = post.id
                     )
                 }
             }
@@ -114,11 +119,16 @@ fun PostContent(
     timestamp: String,
     isLiked: Boolean,
     onLike: () -> Unit,
-    onUnlike: () -> Unit
+    onUnlike: () -> Unit,
+    navController: NavHostController,
+    currentUserId: String,  // Giriş yapan kullanıcının kimliği
+    postId: String  // Yorum yapılacak post kimliği
 ) {
     var liked by remember { mutableStateOf(isLiked) }
     var likes by remember { mutableIntStateOf(post.likeCount) }
     val scale by animateFloatAsState(if (liked) 1.2f else 1f, tween(300))
+
+    var showFullScreenImage by remember { mutableStateOf(false) }
 
     LaunchedEffect(isLiked, post.likeCount) {
         liked = isLiked
@@ -130,7 +140,6 @@ fun PostContent(
             .fillMaxWidth()
             .padding(vertical = 8.dp, horizontal = 16.dp)
     ) {
-        // User profile picture and name
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -155,14 +164,13 @@ fun PostContent(
             }
         }
 
-        // Post image
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(400.dp)
                 .clip(RoundedCornerShape(16.dp))
                 .background(MaterialTheme.colorScheme.surface)
-                .clickable { /* Full screen image handling */ }
+                .clickable { showFullScreenImage = true }
         ) {
             AsyncImage(
                 model = post.imageUrl,
@@ -172,7 +180,13 @@ fun PostContent(
             )
         }
 
-        // Like and unlike buttons
+        if (showFullScreenImage && post.imageUrl != null) {
+            FullScreenImage(
+                imageUrl = post.imageUrl,
+                onDismiss = { showFullScreenImage = false }
+            )
+        }
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -180,7 +194,7 @@ fun PostContent(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             IconButton(onClick = {
-                if (!liked) {  // If the post is not already liked
+                if (!liked) {
                     liked = true
                     likes += 1
                     onLike()
@@ -197,10 +211,21 @@ fun PostContent(
                     tint = if (liked) Color.Red else Color.Gray
                 )
             }
+
+            IconButton(onClick = {
+                navController.navigate("comments/$postId/$currentUserId")
+            }) {
+                Icon(
+                    imageVector = Icons.Default.Create,
+                    contentDescription = "Yorum Yap",
+                    modifier = Modifier.size(24.dp),
+                    tint = Color.Gray
+                )
+            }
+
             Spacer(modifier = Modifier.weight(1f))
         }
 
-        // Like count
         Text(
             "$likes beğenme",
             fontWeight = FontWeight.Bold,
@@ -209,7 +234,6 @@ fun PostContent(
             modifier = Modifier.padding(horizontal = 12.dp)
         )
 
-        // Post content
         Text(
             text = post.content,
             style = MaterialTheme.typography.bodyLarge,
@@ -217,7 +241,6 @@ fun PostContent(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
         )
 
-        // Timestamp
         Text(
             text = timestamp,
             style = MaterialTheme.typography.bodySmall,
@@ -228,7 +251,6 @@ fun PostContent(
         )
     }
 }
-
 
 @Composable
 fun FullScreenImage(imageUrl: String, onDismiss: () -> Unit) {
