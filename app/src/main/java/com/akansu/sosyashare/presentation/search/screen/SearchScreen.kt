@@ -51,15 +51,16 @@ fun SearchScreen(navController: NavHostController, searchViewModel: SearchViewMo
                 selectedItem = selectedItem,
                 onItemSelected = { selectedItem = it },
                 navController = navController,
-                profilePictureUrl = profilePictureUrl
+                profilePictureUrl = profilePictureUrl,
+                modifier = Modifier.height(85.dp)
             )
         },
-        modifier = Modifier.padding(WindowInsets.systemBars.asPaddingValues())
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(paddingValues) // Tüm paddingleri Scaffold'dan alır ve uygular
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,

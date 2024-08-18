@@ -1,26 +1,21 @@
 package com.akansu.sosyashare.presentation.home.components
 
-import android.app.Activity
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.core.view.WindowCompat
-import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.akansu.sosyashare.R
+import androidx.navigation.NavController
 
 @Composable
 fun NavigationBar(
@@ -30,41 +25,37 @@ fun NavigationBar(
     profilePictureUrl: String?,
     modifier: Modifier = Modifier
 ) {
-    val items = listOf(
-        R.drawable.home,
-        R.drawable.search,
-        R.drawable.more,
-        R.drawable.trending,
-        null
-    )
-
-    val context = LocalContext.current
-    val activity = context as? Activity
-    val window = activity?.window
-    val darkTheme = isSystemInDarkTheme()
-
-    DisposableEffect(Unit) {
-        window?.let {
-            it.navigationBarColor = Color.Transparent.toArgb()
-            WindowCompat.getInsetsController(it, it.decorView).isAppearanceLightNavigationBars = !darkTheme
-        }
-        onDispose { /* Clean up if necessary */ }
-    }
-
     Surface(
-        color = Color.Transparent, // Transparent color for the Surface
         modifier = modifier
             .fillMaxWidth()
-            .height(66.dp)
+            .height(85.dp)  // NavigationBar yüksekliği 85dp olarak bırakıldı
+            .background(Color.Transparent),
+        color = Color.Transparent
     ) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = 1.dp),
+                .padding(vertical = 4.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            val items = listOf(
+                R.drawable.home,
+                R.drawable.search,
+                R.drawable.more,
+                R.drawable.trend,
+                null
+            )
+
             items.forEachIndexed { index, icon ->
+                val iconSize = when (icon) {
+                    R.drawable.home -> 36.dp
+                    R.drawable.search -> 45.dp  // search ikonu için boyut artırıldı
+                    R.drawable.trend -> 34.dp
+                    R.drawable.more -> 36.dp// trend ikonu için boyut azaltıldı
+                    else -> 38.dp  // Diğer ikonlar için standart boyut
+                }
+
                 if (icon != null) {
                     IconButton(
                         onClick = {
@@ -76,40 +67,35 @@ fun NavigationBar(
                                 3 -> navController.navigate("trend")
                             }
                         },
-                        modifier = Modifier.size(36.dp)
+                        modifier = Modifier
+                            .size(50.dp)
+                            .offset(y = (-4).dp)  // İkonları yukarı kaydırmak için y-ekseni offset eklendi
                     ) {
                         Icon(
                             painter = painterResource(id = icon),
                             contentDescription = null,
                             tint = if (selectedItem == index) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier.size(iconSize)
                         )
                     }
                 } else {
                     IconButton(
                         onClick = {
-                            onItemSelected(index)
                             navController.navigate("userprofile")
                         },
-                        modifier = Modifier.size(36.dp)
+                        modifier = Modifier
+                            .size(50.dp)
+                            .offset(y = (-4).dp)  // Profil fotoğrafı da yukarı kaydırıldı
                     ) {
-                        if (profilePictureUrl != null) {
-                            Image(
-                                painter = rememberAsyncImagePainter(profilePictureUrl),
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .size(28.dp)
-                                    .clip(CircleShape)
-                            )
-                        } else {
-                            Image(
-                                painter = painterResource(id = R.drawable.profile),
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .size(28.dp)
-                                    .clip(CircleShape)
-                            )
-                        }
+                        Image(
+                            painter = rememberAsyncImagePainter(profilePictureUrl ?: R.drawable.profile),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(35.dp)
+                                .clip(CircleShape)
+                                .align(Alignment.CenterVertically),
+                            contentScale = ContentScale.Crop
+                        )
                     }
                 }
             }

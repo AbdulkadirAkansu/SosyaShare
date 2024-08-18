@@ -80,17 +80,16 @@ fun PostDetailScreen(
                 selectedItem = 0,
                 onItemSelected = { /* TODO */ },
                 navController = navController,
-                profilePictureUrl = user?.profilePictureUrl
+                profilePictureUrl = user?.profilePictureUrl,
+                modifier = Modifier.height(85.dp)
             )
         },
-        modifier = Modifier.padding(WindowInsets.systemBars.asPaddingValues())
-    ) { paddingValues ->
-        if (user != null) {
+        content = { paddingValues ->
             LazyColumn(
                 state = listState,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
+                    .padding(paddingValues)  // Scaffold padding values from top and bottom bars
             ) {
                 items(posts) { post ->
                     PostContent(
@@ -108,10 +107,10 @@ fun PostDetailScreen(
                 }
             }
         }
-    }
+    )
 }
 
-@Composable
+    @Composable
 fun PostContent(
     post: Post,
     username: String,
@@ -121,8 +120,8 @@ fun PostContent(
     onLike: () -> Unit,
     onUnlike: () -> Unit,
     navController: NavHostController,
-    currentUserId: String,  // Giriş yapan kullanıcının kimliği
-    postId: String  // Yorum yapılacak post kimliği
+    currentUserId: String,
+    postId: String
 ) {
     var liked by remember { mutableStateOf(isLiked) }
     var likes by remember { mutableIntStateOf(post.likeCount) }

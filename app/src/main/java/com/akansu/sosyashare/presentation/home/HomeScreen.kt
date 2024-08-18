@@ -1,26 +1,36 @@
 package com.akansu.sosyashare.presentation.home
 
-import android.util.Log
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.akansu.sosyashare.R
+import com.akansu.sosyashare.domain.model.Post
+import com.akansu.sosyashare.domain.model.User
 import com.akansu.sosyashare.presentation.home.components.NavigationBar
 import com.akansu.sosyashare.presentation.home.viewmodel.HomeViewModel
 import com.akansu.sosyashare.presentation.userprofile.viewmodel.UserViewModel
@@ -35,48 +45,161 @@ fun HomeScreen(
 ) {
     val posts by homeViewModel.posts.collectAsState()
     val users by homeViewModel.users.collectAsState()
-    var selectedItem by remember { mutableIntStateOf(0) }
     val profilePictureUrl by userViewModel.profilePictureUrl.collectAsState()
+    val currentUsername by userViewModel.username.collectAsState()
+    var selectedItem by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(Unit) {
         homeViewModel.loadFollowedUsersPosts()
     }
 
     Scaffold(
+        topBar = {
+            Column {
+                Spacer(modifier = Modifier.height(16.dp))  // TopBar'ın üstüne boşluk eklendi
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = currentUsername ?: "SosyaShare",
+                            fontFamily = poppinsFontFamily,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 24.sp,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                    },
+                    actions = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            IconButton(
+                                onClick = { /* Notification action */ },
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.notification),
+                                    contentDescription = "Notifications",
+                                    tint = MaterialTheme.colorScheme.onBackground,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(20.dp))
+                            IconButton(
+                                onClick = { /* Message action */ },
+                                modifier = Modifier.size(44.dp)
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.chat),
+                                    contentDescription = "Messages",
+                                    tint = MaterialTheme.colorScheme.onBackground,
+                                    modifier = Modifier.size(44.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent
+                    ),
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+            }
+        },
         bottomBar = {
             NavigationBar(
                 selectedItem = selectedItem,
                 onItemSelected = { selectedItem = it },
                 navController = navController,
-                profilePictureUrl = profilePictureUrl
+                profilePictureUrl = profilePictureUrl,
+                modifier = Modifier.height(85.dp)
             )
         },
-        modifier = Modifier.padding(WindowInsets.systemBars.asPaddingValues())
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .background(MaterialTheme.colorScheme.background)
         ) {
-            items(posts, key = { it.id }) { post ->
-                val user = users[post.userId]
-                PostItem(
-                    postUrl = post.imageUrl ?: "",
-                    postId = post.id,
-                    postUserId = post.userId,
-                    username = user?.username ?: "Unknown",
-                    profilePictureUrl = user?.profilePictureUrl,
-                    comment = post.content,
-                    isLiked = post.isLiked,
-                    likeCount = post.likeCount,
-                    onLikeClick = {
-                        homeViewModel.likePost(post.id)
-                    },
-                    onUnlikeClick = {
-                        homeViewModel.unlikePost(post.id)
-                    }
+            StoriesSection(users.values.toList())
+            Spacer(modifier = Modifier.height(8.dp)) // Story kısmından sonra boşluk eklendi
+            PostsList(
+                posts = posts,
+                users = users,
+                homeViewModel = homeViewModel,
+                navController = navController
+            )
+        }
+    }
+}
+
+
+@Composable
+fun StoriesSection(users: List<User>) {
+    LazyRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp, horizontal = 16.dp)
+    ) {
+        items(users) { user ->
+            Column(
+                modifier = Modifier
+                    .padding(horizontal = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Image(
+                    painter = rememberAsyncImagePainter(user.profilePictureUrl ?: R.drawable.profile),
+                    contentDescription = "Story Picture",
+                    modifier = Modifier
+                        .size(64.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surface),
+                    contentScale = ContentScale.Crop
+                )
+                Text(
+                    text = user.username,
+                    fontFamily = poppinsFontFamily,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun PostsList(
+    posts: List<Post>,
+    users: Map<String, User>,
+    homeViewModel: HomeViewModel,
+    navController: NavController
+) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        items(posts, key = { it.id }) { post ->
+            val user = users[post.userId]
+            PostItem(
+                postUrl = post.imageUrl ?: "",
+                postId = post.id,
+                postUserId = post.userId,
+                username = user?.username ?: "Unknown",
+                profilePictureUrl = user?.profilePictureUrl,
+                comment = post.content,
+                isLiked = post.isLiked,
+                likeCount = post.likeCount,
+                onLikeClick = {
+                    homeViewModel.likePost(post.id)
+                },
+                onUnlikeClick = {
+                    homeViewModel.unlikePost(post.id)
+                },
+                navController = navController
+            )
+            Spacer(modifier = Modifier.height(16.dp)) // Postlar arasında boşluk eklendi
         }
     }
 }
@@ -88,105 +211,140 @@ fun PostItem(
     postUserId: String,
     username: String,
     profilePictureUrl: String?,
-    comment: String,
+    comment: String?,
     isLiked: Boolean,
     likeCount: Int,
     onLikeClick: () -> Unit,
-    onUnlikeClick: () -> Unit
+    onUnlikeClick: () -> Unit,
+    navController: NavController
 ) {
     var liked by remember { mutableStateOf(isLiked) }
-    var likes by remember { mutableStateOf(likeCount) }
-
-    // Başlangıçta durumu logluyoruz
-    Log.d("PostItem", "Initializing PostItem: postId=$postId, isLiked=$isLiked, likeCount=$likeCount")
-
-    LaunchedEffect(isLiked, likeCount) {
-        Log.d("PostItem", "Updating State from Props: postId=$postId, isLiked=$isLiked, likeCount=$likeCount")
-        liked = isLiked
-        likes = likeCount
-    }
+    var likes by remember { mutableIntStateOf(likeCount) }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp)
+            .padding(vertical = 8.dp, horizontal = 16.dp)
+            .background(MaterialTheme.colorScheme.surface)
     ) {
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
+                .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Image(
                 painter = rememberAsyncImagePainter(profilePictureUrl ?: R.drawable.profile),
                 contentDescription = "Profile Picture",
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(50.dp)
                     .clip(CircleShape),
                 contentScale = ContentScale.Crop
             )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(text = username, fontFamily = poppinsFontFamily, modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
+                Text(
+                    text = username,
+                    fontFamily = poppinsFontFamily,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 18.sp,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = "5 min ago",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                )
+            }
         }
+
+        Spacer(modifier = Modifier.height(12.dp))
 
         Image(
             painter = rememberAsyncImagePainter(postUrl),
             contentDescription = "Post Image",
             modifier = Modifier
                 .fillMaxWidth()
-                .height(300.dp)
-                .clickable {
+                .height(350.dp)
+                .clip(MaterialTheme.shapes.medium),
+            contentScale = ContentScale.Crop
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        if (!comment.isNullOrEmpty()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp)
+            ) {
+                Text(
+                    text = comment,
+                    fontFamily = poppinsFontFamily,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+        }
+
+        // Icons Row
+        Row(
+            modifier = Modifier
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = {
                     if (liked) {
-                        Log.d("PostItem", "Unlike Button Clicked: postId=$postId, currentLikes=$likes")
                         likes -= 1
                         onUnlikeClick()
                     } else {
-                        Log.d("PostItem", "Like Button Clicked: postId=$postId, currentLikes=$likes")
                         likes += 1
                         onLikeClick()
                     }
                     liked = !liked
-                    Log.d("PostItem", "Post Click Updated State: postId=$postId, liked=$liked, likes=$likes")
-                },
-            contentScale = ContentScale.Crop
-        )
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = {
-                if (liked) {
-                    Log.d("PostItem", "Unlike Icon Clicked: postId=$postId, currentLikes=$likes")
-                    likes -= 1
-                    onUnlikeClick()
-                } else {
-                    Log.d("PostItem", "Like Icon Clicked: postId=$postId, currentLikes=$likes")
-                    likes += 1
-                    onLikeClick()
+                }) {
+                    Icon(
+                        painter = if (liked) painterResource(id = R.drawable.red_heart_icon) else painterResource(id = R.drawable.heart_icon),
+                        contentDescription = "Like",
+                        tint = if (liked) Color.Red else MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.size(30.dp) // Boyutlar eşitlendi
+                    )
                 }
-                liked = !liked
-                Log.d("PostItem", "Icon Click Updated State: postId=$postId, liked=$liked, likes=$likes")
-            }) {
-                Image(
-                    painter = if (liked) {
-                        painterResource(id = R.drawable.red_heart_icon)
-                    } else {
-                        painterResource(id = R.drawable.heart_icon)
-                    },
-                    contentDescription = "Like Icon",
-                    modifier = Modifier.size(24.dp)
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = likes.toString(),
+                    fontFamily = poppinsFontFamily,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Spacer(modifier = Modifier.width(24.dp))
+                IconButton(onClick = {
+                    navController.navigate("comments/$postId/$postUserId")
+                }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.comment),
+                        contentDescription = "Comment",
+                        tint = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.size(23.dp) // Boyutlar eşitlendi
+                    )
+                }
+            }
+            IconButton(onClick = { /* Save action */ }, modifier = Modifier.align(Alignment.CenterVertically)) {
+                Icon(
+                    painter = painterResource(id = R.drawable.empty_save),
+                    contentDescription = "Save",
+                    tint = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier
+                        .size(32.dp)
+                        .align(Alignment.CenterVertically)
                 )
             }
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                "$likes beğenme",
-                fontWeight = FontWeight.Bold,
-                fontFamily = poppinsFontFamily,
-                modifier = Modifier.padding(horizontal = 12.dp)
-            )
         }
     }
 }

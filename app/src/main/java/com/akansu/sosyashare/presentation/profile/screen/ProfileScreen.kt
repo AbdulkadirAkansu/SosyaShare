@@ -69,45 +69,46 @@ fun ProfileScreen(
                 selectedItem = selectedItem,
                 onItemSelected = { selectedItem = it },
                 navController = navController,
-                profilePictureUrl = profilePictureUrl ?: userDetails?.profilePictureUrl
+                profilePictureUrl = profilePictureUrl ?: userDetails?.profilePictureUrl,
+                modifier = Modifier.height(85.dp)
             )
         },
-        modifier = Modifier.padding(WindowInsets.systemBars.asPaddingValues())
-    ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(bottom = 72.dp)
-        ) {
-            item {
-                ProfileInfo(
-                    username = username,
-                    profilePictureUrl = userDetails?.profilePictureUrl,
-                    bio = userDetails?.bio ?: ""
-                )
-                UserStatistics(
-                    postCount = userPosts.size,
-                    followersCount = followersCount,
-                    followingCount = followingCount
-                )
-                currentUserId?.let {
-                    ActionButtons(
-                        profileViewModel = profileViewModel,
-                        currentUserId = it,
-                        userId = userId ?: "",
-                        isFollowing = isFollowing
+        content = { paddingValues ->
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)  // Scaffold padding values from top and bottom bars
+            ) {
+                item {
+                    ProfileInfo(
+                        username = username,
+                        profilePictureUrl = userDetails?.profilePictureUrl,
+                        bio = userDetails?.bio ?: ""
                     )
+                    UserStatistics(
+                        postCount = userPosts.size,
+                        followersCount = followersCount,
+                        followingCount = followingCount
+                    )
+                    currentUserId?.let {
+                        ActionButtons(
+                            profileViewModel = profileViewModel,
+                            currentUserId = it,
+                            userId = userId ?: "",
+                            isFollowing = isFollowing
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    PostGrid(posts = userPosts, onPostClick = { postIndex ->
+                        navController.navigate("post_detail/${userId}/${postIndex}")
+                    })
                 }
-                Spacer(modifier = Modifier.height(8.dp))
-                PostGrid(posts = userPosts, onPostClick = { postIndex ->
-                    navController.navigate("post_detail/${userId}/${postIndex}")
-                })
             }
         }
-    }
+    )
 }
-@OptIn(ExperimentalMaterial3Api::class)
+
+    @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopBar(navController: NavHostController, username: String) {
     TopAppBar(

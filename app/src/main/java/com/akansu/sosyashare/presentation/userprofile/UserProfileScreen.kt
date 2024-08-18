@@ -31,7 +31,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.akansu.sosyashare.R
-import com.akansu.sosyashare.data.model.UserEntity
 import com.akansu.sosyashare.domain.model.User
 import com.akansu.sosyashare.presentation.home.components.NavigationBar
 import com.akansu.sosyashare.presentation.login.viewmodel.AuthViewModel
@@ -99,16 +98,17 @@ fun UserProfileScreen(
                 selectedItem = selectedItem,
                 onItemSelected = { selectedItem = it },
                 navController = navController,
-                profilePictureUrl = profilePictureUrl
+                profilePictureUrl = profilePictureUrl,
+                modifier = Modifier.height(85.dp)  // NavigationBar yüksekliği diğer ekranlarla tutarlı hale getirildi
             )
         },
-        modifier = Modifier.padding(WindowInsets.systemBars.asPaddingValues())
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(bottom = 72.dp)
+                .padding(paddingValues)  // Scaffold'dan alınan padding'i uygula
+                .padding(bottom = 72.dp)  // Ekstra boşluk eklemeyi de unutma
         ) {
             item {
                 ProfileInfo(
@@ -131,12 +131,11 @@ fun UserProfileScreen(
                 ActionButtons(navController)
                 Spacer(modifier = Modifier.height(8.dp))
                 PostGrid(posts = posts.mapNotNull { it.imageUrl }, userId = currentUser?.uid ?: "", navController = navController)
-
-
             }
         }
     }
 }
+
 
 @Composable
 fun TopBar(navController: NavHostController, username: String) {

@@ -17,14 +17,26 @@ class UserViewModel @Inject constructor(
     private val _profilePictureUrl = MutableStateFlow<String?>(null)
     val profilePictureUrl: StateFlow<String?> = _profilePictureUrl
 
+    // Burada username alanını ekliyoruz
+    private val _username = MutableStateFlow<String?>(null)
+    val username: StateFlow<String?> = _username
+
     init {
         getCurrentUserProfilePicture()
+        loadCurrentUsername()
     }
 
     private fun getCurrentUserProfilePicture() {
         viewModelScope.launch {
             val profilePictureUrl = userRepository.getCurrentUserProfilePictureUrl()
             _profilePictureUrl.value = profilePictureUrl
+        }
+    }
+
+    private fun loadCurrentUsername() {
+        viewModelScope.launch {
+            val username = userRepository.getCurrentUserName()
+            _username.value = username
         }
     }
 }
