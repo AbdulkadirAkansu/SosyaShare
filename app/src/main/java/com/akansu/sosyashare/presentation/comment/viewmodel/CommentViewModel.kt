@@ -1,17 +1,14 @@
 package com.akansu.sosyashare.presentation.comment.viewmodel
 
-import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.akansu.sosyashare.domain.model.Comment
-import com.akansu.sosyashare.domain.model.CommentReplyInfo
-import com.akansu.sosyashare.domain.model.CommentWithUserInfo
+import com.akansu.sosyashare.domain.model.Reply
 import com.akansu.sosyashare.domain.repository.CommentRepository
 import com.akansu.sosyashare.domain.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.util.Date
 import java.util.UUID
@@ -23,57 +20,53 @@ class CommentViewModel @Inject constructor(
     private val userRepository: UserRepository
 ) : ViewModel() {
 
-    private val _comments = MutableLiveData<List<CommentWithUserInfo>>()
-    val comments: LiveData<List<CommentWithUserInfo>> get() = _comments
+    private val _comments = MutableLiveData<List<Comment>>()
+    val comments: LiveData<List<Comment>> get() = _comments
 
-    private val _replyingTo = MutableLiveData<CommentReplyInfo?>()
-    val replyingTo: LiveData<CommentReplyInfo?> get() = _replyingTo
+    private val _replies = MutableLiveData<Map<String, List<Reply>>>()
+    val replies: LiveData<Map<String, List<Reply>>> get() = _replies
 
+    private val _replyingTo = MutableLiveData<Reply?>()
+    val replyingTo: LiveData<Reply?> get() = _replyingTo
 
-    fun loadComments(postId: String) {
+    private var currentUserName: String? = null
+
+    init {
         viewModelScope.launch {
-            _comments.value = emptyList()
-
-            val comments = commentRepository.getCommentsForPost(postId)
-            val commentsWithUserInfo = comments.mapNotNull { comment ->
-                val user = userRepository.getUserById(comment.userId).firstOrNull()
-                user?.let {
-                    CommentWithUserInfo(
-                        comment = comment,
-                        username = it.username,
-                        userProfileUrl = it.profilePictureUrl ?: "",
-                        replies = emptyList() // Yanıtlar ayrı olarak yüklenecek
-                    )
-                }
-            }
-
-            // Yanıtları ana yorumlara ekle
-            val groupedComments = commentsWithUserInfo.groupBy { it.comment.parentCommentId }
-            val topLevelComments = groupedComments[null] ?: emptyList()
-            val finalCommentsWithReplies = topLevelComments.map { parentComment ->
-                parentComment.copy(
-                    replies = groupedComments[parentComment.comment.id] ?: emptyList()
-                )
-            }
-
-            _comments.value = finalCommentsWithReplies
-            Log.d("CommentViewModel", "Distinct Comments Loaded: ${_comments.value}")
+            currentUserName = userRepository.getCurrentUserName()
         }
     }
 
-    fun addComment(postId: String, content: String, userId: String, parentCommentId: String? = null) {
+    fun loadComments(postId: String) {
+        viewModelScope.launch {
+            val comments = commentRepository.getCommentsForPost(postId)
+            _comments.value = comments
+
+            val repliesMap = comments.associate { comment ->
+                comment.id to commentRepository.getRepliesForComment(comment.id)
+            }
+            _replies.value = repliesMap
+        }
+    }
+
+    fun addComment(
+        postId: String,
+        content: String,
+        userId: String,
+        username: String,
+        userProfileUrl: String
+    ) {
         viewModelScope.launch {
             val newComment = Comment(
                 id = UUID.randomUUID().toString(),
                 postId = postId,
                 userId = userId,
+                username = username,
+                userProfileUrl = userProfileUrl,
                 content = content,
                 timestamp = Date(),
-                likes = mutableListOf(), // Boş MutableList başlat
-                parentCommentId = parentCommentId,
-                replies = mutableListOf() // Boş MutableList başlat
+                likes = mutableListOf()
             )
-
             commentRepository.addComment(newComment)
             loadComments(postId)
         }
@@ -81,45 +74,65 @@ class CommentViewModel @Inject constructor(
 
     fun deleteComment(commentId: String, postId: String) {
         viewModelScope.launch {
-            commentRepository.deleteComment(commentId)
-            loadComments(postId)
+            try {
+                // Ana yorum ve ona bağlı tüm yanıtları tek seferde sil
+                commentRepository.deleteCommentWithReplies(commentId)
+                loadComments(postId)  // Yorumları yeniden yükle
+            } catch (e: Exception) {
+                // Hata durumunda loglama yapabilirsiniz
+            }
         }
     }
 
-    fun likeComment(commentId: String, userId: String, postId: String) {
+    fun deleteReply(replyId: String, postId: String) {
+        viewModelScope.launch {
+            try {
+                // Yalnızca yanıtı sil
+                commentRepository.deleteReply(replyId)
+                loadComments(postId)
+            } catch (e: Exception) {
+                // Hata durumunda loglama yapabilirsiniz
+            }
+        }
+    }
+
+    fun likeComment(commentId: String, userId: String) {
         viewModelScope.launch {
             commentRepository.likeComment(commentId, userId)
-            loadComments(postId)
+            loadComments(commentRepository.getCommentById(commentId)?.postId ?: return@launch)
         }
     }
 
-    fun unlikeComment(commentId: String, userId: String, postId: String) {
+    fun unlikeComment(commentId: String, userId: String) {
         viewModelScope.launch {
             commentRepository.unlikeComment(commentId, userId)
-            loadComments(postId)
+            loadComments(commentRepository.getCommentById(commentId)?.postId ?: return@launch)
         }
     }
 
-    fun replyToComment(postId: String, commentId: String, username: String) {
-        _replyingTo.value = CommentReplyInfo(postId, commentId, username)
-    }
-
-    fun sendReply(postId: String, parentCommentId: String, content: String, userId: String) {
+    fun replyToComment(
+        commentId: String,
+        content: String,
+        userId: String,
+        username: String,
+        userProfileUrl: String
+    ) {
         viewModelScope.launch {
-            val replyComment = Comment(
+            val reply = Reply(
                 id = UUID.randomUUID().toString(),
-                postId = postId,
+                commentId = commentId,
                 userId = userId,
+                username = username,
+                userProfileUrl = userProfileUrl,
                 content = content,
-                timestamp = Date(),
-                likes = mutableListOf(), // Boş MutableList başlat
-                parentCommentId = parentCommentId,
-                replies = mutableListOf() // Boş MutableList başlat
+                timestamp = Date()
             )
-
-            commentRepository.addComment(replyComment)
-            _replyingTo.value = null
-            loadComments(postId)
+            commentRepository.addReply(reply)
+            loadComments(commentRepository.getCommentById(commentId)?.postId ?: return@launch)
         }
+    }
+
+    fun setReplyingTo(reply: Reply?) {
+        _replyingTo.value = reply
     }
 }

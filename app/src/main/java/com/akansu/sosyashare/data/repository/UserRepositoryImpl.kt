@@ -19,6 +19,10 @@ class UserRepositoryImpl @Inject constructor(
         return firebaseUserService.searchUsers(query).map { it.toDomainModel() }
     }
 
+    override suspend fun getCurrentUserName(): String? {
+        return firebaseUserService.getCurrentUserName()
+    }
+
     override fun getUserById(userId: String): Flow<User?> {
         return flow {
             val userEntity = firebaseUserService.getUserDetails(userId)

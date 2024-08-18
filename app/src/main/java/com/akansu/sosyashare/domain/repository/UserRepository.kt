@@ -28,4 +28,5 @@ interface UserRepository {
     suspend fun likePost(postId: String, userId: String)
     suspend fun unlikePost(postId: String, userId: String)
     suspend fun updateUserProfilePicture(userId: String, profilePictureUrl: String)
+    suspend fun getCurrentUserName(): String?
 }

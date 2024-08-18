@@ -2,7 +2,6 @@ package com.akansu.sosyashare.presentation.comment.screen
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.*
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -13,136 +12,110 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import com.akansu.sosyashare.domain.model.CommentReplyInfo
-import com.akansu.sosyashare.domain.model.CommentWithUserInfo
+import com.akansu.sosyashare.domain.model.BaseComment
+import com.akansu.sosyashare.domain.model.Comment
+import com.akansu.sosyashare.domain.model.Reply
 import com.akansu.sosyashare.presentation.comment.viewmodel.CommentViewModel
 import com.akansu.sosyashare.presentation.comment.viewmodel.formatTimestampToRelativeTime
+import java.util.Date
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun CommentScreen(
     postId: String,
     currentUserId: String,
+    currentUserName: String,
     currentUserProfileUrl: String,
     viewModel: CommentViewModel = hiltViewModel(),
     backgroundContent: @Composable () -> Unit
 ) {
     val comments by viewModel.comments.observeAsState(emptyList())
-    var sheetOffset by remember { mutableStateOf(0f) }
-    val screenHeight = with(LocalDensity.current) { 400.dp.toPx() }
-
-    val backgroundColor = MaterialTheme.colorScheme.background
-    val textColor = MaterialTheme.colorScheme.onBackground
+    val repliesMap by viewModel.replies.observeAsState(emptyMap())
 
     BoxWithConstraints {
         Surface(
             modifier = Modifier
                 .fillMaxSize()
-                .background(backgroundColor)
-                .clickable {
-                    sheetOffset = screenHeight
-                }
+                .background(MaterialTheme.colorScheme.background)
         ) {
-            Box(
+            backgroundContent()
+
+            Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .pointerInput(Unit) {
-                        detectDragGestures { _, dragAmount ->
-                            sheetOffset = (sheetOffset + dragAmount.y).coerceIn(0f, screenHeight)
-                        }
-                    }
+                    .fillMaxWidth()
+                    .padding(top = 40.dp)
+                    .clip(RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp))
+                    .background(MaterialTheme.colorScheme.surface)
             ) {
-                backgroundContent()
-
-                Column(
+                Text(
+                    text = "Comments",
+                    style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
+                    fontWeight = FontWeight.Bold,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .offset(y = sheetOffset.dp)
-                        .padding(top = 40.dp)
-                        .zIndex(1f)
-                        .clip(RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp))
-                        .background(backgroundColor)
-                        .pointerInput(Unit) {
-                            detectDragGestures { _, dragAmount ->
-                                sheetOffset = (sheetOffset + dragAmount.y).coerceIn(0f, screenHeight)
-                            }
-                        }
+                        .align(Alignment.CenterHorizontally)
+                        .padding(vertical = 16.dp)
+                )
+
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .padding(top = 5.dp)
-                            .width(60.dp)
-                            .height(4.dp)
-                            .background(Color.Gray.copy(alpha = 0.5f), RoundedCornerShape(2.dp))
-                            .align(Alignment.CenterHorizontally)
-                            .padding(top = 16.dp)
-                    )
+                    items(items = comments, key = { it.id }) { comment ->
+                        var showReplies by remember { mutableStateOf(false) }
 
-                    Text(
-                        text = "Comments",
-                        style = MaterialTheme.typography.bodyMedium.copy(color = textColor),
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier
-                            .align(Alignment.CenterHorizontally)
-                            .padding(vertical = 16.dp)
-                    )
-
-                    Divider(color = Color.Gray.copy(alpha = 0.2f), thickness = 1.dp)
-
-                    LazyColumn(
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-                    ) {
-                        items(items = comments, key = { it.comment.id }) { commentWithUserInfo ->
-                            CommentItem(
-                                commentWithUserInfo = commentWithUserInfo,
-                                postId = postId,
-                                currentUserId = currentUserId,
-                                onLikeClick = {
-                                    viewModel.likeComment(commentWithUserInfo.comment.id, currentUserId, postId)
-                                },
-                                onUnlikeClick = {
-                                    viewModel.unlikeComment(commentWithUserInfo.comment.id, currentUserId,postId)
-                                },
-                                onDeleteClick = {
-                                    viewModel.deleteComment(commentWithUserInfo.comment.id, postId)
-                                },
-                                onReplyClick = { commentId, username ->
-                                    viewModel.replyToComment(postId, commentId, username)
-                                }
-                            )
-                        }
-                    }
-
-                    Divider(color = Color.Gray.copy(alpha = 0.2f))
-
-                    CommentInputField(
-                        onCommentAdded = { content ->
-                            val replyInfo = viewModel.replyingTo.value
-                            if (replyInfo != null) {
-                                viewModel.sendReply(replyInfo.postId, replyInfo.commentId, content, currentUserId)
-                            } else {
-                                viewModel.addComment(postId, content, currentUserId)
+                        CommentItem(
+                            comment = comment,
+                            currentUserId = currentUserId,
+                            replies = repliesMap[comment.id] ?: emptyList(),
+                            showReplies = showReplies,
+                            onToggleReplies = { showReplies = !showReplies },
+                            onLikeClick = { viewModel.likeComment(comment.id, currentUserId) },
+                            onUnlikeClick = { viewModel.unlikeComment(comment.id, currentUserId) },
+                            onDeleteClick = { viewModel.deleteComment(comment.id, postId) },
+                            onReplyClick = { commentId, username ->
+                                viewModel.setReplyingTo(
+                                    Reply(
+                                        id = "",
+                                        commentId = commentId,
+                                        userId = currentUserId,
+                                        username = currentUserName,
+                                        userProfileUrl = currentUserProfileUrl,
+                                        content = "",
+                                        timestamp = Date()
+                                    )
+                                )
+                            },
+                            onReplyDeleteClick = { replyId ->
+                                viewModel.deleteReply(replyId, postId)
                             }
-                        },
-                        replyingTo = viewModel.replyingTo.observeAsState(null).value,
-                        currentUserProfileUrl = currentUserProfileUrl
-                    )
+                        )
+                    }
                 }
+
+                CommentInputField(
+                    onCommentAdded = { content ->
+                        val replyInfo = viewModel.replyingTo.value
+                        if (replyInfo != null) {
+                            viewModel.replyToComment(replyInfo.commentId, content, currentUserId, currentUserName, currentUserProfileUrl)
+                        } else {
+                            viewModel.addComment(postId, content, currentUserId, currentUserName, currentUserProfileUrl)
+                        }
+                    },
+                    replyingTo = viewModel.replyingTo.observeAsState(null).value,
+                    currentUserProfileUrl = currentUserProfileUrl
+                )
             }
         }
     }
@@ -152,53 +125,47 @@ fun CommentScreen(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun CommentItem(
-    commentWithUserInfo: CommentWithUserInfo,
-    postId: String,
+    comment: BaseComment,
     currentUserId: String,
+    replies: List<Reply>,
+    showReplies: Boolean,
+    onToggleReplies: () -> Unit,
     onLikeClick: () -> Unit,
     onUnlikeClick: () -> Unit,
     onDeleteClick: () -> Unit,
-    onReplyClick: (String, String) -> Unit
+    onReplyClick: (String, String) -> Unit,
+    onReplyDeleteClick: (String) -> Unit
 ) {
-    val comment = commentWithUserInfo.comment
-    val username = commentWithUserInfo.username
-    val userProfileUrl = commentWithUserInfo.userProfileUrl
+    val isReply = comment is Reply
+    val paddingStart = if (isReply) 24.dp else 0.dp
     var showDeleteIcon by remember { mutableStateOf(false) }
-    var liked by remember { mutableStateOf(comment.likes.contains(currentUserId)) }
-    var likeCount by remember { mutableIntStateOf(comment.likes.size) }
-    var showReplies by remember { mutableStateOf(false) }
-    val repliesToShow = if (showReplies) commentWithUserInfo.replies else commentWithUserInfo.replies.take(1)
-
-    val textColor = MaterialTheme.colorScheme.onBackground
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp)
-            .padding(start = if (comment.parentCommentId != null) 24.dp else 0.dp)
+            .padding(start = paddingStart)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .combinedClickable(
-                    onClick = { /* Normal click action */ },
-                    onLongClick = {
-                        showDeleteIcon = !showDeleteIcon
-                    }
+                    onClick = { /* Boş bırak */ },
+                    onLongClick = { showDeleteIcon = !showDeleteIcon } // Silme ikonunu gösterme
                 ),
             verticalAlignment = Alignment.Top
         ) {
             AsyncImage(
-                model = userProfileUrl,
+                model = comment.userProfileUrl,
                 contentDescription = "Profile Picture",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(32.dp)
                     .clip(CircleShape)
-                    .background(Color.Gray)
+                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
             )
 
             Spacer(modifier = Modifier.width(12.dp))
@@ -208,8 +175,8 @@ fun CommentItem(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = username,
-                        style = MaterialTheme.typography.bodyMedium.copy(color = textColor),
+                        text = comment.username,
+                        style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
                         fontWeight = FontWeight.Bold
                     )
 
@@ -217,7 +184,7 @@ fun CommentItem(
 
                     Text(
                         text = comment.content,
-                        style = MaterialTheme.typography.bodyMedium.copy(color = textColor)
+                        style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                     )
                 }
 
@@ -228,88 +195,76 @@ fun CommentItem(
                 ) {
                     Text(
                         text = formatTimestampToRelativeTime(comment.timestamp),
-                        style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray)
+                        style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                     )
 
                     Spacer(modifier = Modifier.width(16.dp))
 
-                    Text(
-                        text = "Reply",
-                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold, color = Color.Gray),
-                        modifier = Modifier.clickable { onReplyClick(comment.id, username) }
-                    )
-                    Spacer(modifier = Modifier.width(16.dp))
-                }
-            }
-
-            IconButton(
-                onClick = {
-                    if (liked) {
-                        onUnlikeClick()
-                        liked = false
-                        likeCount--
-                    } else {
-                        onLikeClick()
-                        liked = true
-                        likeCount++
+                    if (!isReply) {
+                        Text(
+                            text = "Reply",
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary),
+                            modifier = Modifier.clickable { onReplyClick(comment.id, comment.username) }
+                        )
                     }
+                    Spacer(modifier = Modifier.width(16.dp))
                 }
-            ) {
-                Icon(
-                    imageVector = if (liked) Icons.Filled.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = "Like",
-                    tint = if (liked) Color.Red else Color.White
-                )
             }
 
-            if (likeCount > 0) {
-                Text(
-                    text = likeCount.toString(),
-                    style = MaterialTheme.typography.bodySmall.copy(color = textColor),
-                    modifier = Modifier.align(Alignment.CenterVertically)
-                )
-            }
-
+            // Silme ikonu
             if (showDeleteIcon) {
-                IconButton(onClick = onDeleteClick) {
+                IconButton(
+                    onClick = {
+                        onDeleteClick()
+                        showDeleteIcon = false // İkonu sakla
+                    }
+                ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = "Delete",
-                        tint = Color.Red
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+            } else {
+                IconButton(
+                    onClick = {
+                        if (comment.likes.contains(currentUserId)) {
+                            onUnlikeClick()
+                        } else {
+                            onLikeClick()
+                        }
+                    }
+                ) {
+                    Icon(
+                        imageVector = if (comment.likes.contains(currentUserId)) Icons.Filled.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = "Like",
+                        tint = if (comment.likes.contains(currentUserId)) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
         }
 
-        if (commentWithUserInfo.replies.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(4.dp))
+        // Yanıtlar için dinamik görünüm
+        if (replies.isNotEmpty()) {
             Text(
-                text = if (showReplies) "Hide replies" else "View ${commentWithUserInfo.replies.size} more ${if (commentWithUserInfo.replies.size == 1) "reply" else "replies"}",
-                style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray),
-                modifier = Modifier
-                    .clickable { showReplies = !showReplies }
-                    .padding(start = 44.dp)
+                text = if (showReplies) "Hide replies" else "View ${replies.size} more replies",
+                modifier = Modifier.clickable { onToggleReplies() },
+                color = MaterialTheme.colorScheme.primary
             )
 
             if (showReplies) {
-                repliesToShow.forEach { reply ->
-                    Spacer(modifier = Modifier.height(8.dp))
+                replies.forEach { reply ->
                     CommentItem(
-                        commentWithUserInfo = reply,
-                        postId = postId,
+                        comment = reply,
                         currentUserId = currentUserId,
-                        onLikeClick = {
-                            onLikeClick()
-                        },
-                        onUnlikeClick = {
-                            onUnlikeClick()
-                        },
-                        onDeleteClick = {
-                            onDeleteClick()
-                        },
-                        onReplyClick = { replyId, username ->
-                            onReplyClick(replyId, username)
-                        }
+                        replies = emptyList(), // Yanıtın yanıtları olmadığı için boş liste
+                        showReplies = false,
+                        onToggleReplies = {},
+                        onLikeClick = { onLikeClick() },
+                        onUnlikeClick = { onUnlikeClick() },
+                        onDeleteClick = { onReplyDeleteClick(reply.id) },
+                        onReplyClick = onReplyClick,
+                        onReplyDeleteClick = onReplyDeleteClick
                     )
                 }
             }
@@ -321,12 +276,10 @@ fun CommentItem(
 @Composable
 fun CommentInputField(
     onCommentAdded: (String) -> Unit,
-    replyingTo: CommentReplyInfo?,
+    replyingTo: Reply?,
     currentUserProfileUrl: String
 ) {
     var commentText by remember { mutableStateOf("") }
-
-    val textColor = MaterialTheme.colorScheme.onBackground
 
     LaunchedEffect(replyingTo) {
         commentText = if (replyingTo != null) "@${replyingTo.username} " else ""
@@ -335,7 +288,7 @@ fun CommentInputField(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)
+            .background(MaterialTheme.colorScheme.surface)
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -346,7 +299,7 @@ fun CommentInputField(
             modifier = Modifier
                 .size(32.dp)
                 .clip(CircleShape)
-                .background(Color.Gray)
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
         )
 
         TextField(
@@ -355,10 +308,10 @@ fun CommentInputField(
             modifier = Modifier
                 .weight(1f)
                 .padding(horizontal = 8.dp),
-            placeholder = { Text("Add a comment...", color = Color.Gray) },
+            placeholder = { Text("Add a comment...", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)) },
             colors = TextFieldDefaults.textFieldColors(
                 containerColor = Color.Transparent,
-                cursorColor = textColor,
+                cursorColor = MaterialTheme.colorScheme.onBackground,
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent
             ),
@@ -372,8 +325,21 @@ fun CommentInputField(
                     commentText = ""
                 }
             ) {
-                Text("Comment", color = Color(0xFF3897F0))
+                Text("Comment", color = MaterialTheme.colorScheme.primary)
             }
         }
     }
+}
+
+fun Reply.toComment(postId: String): Comment {
+    return Comment(
+        id = this.id,
+        postId = postId,
+        userId = this.userId,
+        username = this.username,
+        userProfileUrl = this.userProfileUrl,
+        content = this.content,
+        timestamp = this.timestamp,
+        likes = this.likes
+    )
 }

@@ -3,24 +3,26 @@ package com.akansu.sosyashare.data.model
 import java.util.Date
 import java.util.UUID
 
-data class CommentEntity(
-    val id: String = "",
-    val postId: String = "",
+data class ReplyEntity(
+    val id: String = UUID.randomUUID().toString(),
+    val commentId: String = "",
     val userId: String = "",
     val username: String = "",
-    val userProfileUrl: String? = null,
+    val userProfileUrl: String = "",
     val content: String = "",
     val timestamp: Date = Date(),
-    val likes: MutableList<String> = mutableListOf()
+    val likes: List<String> = emptyList()
 ) {
+    // Boş yapıcı (no-argument constructor) ekledik
     constructor() : this(
         id = "",
-        postId = "",
+        commentId = "",
         userId = "",
         username = "",
-        userProfileUrl = null,
+        userProfileUrl = "",
         content = "",
         timestamp = Date(),
-        likes = mutableListOf()
+        likes = emptyList()
     )
 }
+

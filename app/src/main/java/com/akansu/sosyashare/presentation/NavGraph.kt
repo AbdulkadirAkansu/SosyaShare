@@ -1,12 +1,24 @@
 package com.akansu.sosyashare.presentation
 
 import android.net.Uri
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.NavType
+import com.akansu.sosyashare.domain.repository.UserRepository
 import com.akansu.sosyashare.presentation.comment.screen.CommentScreen
 import com.akansu.sosyashare.presentation.editprofile.EditProfileScreen
 import com.akansu.sosyashare.presentation.login.screen.*
@@ -21,9 +33,10 @@ import com.akansu.sosyashare.presentation.share.ShareScreen
 import com.akansu.sosyashare.presentation.trend.TrendScreen
 import com.akansu.sosyashare.presentation.settings.SettingsScreen
 import com.akansu.sosyashare.presentation.splash.SplashScreen
+import kotlinx.coroutines.launch
 
 @Composable
-fun NavGraph(navController: NavHostController, authViewModel: AuthViewModel) {
+fun NavGraph(navController: NavHostController, authViewModel: AuthViewModel, userRepository: UserRepository) {
     val startDestination = if (authViewModel.isUserLoggedIn()) "home" else "splash"
     NavHost(navController = navController, startDestination = startDestination) {
         composable("login") {
@@ -48,7 +61,7 @@ fun NavGraph(navController: NavHostController, authViewModel: AuthViewModel) {
             SearchScreen(navController = navController)
         }
         composable("splash") {
-        SplashScreen(navController = navController,authViewModel = authViewModel)
+            SplashScreen(navController = navController, authViewModel = authViewModel)
         }
         composable(
             route = "profile/{userId}",
@@ -94,31 +107,62 @@ fun NavGraph(navController: NavHostController, authViewModel: AuthViewModel) {
             route = "comments/{postId}/{currentUserId}",
             arguments = listOf(
                 navArgument("postId") { type = NavType.StringType },
-                navArgument("currentUserId") { type = NavType.StringType } // Bu kullanıcı kimliği login olan kullanıcıya ait olacak.
+                navArgument("currentUserId") { type = NavType.StringType }
             )
         ) { backStackEntry ->
             val postId = backStackEntry.arguments?.getString("postId") ?: return@composable
             val currentUserId = backStackEntry.arguments?.getString("currentUserId") ?: return@composable
-            val currentUserProfileUrl = authViewModel.getCurrentUserProfilePictureUrl()
+            val currentUserProfileUrl = authViewModel.getCurrentUserProfilePictureUrl() ?: ""
 
-            if (currentUserProfileUrl != null) {
+            // Coroutine Scope to fetch current user name
+            var currentUserName by remember { mutableStateOf("") }
+            val coroutineScope = rememberCoroutineScope()
+
+            LaunchedEffect(Unit) {
+                coroutineScope.launch {
+                    currentUserName = userRepository.getCurrentUserName() ?: ""
+                    if (currentUserName.isNotEmpty()) {
+                        navController.navigate("comments_screen/$postId/$currentUserId/$currentUserName/$currentUserProfileUrl")
+                    }
+                }
+            }
+        }
+
+        composable(
+            route = "comments/{postId}/{currentUserId}",
+            arguments = listOf(
+                navArgument("postId") { type = NavType.StringType },
+                navArgument("currentUserId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val postId = backStackEntry.arguments?.getString("postId") ?: return@composable
+            val currentUserId = backStackEntry.arguments?.getString("currentUserId") ?: return@composable
+            val currentUserProfileUrl = authViewModel.getCurrentUserProfilePictureUrl() ?: ""
+
+            // Coroutine Scope and LaunchedEffect to get current user name
+            var currentUserName by remember { mutableStateOf<String?>(null) }
+            val coroutineScope = rememberCoroutineScope()
+
+            LaunchedEffect(Unit) {
+                coroutineScope.launch {
+                    currentUserName = userRepository.getCurrentUserName()
+                }
+            }
+
+            if (currentUserName != null) {
                 CommentScreen(
                     postId = postId,
                     currentUserId = currentUserId,
+                    currentUserName = currentUserName ?: "",
                     currentUserProfileUrl = currentUserProfileUrl,
                     backgroundContent = {
                         PostDetailScreen(navController = navController, userId = currentUserId, initialPostIndex = 0)
                     }
                 )
             } else {
-                CommentScreen(
-                    postId = postId,
-                    currentUserId = currentUserId,
-                    currentUserProfileUrl = "",
-                    backgroundContent = {
-                        PostDetailScreen(navController = navController, userId = currentUserId, initialPostIndex = 0)
-                    }
-                )
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
             }
         }
     }

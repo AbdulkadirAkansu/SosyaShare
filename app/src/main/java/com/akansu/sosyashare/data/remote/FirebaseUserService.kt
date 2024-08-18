@@ -21,6 +21,13 @@ class FirebaseUserService @Inject constructor(
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
     private val firestore = FirebaseFirestore.getInstance()
 
+
+    suspend fun getCurrentUserName(): String? {
+        val userId = auth.currentUser?.uid ?: return null
+        val document = firestore.collection("users").document(userId).get().await()
+        return document.getString("username") // Firestore'dan "username" alanını doğru aldığınızdan emin olun
+    }
+
     suspend fun registerUser(email: String, password: String, username: String): UserEntity {
         val authResult = auth.createUserWithEmailAndPassword(email, password).await()
         val userId = authResult.user?.uid ?: throw Exception("User ID is null")

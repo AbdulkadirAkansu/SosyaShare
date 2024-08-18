@@ -14,10 +14,16 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
+import com.akansu.sosyashare.domain.repository.UserRepository
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var userRepository: UserRepository
+
     override fun onCreate(savedInstanceState: Bundle?) {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         super.onCreate(savedInstanceState)
@@ -37,7 +43,7 @@ class MainActivity : ComponentActivity() {
                 }
 
                 Surface(color = MaterialTheme.colorScheme.background) {
-                    NavGraph(navController = navController, authViewModel = authViewModel)
+                    NavGraph(navController = navController, authViewModel = authViewModel, userRepository = userRepository)
                 }
             }
         }

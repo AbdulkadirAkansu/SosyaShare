@@ -1,8 +1,8 @@
 package com.akansu.sosyashare.data.di
 
-import CommentRepositoryImpl
 import com.akansu.sosyashare.data.remote.FirebaseCommentService
 import com.akansu.sosyashare.data.local.CommentDao
+import com.akansu.sosyashare.data.repository.CommentRepositoryImpl
 import com.akansu.sosyashare.domain.repository.CommentRepository
 import dagger.Module
 import dagger.Provides
