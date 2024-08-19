@@ -28,7 +28,7 @@ fun NavigationBar(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .height(85.dp)  // NavigationBar yüksekliği 85dp olarak bırakıldı
+            .height(65.dp)
             .background(Color.Transparent),
         color = Color.Transparent
     ) {
@@ -49,11 +49,11 @@ fun NavigationBar(
 
             items.forEachIndexed { index, icon ->
                 val iconSize = when (icon) {
-                    R.drawable.home -> 36.dp
-                    R.drawable.search -> 45.dp  // search ikonu için boyut artırıldı
-                    R.drawable.trend -> 34.dp
-                    R.drawable.more -> 36.dp// trend ikonu için boyut azaltıldı
-                    else -> 38.dp  // Diğer ikonlar için standart boyut
+                    R.drawable.home -> 30.dp  // İkonlar daha küçük yapıldı
+                    R.drawable.search -> 35.dp  // search ikonu için boyut artırıldı
+                    R.drawable.trend -> 28.dp
+                    R.drawable.more -> 30.dp
+                    else -> 32.dp  // Diğer ikonlar için standart boyut
                 }
 
                 if (icon != null) {
@@ -68,8 +68,8 @@ fun NavigationBar(
                             }
                         },
                         modifier = Modifier
-                            .size(50.dp)
-                            .offset(y = (-4).dp)  // İkonları yukarı kaydırmak için y-ekseni offset eklendi
+                            .size(45.dp)  // İkonların yer aldığı buton boyutu küçültüldü
+                            .offset(y = (-2).dp)  // İkonları hafif yukarı kaydırmak için y-ekseni offset eklendi
                     ) {
                         Icon(
                             painter = painterResource(id = icon),
@@ -84,14 +84,14 @@ fun NavigationBar(
                             navController.navigate("userprofile")
                         },
                         modifier = Modifier
-                            .size(50.dp)
-                            .offset(y = (-4).dp)  // Profil fotoğrafı da yukarı kaydırıldı
+                            .size(45.dp)
+                            .offset(y = (-2).dp)  // Profil fotoğrafı da yukarı kaydırıldı
                     ) {
                         Image(
                             painter = rememberAsyncImagePainter(profilePictureUrl ?: R.drawable.profile),
                             contentDescription = null,
                             modifier = Modifier
-                                .size(35.dp)
+                                .size(30.dp)  // Profil fotoğrafı boyutu küçültüldü
                                 .clip(CircleShape)
                                 .align(Alignment.CenterVertically),
                             contentScale = ContentScale.Crop

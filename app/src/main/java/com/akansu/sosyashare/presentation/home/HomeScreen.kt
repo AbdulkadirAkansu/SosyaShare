@@ -47,16 +47,17 @@ fun HomeScreen(
     val users by homeViewModel.users.collectAsState()
     val profilePictureUrl by userViewModel.profilePictureUrl.collectAsState()
     val currentUsername by userViewModel.username.collectAsState()
+    val savedPosts by homeViewModel.savedPosts.collectAsState() // collectAsState ile savedPosts durumunu izliyoruz
     var selectedItem by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(Unit) {
         homeViewModel.loadFollowedUsersPosts()
+        homeViewModel.loadSavedPosts()
     }
 
     Scaffold(
         topBar = {
             Column {
-                Spacer(modifier = Modifier.height(16.dp))  // TopBar'ın üstüne boşluk eklendi
                 TopAppBar(
                     title = {
                         Text(
@@ -64,7 +65,8 @@ fun HomeScreen(
                             fontFamily = poppinsFontFamily,
                             fontWeight = FontWeight.Bold,
                             fontSize = 24.sp,
-                            color = MaterialTheme.colorScheme.onBackground
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.offset(x = (-8).dp)
                         )
                     },
                     actions = {
@@ -73,35 +75,39 @@ fun HomeScreen(
                             horizontalArrangement = Arrangement.End
                         ) {
                             IconButton(
-                                onClick = { /* Notification action */ },
-                                modifier = Modifier.size(28.dp)
+                                onClick = { /* Bildirimler */ },
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .offset(y = (-4).dp)
                             ) {
                                 Icon(
                                     painter = painterResource(id = R.drawable.notification),
                                     contentDescription = "Notifications",
-                                    tint = MaterialTheme.colorScheme.onBackground,
-                                    modifier = Modifier.size(28.dp)
+                                    tint = MaterialTheme.colorScheme.onBackground
                                 )
                             }
-                            Spacer(modifier = Modifier.width(20.dp))
+                            Spacer(modifier = Modifier.width(16.dp))
                             IconButton(
-                                onClick = { /* Message action */ },
-                                modifier = Modifier.size(44.dp)
+                                onClick = { /* Mesajlar */ },
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .offset(y = (-4).dp)
                             ) {
                                 Icon(
                                     painter = painterResource(id = R.drawable.chat),
                                     contentDescription = "Messages",
                                     tint = MaterialTheme.colorScheme.onBackground,
-                                    modifier = Modifier.size(44.dp)
+                                    modifier = Modifier
+                                        .size(36.dp)
                                 )
                             }
-                            Spacer(modifier = Modifier.width(10.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = Color.Transparent
                     ),
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                    modifier = Modifier.padding(horizontal = 12.dp)
                 )
             }
         },
@@ -111,7 +117,7 @@ fun HomeScreen(
                 onItemSelected = { selectedItem = it },
                 navController = navController,
                 profilePictureUrl = profilePictureUrl,
-                modifier = Modifier.height(85.dp)
+                modifier = Modifier.height(65.dp)
             )
         },
         containerColor = MaterialTheme.colorScheme.background
@@ -122,48 +128,15 @@ fun HomeScreen(
                 .padding(paddingValues)
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            StoriesSection(users.values.toList())
-            Spacer(modifier = Modifier.height(8.dp)) // Story kısmından sonra boşluk eklendi
+            // StoriesSection'u geçici olarak kaldırıyoruz
+            Spacer(modifier = Modifier.height(8.dp))
             PostsList(
                 posts = posts,
                 users = users,
+                savedPosts = savedPosts,  // Kaydedilen postları gönderiyoruz
                 homeViewModel = homeViewModel,
                 navController = navController
             )
-        }
-    }
-}
-
-
-@Composable
-fun StoriesSection(users: List<User>) {
-    LazyRow(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp, horizontal = 16.dp)
-    ) {
-        items(users) { user ->
-            Column(
-                modifier = Modifier
-                    .padding(horizontal = 8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Image(
-                    painter = rememberAsyncImagePainter(user.profilePictureUrl ?: R.drawable.profile),
-                    contentDescription = "Story Picture",
-                    modifier = Modifier
-                        .size(64.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surface),
-                    contentScale = ContentScale.Crop
-                )
-                Text(
-                    text = user.username,
-                    fontFamily = poppinsFontFamily,
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            }
         }
     }
 }
@@ -172,6 +145,7 @@ fun StoriesSection(users: List<User>) {
 fun PostsList(
     posts: List<Post>,
     users: Map<String, User>,
+    savedPosts: List<Post>,  // Kaydedilen postları buraya alıyoruz
     homeViewModel: HomeViewModel,
     navController: NavController
 ) {
@@ -191,15 +165,22 @@ fun PostsList(
                 comment = post.content,
                 isLiked = post.isLiked,
                 likeCount = post.likeCount,
+                isSaved = savedPosts.any { it.id == post.id },  // Kaydedilmiş postları kontrol ediyoruz
                 onLikeClick = {
                     homeViewModel.likePost(post.id)
                 },
                 onUnlikeClick = {
                     homeViewModel.unlikePost(post.id)
                 },
-                navController = navController
+                onSaveClick = {
+                    homeViewModel.savePost(post.id)
+                },
+                onUnsaveClick = {
+                    homeViewModel.removeSavedPost(post.id)
+                },
+                navController = navController,homeViewModel
             )
-            Spacer(modifier = Modifier.height(16.dp)) // Postlar arasında boşluk eklendi
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
@@ -214,12 +195,17 @@ fun PostItem(
     comment: String?,
     isLiked: Boolean,
     likeCount: Int,
+    isSaved: Boolean,
     onLikeClick: () -> Unit,
     onUnlikeClick: () -> Unit,
-    navController: NavController
+    onSaveClick: () -> Unit,
+    onUnsaveClick: () -> Unit,
+    navController: NavController,
+    homeViewModel: HomeViewModel,
 ) {
     var liked by remember { mutableStateOf(isLiked) }
     var likes by remember { mutableIntStateOf(likeCount) }
+    var saved by remember { mutableStateOf(isSaved) }
 
     Column(
         modifier = Modifier
@@ -312,7 +298,7 @@ fun PostItem(
                         painter = if (liked) painterResource(id = R.drawable.red_heart_icon) else painterResource(id = R.drawable.heart_icon),
                         contentDescription = "Like",
                         tint = if (liked) Color.Red else MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.size(30.dp) // Boyutlar eşitlendi
+                        modifier = Modifier.size(30.dp)
                     )
                 }
                 Spacer(modifier = Modifier.width(4.dp))
@@ -331,18 +317,27 @@ fun PostItem(
                         painter = painterResource(id = R.drawable.comment),
                         contentDescription = "Comment",
                         tint = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.size(23.dp) // Boyutlar eşitlendi
+                        modifier = Modifier.size(23.dp)
                     )
                 }
             }
-            IconButton(onClick = { /* Save action */ }, modifier = Modifier.align(Alignment.CenterVertically)) {
+
+            IconButton(onClick = {
+                if (saved) {
+                    onUnsaveClick()
+                    saved = false
+                    homeViewModel.loadSavedPosts()
+                } else {
+                    onSaveClick()
+                    saved = true
+                    homeViewModel.loadSavedPosts()
+                }
+            }) {
                 Icon(
-                    painter = painterResource(id = R.drawable.empty_save),
-                    contentDescription = "Save",
+                    painter = painterResource(id = if (saved) R.drawable.save else R.drawable.empty_save),
+                    contentDescription = "Save Post",
                     tint = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier
-                        .size(32.dp)
-                        .align(Alignment.CenterVertically)
+                    modifier = Modifier.size(32.dp)
                 )
             }
         }

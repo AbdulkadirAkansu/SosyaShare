@@ -70,7 +70,7 @@ fun ProfileScreen(
                 onItemSelected = { selectedItem = it },
                 navController = navController,
                 profilePictureUrl = profilePictureUrl ?: userDetails?.profilePictureUrl,
-                modifier = Modifier.height(85.dp)
+                modifier = Modifier.height(65.dp)
             )
         },
         content = { paddingValues ->

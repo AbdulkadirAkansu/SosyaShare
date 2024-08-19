@@ -52,7 +52,7 @@ fun SearchScreen(navController: NavHostController, searchViewModel: SearchViewMo
                 onItemSelected = { selectedItem = it },
                 navController = navController,
                 profilePictureUrl = profilePictureUrl,
-                modifier = Modifier.height(85.dp)
+                modifier = Modifier.height(65.dp)
             )
         },
         containerColor = MaterialTheme.colorScheme.background

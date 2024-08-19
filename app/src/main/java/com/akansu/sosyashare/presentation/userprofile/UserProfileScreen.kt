@@ -99,7 +99,7 @@ fun UserProfileScreen(
                 onItemSelected = { selectedItem = it },
                 navController = navController,
                 profilePictureUrl = profilePictureUrl,
-                modifier = Modifier.height(85.dp)  // NavigationBar yüksekliği diğer ekranlarla tutarlı hale getirildi
+                modifier = Modifier.height(65.dp)  // NavigationBar yüksekliği diğer ekranlarla tutarlı hale getirildi
             )
         },
         containerColor = MaterialTheme.colorScheme.background
@@ -142,7 +142,11 @@ fun TopBar(navController: NavHostController, username: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(
+                horizontal = 16.dp,
+                vertical = 8.dp
+            )
+            .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()),  // StatusBar ile çakışmayı önlemek için üst padding eklendi
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconButton(onClick = { navController.navigateUp() }) {

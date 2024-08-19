@@ -81,7 +81,7 @@ fun PostDetailScreen(
                 onItemSelected = { /* TODO */ },
                 navController = navController,
                 profilePictureUrl = user?.profilePictureUrl,
-                modifier = Modifier.height(85.dp)
+                modifier = Modifier.height(65.dp)
             )
         },
         content = { paddingValues ->

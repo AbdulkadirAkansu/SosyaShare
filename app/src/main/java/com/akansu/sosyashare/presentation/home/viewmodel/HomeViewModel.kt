@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.akansu.sosyashare.domain.model.Post
 import com.akansu.sosyashare.domain.model.User
 import com.akansu.sosyashare.domain.repository.PostRepository
+import com.akansu.sosyashare.domain.repository.SaveRepository
 import com.akansu.sosyashare.domain.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,7 +18,8 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val userRepository: UserRepository,
-    private val postRepository: PostRepository
+    private val postRepository: PostRepository,
+    private val saveRepository: SaveRepository
 ) : ViewModel() {
 
     private val _users = MutableStateFlow<Map<String, User>>(emptyMap())
@@ -25,6 +27,9 @@ class HomeViewModel @Inject constructor(
 
     private val _posts = MutableStateFlow<List<Post>>(emptyList())
     val posts: StateFlow<List<Post>> = _posts
+
+    private val _savedPosts = MutableStateFlow<List<Post>>(emptyList())
+    val savedPosts: StateFlow<List<Post>> = _savedPosts
 
     fun loadFollowedUsersPosts() {
         viewModelScope.launch {
@@ -53,6 +58,30 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    fun savePost(postId: String) {
+        viewModelScope.launch {
+            saveRepository.savePost(postId)
+            loadSavedPosts() // Kaydedildikten sonra hemen yükleme yapıyoruz
+        }
+    }
+
+    fun removeSavedPost(postId: String) {
+        viewModelScope.launch {
+            saveRepository.removeSavedPost(postId)
+            loadSavedPosts() // Silindikten sonra hemen yükleme yapıyoruz
+        }
+    }
+
+    fun loadSavedPosts() {
+        viewModelScope.launch {
+            val saves = saveRepository.getSavedPosts()
+            val posts = saves.mapNotNull { save ->
+                postRepository.getPostById(save.postId) // Her bir Save için ilgili Post'u getir
+            }
+            _savedPosts.value = posts
+            Log.d("HomeViewModel", "Updated _savedPosts with ${posts.size} posts")
+        }
+    }
 
     fun likePost(postId: String) {
         viewModelScope.launch {
