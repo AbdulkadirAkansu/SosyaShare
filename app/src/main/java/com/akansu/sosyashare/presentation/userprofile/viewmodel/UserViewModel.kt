@@ -21,6 +21,9 @@ class UserViewModel @Inject constructor(
     private val _username = MutableStateFlow<String?>(null)
     val username: StateFlow<String?> = _username
 
+    private val _userId = MutableStateFlow<String?>(null)
+    val userId: StateFlow<String?> = _userId
+
     init {
         getCurrentUserProfilePicture()
         loadCurrentUsername()
@@ -37,6 +40,13 @@ class UserViewModel @Inject constructor(
         viewModelScope.launch {
             val username = userRepository.getCurrentUserName()
             _username.value = username
+        }
+    }
+
+    private fun loadCurrentUserId() {
+        viewModelScope.launch {
+            val userId = userRepository.getCurrentUserId()
+            _userId.value = userId
         }
     }
 }

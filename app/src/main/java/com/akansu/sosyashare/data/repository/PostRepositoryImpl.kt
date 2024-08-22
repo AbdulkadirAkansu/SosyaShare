@@ -49,4 +49,8 @@ class PostRepositoryImpl @Inject constructor(
     override suspend fun getLikeStatus(postId: String, likerId: String): Boolean {
         return postService.getLikeStatus(postId, likerId)
     }
+
+    override suspend fun getLikedUserIds(postId: String): List<String> {
+        return postService.getLikedUserIds(postId)
+    }
 }

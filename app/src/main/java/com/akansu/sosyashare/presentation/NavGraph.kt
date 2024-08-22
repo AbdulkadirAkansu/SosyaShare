@@ -95,18 +95,18 @@ fun NavGraph(navController: NavHostController, authViewModel: AuthViewModel, use
             SettingsScreen(navController = navController, authViewModel = authViewModel)
         }
         composable(
-            route = "post_detail/{userId}/{initialPostIndex}",
+            route = "post_detail/{userId}/{initialPostIndex}/{showSaveIcon}",
             arguments = listOf(
                 navArgument("userId") { type = NavType.StringType },
-                navArgument("initialPostIndex") { type = NavType.IntType }
+                navArgument("initialPostIndex") { type = NavType.IntType },
+                navArgument("showSaveIcon") { type = NavType.BoolType }
             )
         ) { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: return@composable
             val initialPostIndex = backStackEntry.arguments?.getInt("initialPostIndex") ?: 0
-            PostDetailScreen(navController, userId, initialPostIndex)
-        }
-        composable("editprofile") {
-            EditProfileScreen(navController = navController)
+            val showSaveIcon = backStackEntry.arguments?.getBoolean("showSaveIcon") ?: true
+
+            PostDetailScreen(navController, userId, initialPostIndex, showSaveIcon)
         }
 
         composable(
@@ -117,7 +117,8 @@ fun NavGraph(navController: NavHostController, authViewModel: AuthViewModel, use
             )
         ) { backStackEntry ->
             val postId = backStackEntry.arguments?.getString("postId") ?: return@composable
-            val currentUserId = backStackEntry.arguments?.getString("currentUserId") ?: return@composable
+            val currentUserId =
+                backStackEntry.arguments?.getString("currentUserId") ?: return@composable
             val currentUserProfileUrl = authViewModel.getCurrentUserProfilePictureUrl() ?: ""
 
             // Coroutine Scope to fetch current user name
@@ -142,7 +143,8 @@ fun NavGraph(navController: NavHostController, authViewModel: AuthViewModel, use
             )
         ) { backStackEntry ->
             val postId = backStackEntry.arguments?.getString("postId") ?: return@composable
-            val currentUserId = backStackEntry.arguments?.getString("currentUserId") ?: return@composable
+            val currentUserId =
+                backStackEntry.arguments?.getString("currentUserId") ?: return@composable
             val currentUserProfileUrl = authViewModel.getCurrentUserProfilePictureUrl() ?: ""
 
             // Coroutine Scope and LaunchedEffect to get current user name
@@ -162,7 +164,12 @@ fun NavGraph(navController: NavHostController, authViewModel: AuthViewModel, use
                     currentUserName = currentUserName ?: "",
                     currentUserProfileUrl = currentUserProfileUrl,
                     backgroundContent = {
-                        PostDetailScreen(navController = navController, userId = currentUserId, initialPostIndex = 0)
+                        PostDetailScreen(
+                            navController = navController,
+                            userId = currentUserId,
+                            initialPostIndex = 0,
+                            showSaveIcon = false // Burada showSaveIcon parametresini geçiyoruz
+                        )
                     }
                 )
             } else {
@@ -171,5 +178,6 @@ fun NavGraph(navController: NavHostController, authViewModel: AuthViewModel, use
                 }
             }
         }
+
     }
 }

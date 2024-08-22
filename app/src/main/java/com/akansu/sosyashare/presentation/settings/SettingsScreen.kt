@@ -33,9 +33,9 @@ fun SettingsScreen(navController: NavController, authViewModel: AuthViewModel, u
                 title = {
                     Text(
                         "Settings",
-                        fontSize = 30.sp,  // Yazı boyutunu büyüt
+                        fontSize = 30.sp,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(start = 16.dp) // Başlığı sağa kaydır
+                        modifier = Modifier.padding(start = 16.dp)
                     )
                 },
                 navigationIcon = {

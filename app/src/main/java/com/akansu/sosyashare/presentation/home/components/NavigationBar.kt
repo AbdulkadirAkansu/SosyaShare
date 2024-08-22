@@ -91,7 +91,7 @@ fun NavigationBar(
                             painter = rememberAsyncImagePainter(profilePictureUrl ?: R.drawable.profile),
                             contentDescription = null,
                             modifier = Modifier
-                                .size(30.dp)  // Profil fotoğrafı boyutu küçültüldü
+                                .size(30.dp)
                                 .clip(CircleShape)
                                 .align(Alignment.CenterVertically),
                             contentScale = ContentScale.Crop

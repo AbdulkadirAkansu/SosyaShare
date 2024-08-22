@@ -32,6 +32,7 @@ import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.akansu.sosyashare.R
 import com.akansu.sosyashare.domain.model.User
+import com.akansu.sosyashare.presentation.home.components.FollowersFollowingDialog
 import com.akansu.sosyashare.presentation.home.components.NavigationBar
 import com.akansu.sosyashare.presentation.login.viewmodel.AuthViewModel
 import com.akansu.sosyashare.presentation.share.viewmodel.ShareViewModel
@@ -48,6 +49,10 @@ fun UserProfileScreen(
 ) {
     val currentUser = authViewModel.getCurrentUser()
     var userDetails by remember { mutableStateOf<User?>(null) }
+    var showFollowersDialog by remember { mutableStateOf(false) }
+    var showFollowingDialog by remember { mutableStateOf(false) }
+    var followers by remember { mutableStateOf<List<User>>(emptyList()) }
+    var following by remember { mutableStateOf<List<User>>(emptyList()) }
 
     LaunchedEffect(currentUser?.uid) {
         currentUser?.uid?.let { userId ->
@@ -55,6 +60,38 @@ fun UserProfileScreen(
                 userDetails = it
             }
         }
+    }
+
+    if (showFollowersDialog) {
+        LaunchedEffect(Unit) {
+            followers = userDetails?.followers?.mapNotNull { followerId ->
+                profileViewModel.getUserById(followerId)
+            } ?: emptyList()
+        }
+
+        FollowersFollowingDialog(
+            users = followers,
+            title = "Followers",
+            onDismiss = { showFollowersDialog = false },
+            navController = navController,
+            currentUserId = currentUser?.uid ?: ""
+        )
+    }
+
+    if (showFollowingDialog) {
+        LaunchedEffect(Unit) {
+            following = userDetails?.following?.mapNotNull { followingId ->
+                profileViewModel.getUserById(followingId)
+            } ?: emptyList()
+        }
+
+        FollowersFollowingDialog(
+            users = following,
+            title = "Following",
+            onDismiss = { showFollowingDialog = false },
+            navController = navController,
+            currentUserId = currentUser?.uid ?: ""
+        )
     }
 
     var profilePictureUrl by remember { mutableStateOf(userDetails?.profilePictureUrl) }
@@ -99,7 +136,7 @@ fun UserProfileScreen(
                 onItemSelected = { selectedItem = it },
                 navController = navController,
                 profilePictureUrl = profilePictureUrl,
-                modifier = Modifier.height(65.dp)  // NavigationBar yüksekliği diğer ekranlarla tutarlı hale getirildi
+                modifier = Modifier.height(65.dp)
             )
         },
         containerColor = MaterialTheme.colorScheme.background
@@ -107,8 +144,8 @@ fun UserProfileScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)  // Scaffold'dan alınan padding'i uygula
-                .padding(bottom = 72.dp)  // Ekstra boşluk eklemeyi de unutma
+                .padding(paddingValues)
+                .padding(bottom = 72.dp)
         ) {
             item {
                 ProfileInfo(
@@ -126,7 +163,9 @@ fun UserProfileScreen(
                 UserStatistics(
                     postCount = posts.size,
                     followersCount = userDetails?.followers?.size ?: 0,
-                    followingCount = userDetails?.following?.size ?: 0
+                    followingCount = userDetails?.following?.size ?: 0,
+                    onFollowersClick = { showFollowersDialog = true },
+                    onFollowingClick = { showFollowingDialog = true }
                 )
                 ActionButtons(navController)
                 Spacer(modifier = Modifier.height(8.dp))
@@ -135,7 +174,6 @@ fun UserProfileScreen(
         }
     }
 }
-
 
 @Composable
 fun TopBar(navController: NavHostController, username: String) {
@@ -203,23 +241,30 @@ fun ProfileInfo(username: String, profilePictureUrl: String?, bio: String, onPro
 }
 
 @Composable
-fun UserStatistics(postCount: Int, followersCount: Int, followingCount: Int) {
+fun UserStatistics(
+    postCount: Int,
+    followersCount: Int,
+    followingCount: Int,
+    onFollowersClick: () -> Unit,
+    onFollowingClick: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
-        StatColumn(postCount.toString(), "Posts")
-        StatColumn(followersCount.toString(), "Followers")
-        StatColumn(followingCount.toString(), "Following")
+        StatColumn(postCount.toString(), "Posts", onClick = {})
+        StatColumn(followersCount.toString(), "Followers", onClick = onFollowersClick)
+        StatColumn(followingCount.toString(), "Following", onClick = onFollowingClick)
     }
 }
 
 @Composable
-fun StatColumn(count: String, label: String) {
+fun StatColumn(count: String, label: String, onClick: () -> Unit) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.clickable { onClick() }
     ) {
         Text(
             count,
@@ -284,7 +329,7 @@ fun PostGrid(posts: List<String>, userId: String, navController: NavHostControll
                         .aspectRatio(1f)
                         .padding(1.dp)
                         .clickable {
-                            navController.navigate("post_detail/$userId/$index")
+                            navController.navigate("post_detail/${userId}/${index}/false")
                         }
                 ) {
                     Image(

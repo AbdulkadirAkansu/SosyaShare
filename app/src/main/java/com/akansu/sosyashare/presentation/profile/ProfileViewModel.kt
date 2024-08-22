@@ -75,4 +75,9 @@ class ProfileViewModel @Inject constructor(
             _isFollowing.value = isFollowing
         }
     }
+
+    suspend fun getUserById(userId: String): User? {
+        return userRepository.getUserById(userId).firstOrNull()
+    }
+
 }

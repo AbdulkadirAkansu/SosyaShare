@@ -31,6 +31,9 @@ class HomeViewModel @Inject constructor(
     private val _savedPosts = MutableStateFlow<List<Post>>(emptyList())
     val savedPosts: StateFlow<List<Post>> = _savedPosts
 
+    private val _likedUsers = MutableStateFlow<List<User>>(emptyList())
+    val likedUsers: StateFlow<List<User>> = _likedUsers
+
     fun loadFollowedUsersPosts() {
         viewModelScope.launch {
             val currentUserId = userRepository.getCurrentUserId()
@@ -55,6 +58,16 @@ class HomeViewModel @Inject constructor(
                     }
                 }
             }
+        }
+    }
+
+    fun loadLikedUsers(postId: String) {
+        viewModelScope.launch {
+            val likedUserIds = postRepository.getLikedUserIds(postId)
+            val users = likedUserIds.mapNotNull { userId ->
+                userRepository.getUserById(userId).firstOrNull()
+            }
+            _likedUsers.value = users
         }
     }
 

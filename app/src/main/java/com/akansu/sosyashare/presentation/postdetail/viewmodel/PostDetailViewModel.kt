@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.akansu.sosyashare.domain.model.Post
 import com.akansu.sosyashare.domain.model.User
 import com.akansu.sosyashare.domain.repository.PostRepository
+import com.akansu.sosyashare.domain.repository.SaveRepository
 import com.akansu.sosyashare.domain.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,7 +18,8 @@ import javax.inject.Inject
 @HiltViewModel
 class PostDetailViewModel @Inject constructor(
     private val userRepository: UserRepository,
-    private val postRepository: PostRepository
+    private val postRepository: PostRepository,
+    private val saveRepository: SaveRepository
 ) : ViewModel() {
 
     private val _user = MutableStateFlow<User?>(null)
@@ -32,13 +34,30 @@ class PostDetailViewModel @Inject constructor(
     private val _currentUserId = MutableStateFlow<String?>(null)
     val currentUserId: StateFlow<String?> get() = _currentUserId
 
+    private val _savedPosts = MutableStateFlow<List<Post>>(emptyList())
+    val savedPosts: StateFlow<List<Post>> = _savedPosts
+
+    private val _likedUsers = MutableStateFlow<List<User>>(emptyList())
+    val likedUsers: StateFlow<List<User>> = _likedUsers
+
     init {
         loadCurrentUserId()
+        loadSavedPosts()
     }
 
     private fun loadCurrentUserId() {
         viewModelScope.launch {
             _currentUserId.value = userRepository.getCurrentUserId()
+        }
+    }
+
+    fun loadLikedUsers(postId: String) {
+        viewModelScope.launch {
+            val likedUserIds = postRepository.getLikedUserIds(postId)
+            val users = likedUserIds.mapNotNull { userId ->
+                userRepository.getUserById(userId).firstOrNull()
+            }
+            _likedUsers.value = users
         }
     }
 
@@ -63,6 +82,33 @@ class PostDetailViewModel @Inject constructor(
         }
     }
 
+    fun savePost(postId: String) {
+        viewModelScope.launch {
+            if (!isPostAlreadySaved(postId)) {
+                saveRepository.savePost(postId)
+                loadSavedPosts()
+            }
+        }
+    }
+
+    fun removeSavedPost(postId: String) {
+        viewModelScope.launch {
+            saveRepository.removeSavedPost(postId)
+            loadSavedPosts()
+        }
+    }
+
+    fun loadSavedPosts() {
+        viewModelScope.launch {
+            val saves = saveRepository.getSavedPosts()
+            val posts = saves.mapNotNull { save ->
+                postRepository.getPostById(save.postId) // Her bir Save için ilgili Post'u getir
+            }
+            _savedPosts.value = posts
+            Log.d("PostDetailViewModel", "Updated _savedPosts with ${posts.size} posts")
+        }
+    }
+
     fun likePost(postId: String) {
         viewModelScope.launch {
             val currentUserId = _currentUserId.value ?: return@launch
@@ -77,6 +123,10 @@ class PostDetailViewModel @Inject constructor(
             postRepository.unlikePost(postId, currentUserId)
             updatePostLikeStatus(postId, false)
         }
+    }
+
+    fun isPostAlreadySaved(postId: String): Boolean {
+        return _savedPosts.value.any { it.id == postId }
     }
 
     private fun updatePostLikeStatus(postId: String, isLiked: Boolean) {

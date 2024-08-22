@@ -61,6 +61,23 @@ class FirebasePostService @Inject constructor(
         }.await()
     }
 
+    suspend fun getLikedUserIds(postId: String): List<String> {
+        return try {
+            val likesCollection = firestore.collection("posts")
+                .document(postId)
+                .collection("likes")
+                .get()
+                .await()
+
+            likesCollection.documents.mapNotNull { it.id }
+        } catch (e: Exception) {
+            Log.e("FirebasePostService", "Error fetching liked user IDs for postId $postId", e)
+            emptyList()
+        }
+    }
+
+
+
     suspend fun unlikePost(postId: String, likerId: String) {
         Log.d("FirebasePostService", "Unliking Post: postId=$postId by User: $likerId")
         val postRef = firestore.collection("posts").document(postId)

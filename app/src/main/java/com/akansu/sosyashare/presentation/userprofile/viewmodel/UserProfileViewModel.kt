@@ -85,4 +85,8 @@ class UserProfileViewModel @Inject constructor(
     fun updateUserProfilePictureUrl(newUrl: String) {
         _profilePictureUrl.value = newUrl
     }
+
+    suspend fun getUserById(userId: String): User? {
+        return userRepository.getUserById(userId).firstOrNull()
+    }
 }

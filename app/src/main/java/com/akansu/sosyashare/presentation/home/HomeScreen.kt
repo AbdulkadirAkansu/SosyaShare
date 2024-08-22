@@ -2,9 +2,9 @@ package com.akansu.sosyashare.presentation.home
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
@@ -26,11 +26,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.akansu.sosyashare.R
 import com.akansu.sosyashare.domain.model.Post
 import com.akansu.sosyashare.domain.model.User
+import com.akansu.sosyashare.presentation.home.components.LikedUsersDialog
 import com.akansu.sosyashare.presentation.home.components.NavigationBar
 import com.akansu.sosyashare.presentation.home.viewmodel.HomeViewModel
 import com.akansu.sosyashare.presentation.userprofile.viewmodel.UserViewModel
@@ -39,7 +40,7 @@ import com.akansu.sosyashare.util.poppinsFontFamily
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    navController: NavController,
+    navController: NavHostController,
     homeViewModel: HomeViewModel = hiltViewModel(),
     userViewModel: UserViewModel = hiltViewModel()
 ) {
@@ -47,8 +48,19 @@ fun HomeScreen(
     val users by homeViewModel.users.collectAsState()
     val profilePictureUrl by userViewModel.profilePictureUrl.collectAsState()
     val currentUsername by userViewModel.username.collectAsState()
-    val savedPosts by homeViewModel.savedPosts.collectAsState() // collectAsState ile savedPosts durumunu izliyoruz
+    val currentUserId by userViewModel.userId.collectAsState()
+    val savedPosts by homeViewModel.savedPosts.collectAsState()
     var selectedItem by remember { mutableIntStateOf(0) }
+    var showLikedUsers by remember { mutableStateOf(false) }
+
+    if (showLikedUsers) {
+        LikedUsersDialog(
+            users = homeViewModel.likedUsers.collectAsState().value,
+            onDismiss = { showLikedUsers = false },
+            navController = navController,
+            currentUserId = currentUserId ?: ""
+        )
+    }
 
     LaunchedEffect(Unit) {
         homeViewModel.loadFollowedUsersPosts()
@@ -97,8 +109,7 @@ fun HomeScreen(
                                     painter = painterResource(id = R.drawable.chat),
                                     contentDescription = "Messages",
                                     tint = MaterialTheme.colorScheme.onBackground,
-                                    modifier = Modifier
-                                        .size(36.dp)
+                                    modifier = Modifier.size(36.dp)
                                 )
                             }
                             Spacer(modifier = Modifier.width(8.dp))
@@ -128,14 +139,17 @@ fun HomeScreen(
                 .padding(paddingValues)
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            // StoriesSection'u geçici olarak kaldırıyoruz
             Spacer(modifier = Modifier.height(8.dp))
             PostsList(
                 posts = posts,
                 users = users,
-                savedPosts = savedPosts,  // Kaydedilen postları gönderiyoruz
+                savedPosts = savedPosts,
                 homeViewModel = homeViewModel,
-                navController = navController
+                navController = navController,
+                onLikesClick = { postId ->
+                    homeViewModel.loadLikedUsers(postId)
+                    showLikedUsers = true
+                }
             )
         }
     }
@@ -145,9 +159,10 @@ fun HomeScreen(
 fun PostsList(
     posts: List<Post>,
     users: Map<String, User>,
-    savedPosts: List<Post>,  // Kaydedilen postları buraya alıyoruz
+    savedPosts: List<Post>,
     homeViewModel: HomeViewModel,
-    navController: NavController
+    navController: NavHostController,
+    onLikesClick: (String) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier
@@ -165,20 +180,13 @@ fun PostsList(
                 comment = post.content,
                 isLiked = post.isLiked,
                 likeCount = post.likeCount,
-                isSaved = savedPosts.any { it.id == post.id },  // Kaydedilmiş postları kontrol ediyoruz
-                onLikeClick = {
-                    homeViewModel.likePost(post.id)
-                },
-                onUnlikeClick = {
-                    homeViewModel.unlikePost(post.id)
-                },
-                onSaveClick = {
-                    homeViewModel.savePost(post.id)
-                },
-                onUnsaveClick = {
-                    homeViewModel.removeSavedPost(post.id)
-                },
-                navController = navController,homeViewModel
+                isSaved = savedPosts.any { it.id == post.id },
+                onLikeClick = { homeViewModel.likePost(post.id) },
+                onUnlikeClick = { homeViewModel.unlikePost(post.id) },
+                onSaveClick = { homeViewModel.savePost(post.id) },
+                onUnsaveClick = { homeViewModel.removeSavedPost(post.id) },
+                navController = navController,
+                onLikesClick = onLikesClick
             )
             Spacer(modifier = Modifier.height(16.dp))
         }
@@ -200,8 +208,8 @@ fun PostItem(
     onUnlikeClick: () -> Unit,
     onSaveClick: () -> Unit,
     onUnsaveClick: () -> Unit,
-    navController: NavController,
-    homeViewModel: HomeViewModel,
+    navController: NavHostController,
+    onLikesClick: (String) -> Unit
 ) {
     var liked by remember { mutableStateOf(isLiked) }
     var likes by remember { mutableIntStateOf(likeCount) }
@@ -307,7 +315,8 @@ fun PostItem(
                     fontFamily = poppinsFontFamily,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onBackground
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.clickable { onLikesClick(postId) }
                 )
                 Spacer(modifier = Modifier.width(24.dp))
                 IconButton(onClick = {
@@ -326,11 +335,9 @@ fun PostItem(
                 if (saved) {
                     onUnsaveClick()
                     saved = false
-                    homeViewModel.loadSavedPosts()
                 } else {
                     onSaveClick()
                     saved = true
-                    homeViewModel.loadSavedPosts()
                 }
             }) {
                 Icon(
