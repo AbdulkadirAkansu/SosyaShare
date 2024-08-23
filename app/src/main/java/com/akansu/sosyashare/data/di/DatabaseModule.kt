@@ -1,16 +1,14 @@
 package com.akansu.sosyashare.data.di
 
-import android.content.Context
-import android.util.Log
-import androidx.room.Room
-import androidx.room.migration.Migration
-import androidx.sqlite.db.SupportSQLiteDatabase
-import com.akansu.sosyashare.data.local.AppDatabase
-import com.akansu.sosyashare.data.local.UserDao
+import com.akansu.sosyashare.data.remote.*
+import com.akansu.sosyashare.data.repository.*
+import com.akansu.sosyashare.domain.repository.*
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
@@ -20,19 +18,56 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideDatabase(@ApplicationContext context: Context): AppDatabase {
-        return Room.databaseBuilder(
-            context.applicationContext,
-            AppDatabase::class.java,
-            "sosyashare_database"
-        )
-            .fallbackToDestructiveMigration()
-            .build()
+    fun provideFirebaseAuth(): FirebaseAuth = FirebaseAuth.getInstance()
+
+    @Provides
+    @Singleton
+    fun provideFirebaseFirestore(): FirebaseFirestore = FirebaseFirestore.getInstance()
+
+    @Provides
+    @Singleton
+    fun provideFirebaseStorage(): FirebaseStorage = FirebaseStorage.getInstance()
+
+    @Provides
+    @Singleton
+    fun provideFirebaseAuthService(
+        firebaseAuth: FirebaseAuth,
+        firestore: FirebaseFirestore,
+    ): FirebaseAuthService {
+        return FirebaseAuthService(firebaseAuth, firestore,)
     }
 
     @Provides
-    fun provideUserDao(database: AppDatabase): UserDao {
-        return database.userDao()
+    @Singleton
+    fun provideFirebaseUserService(
+        firebaseAuth: FirebaseAuth,
+        firestore: FirebaseFirestore,
+        firebaseStorage: FirebaseStorage
+    ): FirebaseUserService {
+        return FirebaseUserService(firebaseAuth, firestore, firebaseStorage)
+    }
+
+    @Provides
+    @Singleton
+    fun provideAuthRepository(authService: FirebaseAuthService): AuthRepository {
+        return AuthRepositoryImpl(authService)
+    }
+
+    @Provides
+    @Singleton
+    fun provideUserRepository(userService: FirebaseUserService): UserRepository {
+        return UserRepositoryImpl(userService)
+    }
+
+    @Provides
+    @Singleton
+    fun providePostRepository(postService: FirebasePostService): PostRepository {
+        return PostRepositoryImpl(postService)
+    }
+
+    @Provides
+    @Singleton
+    fun provideStorageRepository(storageService: FirebaseStorageService): StorageRepository {
+        return StorageRepositoryImpl(storageService)
     }
 }
-

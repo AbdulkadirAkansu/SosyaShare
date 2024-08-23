@@ -34,6 +34,11 @@ class HomeViewModel @Inject constructor(
     private val _likedUsers = MutableStateFlow<List<User>>(emptyList())
     val likedUsers: StateFlow<List<User>> = _likedUsers
 
+    init {
+        loadFollowedUsersPosts()
+        loadSavedPosts()
+    }
+
     fun loadFollowedUsersPosts() {
         viewModelScope.launch {
             val currentUserId = userRepository.getCurrentUserId()
@@ -41,7 +46,6 @@ class HomeViewModel @Inject constructor(
                 val user = userRepository.getUserById(it).firstOrNull()
                 user?.let { currentUser ->
                     userRepository.getFollowedUsersPosts(currentUser.following).collect { followedUsersPosts ->
-                        // Kullanıcı bilgilerini yükle
                         val usersMap = followedUsersPosts.mapNotNull { post ->
                             userRepository.getUserById(post.userId).firstOrNull()?.let { user ->
                                 post.userId to user
@@ -50,7 +54,6 @@ class HomeViewModel @Inject constructor(
 
                         _users.value = usersMap
 
-                        // Postları güncelle
                         _posts.value = followedUsersPosts.map { post ->
                             val likedByUser = post.likedBy.contains(currentUserId)
                             post.copy(isLiked = likedByUser)
@@ -74,14 +77,14 @@ class HomeViewModel @Inject constructor(
     fun savePost(postId: String) {
         viewModelScope.launch {
             saveRepository.savePost(postId)
-            loadSavedPosts() // Kaydedildikten sonra hemen yükleme yapıyoruz
+            loadSavedPosts() // Save işlemi sonrası hemen güncelleniyor
         }
     }
 
     fun removeSavedPost(postId: String) {
         viewModelScope.launch {
             saveRepository.removeSavedPost(postId)
-            loadSavedPosts() // Silindikten sonra hemen yükleme yapıyoruz
+            loadSavedPosts() // Remove işlemi sonrası hemen güncelleniyor
         }
     }
 
@@ -89,24 +92,20 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             val saves = saveRepository.getSavedPosts()
             val posts = saves.mapNotNull { save ->
-                postRepository.getPostById(save.postId) // Her bir Save için ilgili Post'u getir
+                postRepository.getPostById(save.postId)
             }
             _savedPosts.value = posts
-            Log.d("HomeViewModel", "Updated _savedPosts with ${posts.size} posts")
         }
     }
 
     fun likePost(postId: String) {
         viewModelScope.launch {
             val currentUserId = userRepository.getCurrentUserId() ?: return@launch
-            Log.d("HomeViewModel", "Liking Post: postId=$postId by User: $currentUserId")
             try {
                 postRepository.likePost(postId, currentUserId)
                 _posts.value = _posts.value.map { p ->
                     if (p.id == postId) {
-                        val updatedPost = p.copy(isLiked = true, likeCount = p.likeCount + 1)
-                        Log.d("HomeViewModel", "Post Liked and Updated: $updatedPost")
-                        updatedPost
+                        p.copy(isLiked = true, likeCount = p.likeCount + 1)
                     } else p
                 }
             } catch (e: Exception) {
@@ -118,14 +117,11 @@ class HomeViewModel @Inject constructor(
     fun unlikePost(postId: String) {
         viewModelScope.launch {
             val currentUserId = userRepository.getCurrentUserId() ?: return@launch
-            Log.d("HomeViewModel", "Unliking Post: postId=$postId by User: $currentUserId")
             try {
                 postRepository.unlikePost(postId, currentUserId)
                 _posts.value = _posts.value.map { p ->
                     if (p.id == postId) {
-                        val updatedPost = p.copy(isLiked = false, likeCount = p.likeCount - 1)
-                        Log.d("HomeViewModel", "Post Unliked and Updated: $updatedPost")
-                        updatedPost
+                        p.copy(isLiked = false, likeCount = p.likeCount - 1)
                     } else p
                 }
             } catch (e: Exception) {

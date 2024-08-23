@@ -1,9 +1,7 @@
 package com.akansu.sosyashare.data.remote
 
 import android.net.Uri
-import android.system.Os.remove
 import android.util.Log
-import com.akansu.sosyashare.data.local.UserDao
 import com.akansu.sosyashare.data.model.PostEntity
 import com.akansu.sosyashare.data.model.UserEntity
 import com.google.firebase.auth.FirebaseAuth
@@ -15,12 +13,10 @@ import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 class FirebaseUserService @Inject constructor(
-    private val userDao: UserDao,
+    private val auth: FirebaseAuth,
+    private val firestore: FirebaseFirestore,
     private val firebaseStorage: FirebaseStorage
 ) {
-    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
-    private val firestore = FirebaseFirestore.getInstance()
-
 
     suspend fun getCurrentUserName(): String? {
         val userId = auth.currentUser?.uid ?: return null
@@ -39,10 +35,9 @@ class FirebaseUserService @Inject constructor(
             "followers" to emptyList<String>()
         )
         firestore.collection("users").document(userId).set(userMap).await()
-        val userEntity = UserEntity(id = userId, username = username, email = email, profilePictureUrl = null)
-        userDao.insertUser(userEntity)
-        return userEntity
+        return UserEntity(id = userId, username = username, email = email, profilePictureUrl = null)
     }
+
 
     suspend fun getUserDetails(userId: String): UserEntity? {
         return try {
@@ -132,14 +127,16 @@ class FirebaseUserService @Inject constructor(
         }.await()
     }
 
-    suspend fun syncAllUsers() {
+    suspend fun syncAllUsers(): List<UserEntity> {
         val result = firestore.collection("users").get().await()
+        val users = mutableListOf<UserEntity>()
         for (document in result.documents) {
             val user = document.toObject(UserEntity::class.java)?.copy(id = document.id)
             if (user != null) {
-                userDao.insertUser(user)
+                users.add(user)
             }
         }
+        return users
     }
 
     suspend fun deletePost(userId: String, postId: String, postImageUrl: String) {

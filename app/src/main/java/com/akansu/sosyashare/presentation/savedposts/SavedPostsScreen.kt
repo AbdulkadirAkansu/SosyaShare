@@ -76,7 +76,8 @@ fun SavedPostsScreen(navController: NavController, homeViewModel: HomeViewModel 
                             modifier = Modifier
                                 .aspectRatio(1f) // Kare görünümü sağlamak için
                                 .clickable {
-                                    navController.navigate("post_detail/${post.userId}/$index")
+                                    navController.navigate("post_detail/${post.userId}/$index/true")
+
                                 }
                         )
                     }

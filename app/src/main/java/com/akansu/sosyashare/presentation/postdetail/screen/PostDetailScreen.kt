@@ -1,6 +1,5 @@
 package com.akansu.sosyashare.presentation.postdetail.screen
 
-import android.util.Log
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -39,12 +38,12 @@ import com.akansu.sosyashare.R
 import com.akansu.sosyashare.domain.model.Post
 import com.akansu.sosyashare.presentation.home.components.LikedUsersDialog
 import com.akansu.sosyashare.presentation.home.components.NavigationBar
+import com.akansu.sosyashare.presentation.home.viewmodel.HomeViewModel
 import com.akansu.sosyashare.presentation.postdetail.viewmodel.PostDetailViewModel
 import com.akansu.sosyashare.util.poppinsFontFamily
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import java.text.SimpleDateFormat
 import java.util.*
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PostDetailScreen(
@@ -52,10 +51,12 @@ fun PostDetailScreen(
     userId: String,
     initialPostIndex: Int,
     showSaveIcon: Boolean,
-    postDetailViewModel: PostDetailViewModel = hiltViewModel()
+    postDetailViewModel: PostDetailViewModel = hiltViewModel(),
+    homeViewModel: HomeViewModel = hiltViewModel() // Shared ViewModel
 ) {
     val user by postDetailViewModel.user.collectAsState()
     val posts by postDetailViewModel.posts.collectAsState()
+    val savedPosts by homeViewModel.savedPosts.collectAsState() // Shared state
     val listState = rememberLazyListState()
     val currentUserId by postDetailViewModel.currentUserId.collectAsState()
     var showLikedUsers by remember { mutableStateOf(false) }
@@ -106,6 +107,7 @@ fun PostDetailScreen(
                     .padding(paddingValues)
             ) {
                 items(posts) { post ->
+                    val isSaved = savedPosts.any { it.id == post.id } // Check if post is saved
                     PostContent(
                         post = post,
                         username = user!!.username,
@@ -114,9 +116,15 @@ fun PostDetailScreen(
                         isLiked = post.isLiked,
                         onLike = { postDetailViewModel.likePost(post.id) },
                         onUnlike = { postDetailViewModel.unlikePost(post.id) },
-                        onSaveClick = { postDetailViewModel.savePost(post.id) },
-                        onUnsaveClick = { postDetailViewModel.removeSavedPost(post.id) },
-                        isSaved = postDetailViewModel.isPostAlreadySaved(post.id),
+                        onSaveClick = {
+                            postDetailViewModel.savePost(post.id)
+                            homeViewModel.savePost(post.id) // Sync with HomeViewModel
+                        },
+                        onUnsaveClick = {
+                            postDetailViewModel.removeSavedPost(post.id)
+                            homeViewModel.removeSavedPost(post.id) // Sync with HomeViewModel
+                        },
+                        isSaved = isSaved,
                         showSaveIcon = showSaveIcon,
                         navController = navController,
                         currentUserId = currentUserId ?: "",
@@ -131,6 +139,7 @@ fun PostDetailScreen(
         }
     )
 }
+
 @Composable
 fun PostContent(
     post: Post,
