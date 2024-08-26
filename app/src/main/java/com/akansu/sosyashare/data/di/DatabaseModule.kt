@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.akansu.sosyashare.data.di
 
 import com.akansu.sosyashare.data.remote.*
@@ -5,6 +7,7 @@ import com.akansu.sosyashare.data.repository.*
 import com.akansu.sosyashare.domain.repository.*
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreSettings
 import com.google.firebase.storage.FirebaseStorage
 import dagger.Module
 import dagger.Provides
@@ -16,13 +19,22 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
 
+
+
     @Provides
     @Singleton
     fun provideFirebaseAuth(): FirebaseAuth = FirebaseAuth.getInstance()
 
     @Provides
     @Singleton
-    fun provideFirebaseFirestore(): FirebaseFirestore = FirebaseFirestore.getInstance()
+    fun provideFirebaseFirestore(): FirebaseFirestore {
+        val firestore = FirebaseFirestore.getInstance()
+        val settings = FirebaseFirestoreSettings.Builder()
+            .setPersistenceEnabled(false) // Çevrimdışı veri yönetimini devre dışı bırakın
+            .build()
+        firestore.firestoreSettings = settings
+        return firestore
+    }
 
     @Provides
     @Singleton

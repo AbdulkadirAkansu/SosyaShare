@@ -3,6 +3,7 @@ package com.akansu.sosyashare.domain.repository
 import android.net.Uri
 import com.akansu.sosyashare.domain.model.Post
 import com.akansu.sosyashare.domain.model.User
+import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.flow.Flow
 
 interface UserRepository {

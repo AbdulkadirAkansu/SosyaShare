@@ -14,6 +14,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -69,6 +70,9 @@ fun NavGraph(navController: NavHostController, authViewModel: AuthViewModel, use
         composable("splash") {
             SplashScreen(navController = navController, authViewModel = authViewModel)
         }
+        composable("editprofile") {
+            EditProfileScreen(navController = navController)
+        }
         composable(
             route = "profile/{userId}",
             arguments = listOf(navArgument("userId") { type = NavType.StringType })
@@ -92,7 +96,12 @@ fun NavGraph(navController: NavHostController, authViewModel: AuthViewModel, use
             PostCreationScreen(navController = navController, imageUri = imageUri)
         }
         composable("settings") {
-            SettingsScreen(navController = navController, authViewModel = authViewModel)
+            SettingsScreen(
+                navController = navController,
+                authViewModel = authViewModel,
+                userViewModel = hiltViewModel(),
+                settingsViewModel = hiltViewModel()
+            )
         }
         composable(
             route = "post_detail/{userId}/{initialPostIndex}/{showSaveIcon}",
@@ -168,7 +177,7 @@ fun NavGraph(navController: NavHostController, authViewModel: AuthViewModel, use
                             navController = navController,
                             userId = currentUserId,
                             initialPostIndex = 0,
-                            showSaveIcon = false // Burada showSaveIcon parametresini geçiyoruz
+                            showSaveIcon = false
                         )
                     }
                 )

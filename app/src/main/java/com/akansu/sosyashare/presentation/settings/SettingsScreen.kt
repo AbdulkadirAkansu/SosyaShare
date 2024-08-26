@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -22,10 +23,20 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(navController: NavController, authViewModel: AuthViewModel, userViewModel: UserViewModel = hiltViewModel()) {
+fun SettingsScreen(
+    navController: NavController,
+    authViewModel: AuthViewModel,
+    userViewModel: UserViewModel = hiltViewModel(),
+    settingsViewModel: SettingsViewModel = hiltViewModel()
+) {
     val coroutineScope = rememberCoroutineScope()
     var selectedItem by remember { mutableIntStateOf(4) }
     val profilePictureUrl by userViewModel.profilePictureUrl.collectAsState()
+    val isPrivate by settingsViewModel.isPrivate.collectAsState()
+
+    LaunchedEffect(Unit) {
+        settingsViewModel.initialize()
+    }
 
     Scaffold(
         topBar = {
@@ -34,7 +45,7 @@ fun SettingsScreen(navController: NavController, authViewModel: AuthViewModel, u
                     Text(
                         "Settings",
                         fontSize = 30.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight                         = FontWeight.Bold,
                         modifier = Modifier.padding(start = 16.dp)
                     )
                 },
@@ -62,12 +73,11 @@ fun SettingsScreen(navController: NavController, authViewModel: AuthViewModel, u
                     .padding(paddingValues)
                     .padding(16.dp)
             ) {
+                // Saved Posts row
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable {
-                            navController.navigate("saved_posts")
-                        }
+                        .clickable { navController.navigate("saved_posts") }
                         .padding(16.dp)
                 ) {
                     Icon(
@@ -79,9 +89,33 @@ fun SettingsScreen(navController: NavController, authViewModel: AuthViewModel, u
                     Text(text = "Saved Posts", style = MaterialTheme.typography.bodyLarge)
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))  // Her satır arasında boşluk
+                Spacer(modifier = Modifier.height(8.dp))
 
-                // Logout Row
+                // Private account setting
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Private Account",
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.weight(1f)
+                    )
+                    isPrivate?.let { privateStatus ->
+                        Switch(
+                            checked = privateStatus,
+                            onCheckedChange = { newValue ->
+                                settingsViewModel.updateUserPrivacySetting(newValue)
+                            }
+                        )
+                    } ?: CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Logout row
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -117,3 +151,4 @@ fun SettingsScreen(navController: NavController, authViewModel: AuthViewModel, u
         }
     )
 }
+

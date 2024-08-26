@@ -15,7 +15,7 @@ object UserMapper {
             following = entity.following,
             followers = entity.followers,
             bio = entity.bio,
-            lastUsernameChange = entity.lastUsernameChange
+            lastUsernameChange = entity.lastUsernameChange,
         )
     }
 }
@@ -30,7 +30,7 @@ fun UserEntity.toDomainModel(): User {
         following = following,
         followers = followers,
         bio = bio,
-        lastUsernameChange = lastUsernameChange
+        lastUsernameChange = lastUsernameChange,
     )
 }
 
@@ -44,6 +44,6 @@ fun User.toEntityModel(): UserEntity {
         following = following,
         followers = followers,
         bio = bio,
-        lastUsernameChange = lastUsernameChange
+        lastUsernameChange = lastUsernameChange,
     )
 }

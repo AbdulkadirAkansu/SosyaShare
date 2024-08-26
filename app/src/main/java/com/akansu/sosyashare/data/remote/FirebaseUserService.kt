@@ -6,6 +6,8 @@ import com.akansu.sosyashare.data.model.PostEntity
 import com.akansu.sosyashare.data.model.UserEntity
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.Source
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -17,6 +19,7 @@ class FirebaseUserService @Inject constructor(
     private val firestore: FirebaseFirestore,
     private val firebaseStorage: FirebaseStorage
 ) {
+
 
     suspend fun getCurrentUserName(): String? {
         val userId = auth.currentUser?.uid ?: return null
@@ -41,14 +44,12 @@ class FirebaseUserService @Inject constructor(
 
     suspend fun getUserDetails(userId: String): UserEntity? {
         return try {
-            val document = firestore.collection("users")
-                .document(userId)
-                .get()
-                .await()
-            Log.d("FirebaseUserService", "Fetched user details for userId: $userId")
-            document.toObject(UserEntity::class.java)?.copy(id = userId)
+            val document = firestore.collection("users").document(userId).get(Source.SERVER).await()
+            val user = document.toObject(UserEntity::class.java)?.copy(id = userId)
+            Log.d("FirebaseUserService", "Fetched user details: $user")
+            user
         } catch (e: Exception) {
-            Log.e("FirebaseUserService", "Error fetching user details for userId: $userId", e)
+            Log.e("FirebaseUserService", "Error fetching user details: ${e.message}")
             null
         }
     }
@@ -146,7 +147,6 @@ class FirebaseUserService @Inject constructor(
             val storageRef = firebaseStorage.getReferenceFromUrl(postImageUrl)
             storageRef.delete().await()
         }
-        Log.d("FirebaseUserService", "Deleted post with postId: $postId for userId: $userId")
     }
 
 

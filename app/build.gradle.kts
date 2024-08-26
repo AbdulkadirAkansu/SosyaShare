@@ -115,6 +115,8 @@ dependencies {
     implementation ("com.google.accompanist:accompanist-systemuicontroller:0.26.5-rc")
 
     implementation ("androidx.core:core-splashscreen:1.0.1")
+    
+
 }
 
 

@@ -17,5 +17,5 @@ data class UserEntity(
     val following: List<String> = emptyList(),
     val followers: List<String> = emptyList(),
     val bio: String = "",
-    val lastUsernameChange: Date? = null
+    val lastUsernameChange: Date? = null,
 )

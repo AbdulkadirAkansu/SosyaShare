@@ -6,6 +6,7 @@ import com.akansu.sosyashare.data.remote.FirebaseUserService
 import com.akansu.sosyashare.domain.model.Post
 import com.akansu.sosyashare.domain.model.User
 import com.akansu.sosyashare.domain.repository.UserRepository
+import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
