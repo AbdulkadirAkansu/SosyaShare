@@ -1,5 +1,6 @@
 package com.akansu.sosyashare.presentation.settings
 
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -41,20 +42,8 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        "Settings",
-                        fontSize = 30.sp,
-                        fontWeight                         = FontWeight.Bold,
-                        modifier = Modifier.padding(start = 16.dp)
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                modifier = Modifier.height(100.dp)
+                title = { Text("Settings", fontSize = 30.sp, fontWeight = FontWeight.Bold) },
+                navigationIcon = { IconButton(onClick = { navController.navigateUp() }) { Icon(Icons.Default.ArrowBack, contentDescription = "Back") } }
             )
         },
         bottomBar = {
@@ -62,93 +51,43 @@ fun SettingsScreen(
                 selectedItem = selectedItem,
                 onItemSelected = { selectedItem = it },
                 navController = navController,
-                profilePictureUrl = profilePictureUrl,
-                modifier = Modifier.height(65.dp)
+                profilePictureUrl = profilePictureUrl
             )
         },
         content = { paddingValues ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(16.dp)
-            ) {
-                // Saved Posts row
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { navController.navigate("saved_posts") }
-                        .padding(16.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.save),
-                        contentDescription = "Saved Posts",
-                        modifier = Modifier.size(24.dp)
-                    )
+            Column(modifier = Modifier.padding(paddingValues).padding(16.dp)) {
+                Row(modifier = Modifier.fillMaxWidth().clickable { navController.navigate("saved_posts") }.padding(16.dp)) {
+                    Icon(painterResource(id = R.drawable.save), contentDescription = "Saved Posts")
                     Spacer(modifier = Modifier.width(16.dp))
-                    Text(text = "Saved Posts", style = MaterialTheme.typography.bodyLarge)
+                    Text("Saved Posts")
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Private account setting
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Private Account",
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.weight(1f)
-                    )
+                Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Private Account", modifier = Modifier.weight(1f))
                     isPrivate?.let { privateStatus ->
-                        Switch(
-                            checked = privateStatus,
-                            onCheckedChange = { newValue ->
-                                settingsViewModel.updateUserPrivacySetting(newValue)
-                            }
-                        )
+                        var isUpdating by remember { mutableStateOf(false) }
+                        Switch(checked = privateStatus, onCheckedChange = { newValue ->
+                            isUpdating = true
+                            settingsViewModel.updateUserPrivacySetting(newValue)
+                            isUpdating = false
+                        })
+                        if (isUpdating) CircularProgressIndicator(modifier = Modifier.size(24.dp))
                     } ?: CircularProgressIndicator(modifier = Modifier.size(24.dp))
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Logout row
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            coroutineScope.launch {
-                                try {
-                                    authViewModel.logoutUser(
-                                        onSuccess = {
-                                            navController.navigate("login") {
-                                                popUpTo("home") { inclusive = true }
-                                            }
-                                        },
-                                        onFailure = { e ->
-                                            e.printStackTrace()
-                                        }
-                                    )
-                                } catch (e: Exception) {
-                                    e.printStackTrace()
-                                }
-                            }
-                        }
-                        .padding(16.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = "Logout",
-                        modifier = Modifier.size(24.dp)
-                    )
+                Row(modifier = Modifier.fillMaxWidth().clickable {
+                    coroutineScope.launch {
+                        authViewModel.logoutUser(
+                            onSuccess = { navController.navigate("login") { popUpTo("home") { inclusive = true } } },
+                            onFailure = { e -> Log.e("SettingsScreen", "Logout failed: ${e.message}", e) }
+                        )
+                    }
+                }.padding(16.dp)) {
+                    Icon(Icons.Default.Settings, contentDescription = "Logout")
                     Spacer(modifier = Modifier.width(16.dp))
-                    Text(text = "Logout", style = MaterialTheme.typography.bodyLarge)
+                    Text("Logout")
                 }
             }
         }
     )
 }
-

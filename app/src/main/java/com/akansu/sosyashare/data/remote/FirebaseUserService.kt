@@ -45,9 +45,14 @@ class FirebaseUserService @Inject constructor(
     suspend fun getUserDetails(userId: String): UserEntity? {
         return try {
             val document = firestore.collection("users").document(userId).get(Source.SERVER).await()
-            val user = document.toObject(UserEntity::class.java)?.copy(id = userId)
-            Log.d("FirebaseUserService", "Fetched user details: $user")
-            user
+            if (document.exists()) {
+                val user = document.toObject(UserEntity::class.java)?.copy(id = userId)
+                Log.d("FirebaseUserService", "Fetched user details: $user")
+                user
+            } else {
+                Log.e("FirebaseUserService", "No such document")
+                null
+            }
         } catch (e: Exception) {
             Log.e("FirebaseUserService", "Error fetching user details: ${e.message}")
             null
@@ -231,5 +236,43 @@ class FirebaseUserService @Inject constructor(
 
         val userPosts = postsSnapshot.toObjects(PostEntity::class.java)
         emit(userPosts)
+    }
+
+    suspend fun getFollowers(userId: String): List<UserEntity> {
+        return try {
+            val document = firestore.collection("users").document(userId).get().await()
+            val followersIds = document.get("followers") as? List<String> ?: emptyList()
+
+            val followers = mutableListOf<UserEntity>()
+            for (followerId in followersIds) {
+                val followerDocument = firestore.collection("users").document(followerId).get().await()
+                followerDocument.toObject(UserEntity::class.java)?.let {
+                    followers.add(it)
+                }
+            }
+            followers
+        } catch (e: Exception) {
+            Log.e("FirebaseUserService", "Error fetching followers: ${e.message}")
+            emptyList()
+        }
+    }
+
+    suspend fun getFollowing(userId: String): List<UserEntity> {
+        return try {
+            val document = firestore.collection("users").document(userId).get().await()
+            val followingIds = document.get("following") as? List<String> ?: emptyList()
+
+            val following = mutableListOf<UserEntity>()
+            for (followingId in followingIds) {
+                val followingDocument = firestore.collection("users").document(followingId).get().await()
+                followingDocument.toObject(UserEntity::class.java)?.let {
+                    following.add(it)
+                }
+            }
+            following
+        } catch (e: Exception) {
+            Log.e("FirebaseUserService", "Error fetching following: ${e.message}")
+            emptyList()
+        }
     }
 }

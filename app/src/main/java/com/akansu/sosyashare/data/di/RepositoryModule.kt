@@ -1,7 +1,8 @@
 package com.akansu.sosyashare.data.di
 
-import com.akansu.sosyashare.data.repository.PrivateAccountRepositoryImpl
-import com.akansu.sosyashare.domain.repository.PrivateAccountRepository
+
+import com.akansu.sosyashare.data.repository.UserPrivacyRepositoryImpl
+import com.akansu.sosyashare.domain.repository.UserPrivacyRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -14,7 +15,7 @@ abstract class RepositoryModule {
 
     @Binds
     @Singleton
-    abstract fun bindPrivateAccountRepository(
-        privateAccountRepositoryImpl: PrivateAccountRepositoryImpl
-    ): PrivateAccountRepository
+    abstract fun bindUserPrivacyRepository(
+        userPrivacyRepositoryImpl: UserPrivacyRepositoryImpl
+    ): UserPrivacyRepository
 }

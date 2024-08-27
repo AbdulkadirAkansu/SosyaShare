@@ -119,4 +119,12 @@ class UserRepositoryImpl @Inject constructor(
     override suspend fun updateUserProfilePicture(userId: String, profilePictureUrl: String) {
         firebaseUserService.updateUserProfilePicture(userId, profilePictureUrl)
     }
+
+    override suspend fun getFollowers(userId: String): List<User> {
+        return firebaseUserService.getFollowers(userId).map { it.toDomainModel() }
+    }
+
+    override suspend fun getFollowing(userId: String): List<User> {
+        return firebaseUserService.getFollowing(userId).map { it.toDomainModel() }
+    }
 }

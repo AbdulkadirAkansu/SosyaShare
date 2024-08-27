@@ -1,7 +1,5 @@
 package com.akansu.sosyashare.presentation.profile.screen
 
-import android.annotation.SuppressLint
-import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,7 +11,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,167 +27,111 @@ import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.akansu.sosyashare.R
 import com.akansu.sosyashare.domain.model.Post
-import com.akansu.sosyashare.domain.model.User
 import com.akansu.sosyashare.presentation.home.components.FollowersFollowingDialog
 import com.akansu.sosyashare.presentation.home.components.NavigationBar
 import com.akansu.sosyashare.presentation.profile.ProfileViewModel
 import com.akansu.sosyashare.presentation.userprofile.viewmodel.UserViewModel
 import com.akansu.sosyashare.util.poppinsFontFamily
 
-@SuppressLint("StateFlowValueCalledInComposition")
 @Composable
 fun ProfileScreen(
     navController: NavHostController,
     userId: String?,
-    userViewModel: UserViewModel = hiltViewModel(),
-    profileViewModel: ProfileViewModel = hiltViewModel()
+    userViewModel: UserViewModel = hiltViewModel()
 ) {
+    val profileViewModel: ProfileViewModel = hiltViewModel()
     val userDetails by profileViewModel.userDetails.collectAsState()
     val isFollowing by profileViewModel.isFollowing.collectAsState()
-    val isPrivateAccount by profileViewModel.isPrivateAccount.collectAsState()
     val profilePictureUrl by userViewModel.profilePictureUrl.collectAsState()
-    val currentUserId = profileViewModel.currentUserId.value
+    val currentUserId by profileViewModel.currentUserId.collectAsState()
 
-    var isLoading by remember { mutableStateOf(true) }
+    var showFollowersDialog by remember { mutableStateOf(false) }
+    var showFollowingDialog by remember { mutableStateOf(false) }
+    val followers by profileViewModel.followers.collectAsState()
+    val following by profileViewModel.following.collectAsState()
 
-    LaunchedEffect(userId, currentUserId) {
-        Log.d("ProfileScreen", "LaunchedEffect triggered with userId: $userId, currentUserId: $currentUserId")
-        if (userId != null && currentUserId != null) {
-            Log.d("ProfileScreen", "Loading profile data...")
-            isLoading = true
-            profileViewModel.loadProfileData(currentUserId, userId)
-            isLoading = false
-            Log.d("ProfileScreen", "Profile data loaded")
-        } else {
-            Log.d("ProfileScreen", "UserId or CurrentUserId is null")
+    LaunchedEffect(userId) {
+        userId?.let { id ->
+            profileViewModel.loadProfileData(currentUserId ?: "", id)
         }
     }
 
-    if (isLoading) {
-        Log.d("ProfileScreen", "Loading Indicator displayed")
-        LoadingIndicator()
-    } else {
-        userDetails?.let { user ->
-            Log.d("ProfileScreen", "User details available, checking view permissions...")
-            val canViewProfile = canViewProfile(isPrivateAccount, isFollowing, currentUserId, userId)
-            Log.d("ProfileScreen", "Can view profile: $canViewProfile")
-            ProfileContent(
-                userDetails = user,
-                canViewProfile = canViewProfile,
-                isFollowing = isFollowing,
-                currentUserId = currentUserId,
-                userId = userId,
-                profileViewModel = profileViewModel,
-                navController = navController,
-                profilePictureUrl = profilePictureUrl
-            )
-        } ?: run {
-            Log.d("ProfileScreen", "Error: User details are null")
-            ErrorText()
-        }
-    }
-}
+    val username = userDetails?.username ?: "Unknown"
+    val userPosts = profileViewModel.userPosts.collectAsState().value
+    val followersCount = userDetails?.followers?.size ?: 0
+    val followingCount = userDetails?.following?.size ?: 0
 
-fun canViewProfile(
-    isPrivateAccount: Boolean,
-    isFollowing: Boolean,
-    currentUserId: String?,
-    userId: String?
-): Boolean {
-    return !isPrivateAccount || isFollowing || userId == currentUserId
-}
+    var selectedItem by remember { mutableIntStateOf(4) }
 
-
-
-@Composable
-fun LoadingIndicator() {
-    CircularProgressIndicator(modifier = Modifier.fillMaxSize().wrapContentSize(Alignment.Center))
-}
-
-@Composable
-fun ErrorText() {
-    Text(
-        text = "Error loading user details",
-        modifier = Modifier.padding(16.dp),
-        style = MaterialTheme.typography.bodySmall
-    )
-}
-
-@Composable
-fun ProfileContent(
-    userDetails: User,
-    canViewProfile: Boolean,
-    isFollowing: Boolean,
-    currentUserId: String?,
-    userId: String?,
-    profileViewModel: ProfileViewModel,
-    navController: NavHostController,
-    profilePictureUrl: String?
-) {
     Scaffold(
         topBar = {
-            TopBar(navController, userDetails.username)
+            TopBar(navController, username)
         },
         bottomBar = {
             NavigationBar(
-                selectedItem = 4,
-                onItemSelected = { /* Handle item selection */ },
+                selectedItem = selectedItem,
+                onItemSelected = { selectedItem = it },
                 navController = navController,
-                profilePictureUrl = profilePictureUrl ?: userDetails.profilePictureUrl,
-                modifier = Modifier.height(65.dp)
+                profilePictureUrl = profilePictureUrl ?: userDetails?.profilePictureUrl
             )
         },
-        content = { paddingValues ->
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-            ) {
-                item {
-                    ProfileInfo(
-                        username = userDetails.username,
-                        profilePictureUrl = userDetails.profilePictureUrl,
-                        bio = userDetails.bio
+        modifier = Modifier.padding(WindowInsets.systemBars.asPaddingValues())
+    ) { paddingValues ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(bottom = 72.dp)
+        ) {
+            item {
+                ProfileInfo(
+                    username = username,
+                    profilePictureUrl = userDetails?.profilePictureUrl,
+                    bio = userDetails?.bio ?: ""
+                )
+                UserStatistics(
+                    postCount = userPosts.size,
+                    followersCount = followersCount,
+                    followingCount = followingCount,
+                    onFollowersClick = { showFollowersDialog = true },
+                    onFollowingClick = { showFollowingDialog = true }
+                )
+                currentUserId?.let {
+                    ActionButtons(
+                        profileViewModel = profileViewModel,
+                        currentUserId = it,
+                        userId = userId ?: "",
+                        isFollowing = isFollowing
                     )
-                    if (canViewProfile) {
-                        UserStatistics(
-                            postCount = profileViewModel.userPosts.collectAsState().value.size,
-                            followersCount = userDetails.followers.size,
-                            followingCount = userDetails.following.size,
-                            onFollowersClick = { /* Handle followers click */ },
-                            onFollowingClick = { /* Handle following click */ }
-                        )
-                        PostGrid(
-                            posts = profileViewModel.userPosts.collectAsState().value,
-                            onPostClick = { postIndex ->
-                                navController.navigate("post_detail/${userId}/${postIndex}/true")
-                            }
-                        )
-                    } else {
-                        PrivateProfileMessage()
-                    }
-                    currentUserId?.let {
-                        ActionButtons(
-                            profileViewModel = profileViewModel,
-                            currentUserId = it,
-                            userId = userId ?: "",
-                            isFollowing = isFollowing
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
                 }
+                Spacer(modifier = Modifier.height(8.dp))
+                PostGrid(posts = userPosts, onPostClick = { postIndex ->
+                    navController.navigate("post_detail/${userId}/${postIndex}/true")
+                })
             }
         }
-    )
-}
 
-@Composable
-fun PrivateProfileMessage() {
-    Text(
-        text = "This account is private. Follow to see their posts.",
-        modifier = Modifier.padding(16.dp),
-        style = MaterialTheme.typography.bodySmall
-    )
+
+        if (showFollowersDialog) {
+            FollowersFollowingDialog(
+                users = followers,  // followers StateFlow'dan listeye dönüştü
+                title = "Followers",
+                onDismiss = { showFollowersDialog = false },
+                navController = navController,
+                currentUserId = currentUserId ?: ""
+            )
+        }
+
+        if (showFollowingDialog) {
+            FollowersFollowingDialog(
+                users = following,  // following StateFlow'dan listeye dönüştü
+                title = "Following",
+                onDismiss = { showFollowingDialog = false },
+                navController = navController,
+                currentUserId = currentUserId ?: ""
+            )
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -261,14 +203,14 @@ fun UserStatistics(
             .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
-        StatColumn(postCount.toString(), "Posts", onClick = {})
+        StatColumn(postCount.toString(), "Posts")
         StatColumn(followersCount.toString(), "Followers", onClick = onFollowersClick)
         StatColumn(followingCount.toString(), "Following", onClick = onFollowingClick)
     }
 }
 
 @Composable
-fun StatColumn(count: String, label: String, onClick: () -> Unit) {
+fun StatColumn(count: String, label: String, onClick: () -> Unit = {}) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.clickable { onClick() }

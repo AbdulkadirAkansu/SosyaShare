@@ -53,4 +53,10 @@ class PostRepositoryImpl @Inject constructor(
     override suspend fun getLikedUserIds(postId: String): List<String> {
         return postService.getLikedUserIds(postId)
     }
+
+    override suspend fun getUserPosts(userId: String): List<Post> {
+        val postEntities = postService.getUserPosts(userId)
+        return postEntities.map { it.toDomainModel() }
+    }
+
 }

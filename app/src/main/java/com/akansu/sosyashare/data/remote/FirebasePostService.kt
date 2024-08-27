@@ -12,6 +12,12 @@ class FirebasePostService @Inject constructor(
 ) {
     private val firestore = FirebaseFirestore.getInstance()
 
+    suspend fun getUserPosts(userId: String): List<PostEntity> {
+        val postsRef = firestore.collection("posts").whereEqualTo("userId", userId)
+        val result = postsRef.get().await()
+        return result.toObjects(PostEntity::class.java)
+    }
+
     suspend fun createPost(userId: String, post: PostEntity) {
         val postRef = firestore.collection("posts")
             .document(post.id)
