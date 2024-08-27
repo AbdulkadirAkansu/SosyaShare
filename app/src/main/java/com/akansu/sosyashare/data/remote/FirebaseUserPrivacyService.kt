@@ -11,6 +11,25 @@ import javax.inject.Inject
 class FirebaseUserPrivacyService @Inject constructor(
     private val firestore: FirebaseFirestore
 ) {
+    private val TAG = "FirebaseUserPrivacyService"
+
+    suspend fun fetchIsPrivateDirectly(userId: String): Boolean {
+        return try {
+            Log.d(TAG, "Fetching isPrivate value directly for userId: $userId")
+
+            val document = firestore.collection("user_privacy")
+                .document(userId)
+                .get()
+                .await()
+
+            val isPrivate = document.getBoolean("isPrivate") ?: false
+            Log.d(TAG, "Fetched isPrivate value for userId $userId: $isPrivate")
+            isPrivate
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching isPrivate directly for userId: $userId", e)
+            false
+        }
+    }
 
     suspend fun getUserPrivacy(userId: String): UserPrivacyEntity? {
         return try {
@@ -20,25 +39,28 @@ class FirebaseUserPrivacyService @Inject constructor(
                 .await()
 
             if (document.exists()) {
-                val userPrivacyEntity = document.toObject(UserPrivacyEntity::class.java)
-                Log.d("FirebaseUserPrivacyService", "Fetched UserPrivacyEntity: $userPrivacyEntity")
-                userPrivacyEntity
+                val userPrivacy = document.toObject(UserPrivacyEntity::class.java)
+                Log.d(TAG, "Fetched isPrivate value: ${userPrivacy?.isPrivate}")
+                userPrivacy
             } else {
-                Log.e("FirebaseUserPrivacyService", "Document does not exist for userId: $userId")
+                Log.w(TAG, "Document does not exist for userId: $userId")
                 null
             }
         } catch (e: Exception) {
-            Log.e("FirebaseUserPrivacyService", "Error getting user privacy for userId: $userId", e)
+            Log.e(TAG, "Error getting user privacy for userId: $userId", e)
             null
         }
     }
 
     suspend fun updateUserPrivacySetting(userId: String, isPrivate: Boolean) {
         try {
-            firestore.collection("user_privacy").document(userId).update("isPrivate", isPrivate).await()
-            Log.d("FirebaseUserPrivacyService", "Successfully updated isPrivate to $isPrivate for userId: $userId")
+            firestore.collection("user_privacy").document(userId)
+                .update("isPrivate", isPrivate)
+                .await()
+            Log.d(TAG, "Successfully updated isPrivate to $isPrivate for userId: $userId")
         } catch (e: Exception) {
-            Log.e("FirebaseUserPrivacyService", "Failed to update isPrivate for userId: $userId", e)
+            Log.e(TAG, "Failed to update isPrivate for userId: $userId", e)
+            throw e
         }
     }
 
@@ -46,54 +68,57 @@ class FirebaseUserPrivacyService @Inject constructor(
         return firestore.collection("user_privacy").document(userId)
             .addSnapshotListener { snapshot, e ->
                 if (e != null) {
-                    Log.w("FirebaseUserPrivacyService", "Listen failed.", e)
+                    Log.w(TAG, "Listen failed.", e)
                     return@addSnapshotListener
                 }
 
                 if (snapshot != null && snapshot.exists()) {
                     val isPrivate = snapshot.getBoolean("isPrivate") ?: false
+                    Log.d(TAG, "Real-time update received for isPrivate: $isPrivate")
                     onPrivacyChanged(isPrivate)
                 } else {
-                    Log.d("FirebaseUserPrivacyService", "Current data: null")
+                    Log.d(TAG, "No data for userId: $userId")
                 }
             }
     }
 
-    suspend fun updateUserPrivacyWithTransaction(userPrivacyEntity: UserPrivacyEntity): Boolean {
-        return try {
+    suspend fun updateUserPrivacyWithTransaction(userId: String, followerId: String, isFollowing: Boolean) {
+        try {
             firestore.runTransaction { transaction ->
-                val documentRef = firestore.collection("user_privacy").document(userPrivacyEntity.userId)
-                transaction.set(documentRef, userPrivacyEntity)
-                null
+                val documentRef = firestore.collection("user_privacy").document(userId)
+                val snapshot = transaction.get(documentRef)
+
+                val currentAllowedFollowers = snapshot.get("allowedFollowers") as? List<String> ?: emptyList()
+                val updatedFollowers = if (isFollowing) {
+                    currentAllowedFollowers.toMutableList().apply { if (!contains(followerId)) add(followerId) }
+                } else {
+                    currentAllowedFollowers.toMutableList().apply { remove(followerId) }
+                }
+
+                transaction.update(documentRef, "allowedFollowers", updatedFollowers)
             }.await()
-            true
+            Log.d(TAG, "Successfully updated allowed followers for userId: $userId")
         } catch (e: Exception) {
-            Log.e("FirebaseUserPrivacyService", "Failed to update user privacy in transaction", e)
-            false
+            Log.e(TAG, "Failed to update allowed followers for userId: $userId", e)
+            throw e
         }
     }
 
-    // Takipçi ekleme işlevi
     suspend fun addAllowedFollower(userId: String, followerId: String) {
-        val userPrivacy = getUserPrivacy(userId)
-        userPrivacy?.let {
-            val updatedFollowers = it.allowedFollowers.toMutableList()
-            if (!updatedFollowers.contains(followerId)) {
-                updatedFollowers.add(followerId)
-                updateUserPrivacyWithTransaction(it.copy(allowedFollowers = updatedFollowers))
-            }
+        try {
+            updateUserPrivacyWithTransaction(userId, followerId, true)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error adding allowed follower $followerId for userId: $userId", e)
+            throw e
         }
     }
 
-    // Takipçi çıkarma işlevi
     suspend fun removeAllowedFollower(userId: String, followerId: String) {
-        val userPrivacy = getUserPrivacy(userId)
-        userPrivacy?.let {
-            val updatedFollowers = it.allowedFollowers.toMutableList()
-            if (updatedFollowers.contains(followerId)) {
-                updatedFollowers.remove(followerId)
-                updateUserPrivacyWithTransaction(it.copy(allowedFollowers = updatedFollowers))
-            }
+        try {
+            updateUserPrivacyWithTransaction(userId, followerId, false)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error removing allowed follower $followerId for userId: $userId", e)
+            throw e
         }
     }
 }

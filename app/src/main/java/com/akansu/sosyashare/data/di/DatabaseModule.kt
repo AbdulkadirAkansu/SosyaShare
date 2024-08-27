@@ -30,7 +30,7 @@ object DatabaseModule {
     fun provideFirebaseFirestore(): FirebaseFirestore {
         val firestore = FirebaseFirestore.getInstance()
         val settings = FirebaseFirestoreSettings.Builder()
-            .setPersistenceEnabled(false) // Çevrimdışı veri yönetimini devre dışı bırakın
+            .setPersistenceEnabled(false)
             .build()
         firestore.firestoreSettings = settings
         return firestore

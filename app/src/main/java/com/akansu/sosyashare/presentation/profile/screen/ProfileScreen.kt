@@ -37,18 +37,15 @@ import com.akansu.sosyashare.util.poppinsFontFamily
 fun ProfileScreen(
     navController: NavHostController,
     userId: String?,
-    userViewModel: UserViewModel = hiltViewModel()
+    userViewModel: UserViewModel = hiltViewModel(),
+    profileViewModel: ProfileViewModel = hiltViewModel()
 ) {
-    val profileViewModel: ProfileViewModel = hiltViewModel()
     val userDetails by profileViewModel.userDetails.collectAsState()
     val isFollowing by profileViewModel.isFollowing.collectAsState()
+    val isPrivateAccount by profileViewModel.isPrivateAccount.collectAsState()
     val profilePictureUrl by userViewModel.profilePictureUrl.collectAsState()
     val currentUserId by profileViewModel.currentUserId.collectAsState()
-
-    var showFollowersDialog by remember { mutableStateOf(false) }
-    var showFollowingDialog by remember { mutableStateOf(false) }
-    val followers by profileViewModel.followers.collectAsState()
-    val following by profileViewModel.following.collectAsState()
+    val userPosts by profileViewModel.userPosts.collectAsState()
 
     LaunchedEffect(userId) {
         userId?.let { id ->
@@ -56,21 +53,12 @@ fun ProfileScreen(
         }
     }
 
-    val username = userDetails?.username ?: "Unknown"
-    val userPosts = profileViewModel.userPosts.collectAsState().value
-    val followersCount = userDetails?.followers?.size ?: 0
-    val followingCount = userDetails?.following?.size ?: 0
-
-    var selectedItem by remember { mutableIntStateOf(4) }
-
     Scaffold(
-        topBar = {
-            TopBar(navController, username)
-        },
+        topBar = { TopBar(navController, userDetails?.username ?: "Unknown") },
         bottomBar = {
             NavigationBar(
-                selectedItem = selectedItem,
-                onItemSelected = { selectedItem = it },
+                selectedItem = 4,
+                onItemSelected = {},
                 navController = navController,
                 profilePictureUrl = profilePictureUrl ?: userDetails?.profilePictureUrl
             )
@@ -85,16 +73,16 @@ fun ProfileScreen(
         ) {
             item {
                 ProfileInfo(
-                    username = username,
+                    username = userDetails?.username ?: "Unknown",
                     profilePictureUrl = userDetails?.profilePictureUrl,
                     bio = userDetails?.bio ?: ""
                 )
                 UserStatistics(
                     postCount = userPosts.size,
-                    followersCount = followersCount,
-                    followingCount = followingCount,
-                    onFollowersClick = { showFollowersDialog = true },
-                    onFollowingClick = { showFollowingDialog = true }
+                    followersCount = userDetails?.followers?.size ?: 0,
+                    followingCount = userDetails?.following?.size ?: 0,
+                    onFollowersClick = { /* followers dialog */ },
+                    onFollowingClick = { /* following dialog */ }
                 )
                 currentUserId?.let {
                     ActionButtons(
@@ -105,34 +93,25 @@ fun ProfileScreen(
                     )
                 }
                 Spacer(modifier = Modifier.height(8.dp))
-                PostGrid(posts = userPosts, onPostClick = { postIndex ->
-                    navController.navigate("post_detail/${userId}/${postIndex}/true")
-                })
+
+                if (isPrivateAccount && !isFollowing) {
+                    Text(
+                        text = "Bu hesap gizlidir.",
+                        color = Color.Gray,
+                        modifier = Modifier.padding(16.dp),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                } else {
+                    PostGrid(posts = userPosts) { postIndex ->
+                        navController.navigate("post_detail/${userId}/${postIndex}/true")
+                    }
+                }
             }
-        }
-
-
-        if (showFollowersDialog) {
-            FollowersFollowingDialog(
-                users = followers,  // followers StateFlow'dan listeye dönüştü
-                title = "Followers",
-                onDismiss = { showFollowersDialog = false },
-                navController = navController,
-                currentUserId = currentUserId ?: ""
-            )
-        }
-
-        if (showFollowingDialog) {
-            FollowersFollowingDialog(
-                users = following,  // following StateFlow'dan listeye dönüştü
-                title = "Following",
-                onDismiss = { showFollowingDialog = false },
-                navController = navController,
-                currentUserId = currentUserId ?: ""
-            )
         }
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

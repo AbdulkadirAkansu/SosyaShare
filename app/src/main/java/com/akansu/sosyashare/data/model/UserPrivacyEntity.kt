@@ -2,7 +2,7 @@ package com.akansu.sosyashare.data.model
 
 
 data class UserPrivacyEntity(
-    val userId: String = "",
+    var userId: String = "",
     val isPrivate: Boolean = false,
     val allowedFollowers: List<String> = emptyList()
 )

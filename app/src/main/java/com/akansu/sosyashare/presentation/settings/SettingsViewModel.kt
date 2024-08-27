@@ -35,6 +35,7 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val userId = userRepository.getCurrentUserId()
+                Log.d("SettingsViewModel", "Initializing for userId: $userId")
                 if (userId != null) {
                     _userId.value = userId
                     loadUserPrivacySetting(userId)
@@ -51,6 +52,7 @@ class SettingsViewModel @Inject constructor(
             try {
                 val userPrivacy = userPrivacyRepository.getUserPrivacy(userId)
                 userPrivacy?.let {
+                    Log.d("SettingsViewModel", "Loaded privacy settings: $it")
                     if (_isPrivate.value == null) {
                         _isPrivate.value = it.isPrivate
                     }
@@ -69,6 +71,7 @@ class SettingsViewModel @Inject constructor(
                 allowedFollowers = emptyList()
             )
             try {
+                Log.d("SettingsViewModel", "Creating default privacy settings for $userId")
                 userPrivacyRepository.updateUserPrivacy(defaultUserPrivacy)
                 _isPrivate.value = defaultUserPrivacy.isPrivate
             } catch (e: Exception) {
@@ -78,8 +81,10 @@ class SettingsViewModel @Inject constructor(
     }
 
     private fun setupRealTimeUpdates(userId: String) {
+        Log.d("SettingsViewModel", "Setting up real-time updates for userId: $userId")
         privacyListener?.remove()
         privacyListener = userPrivacyRepository.addUserPrivacySettingListener(userId) { isPrivate ->
+            Log.d("SettingsViewModel", "Real-time update received for isPrivate: $isPrivate")
             _isPrivate.value = isPrivate
         }
     }
@@ -87,11 +92,13 @@ class SettingsViewModel @Inject constructor(
     fun updateUserPrivacySetting(isPrivate: Boolean) {
         viewModelScope.launch {
             _userId.value?.let { id ->
-                privacyListener?.remove()
                 try {
+                    privacyListener?.remove()
+                    Log.d("SettingsViewModel", "Updating privacy setting for $id to $isPrivate")
                     userPrivacyRepository.updateUserPrivacySetting(id, isPrivate)
                     _isPrivate.value = isPrivate
                 } catch (e: Exception) {
+                    Log.e("SettingsViewModel", "Failed to update user privacy: ${e.message}")
                     loadUserPrivacySetting(id)
                 } finally {
                     setupRealTimeUpdates(id)

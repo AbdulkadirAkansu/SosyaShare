@@ -3,8 +3,8 @@ package com.akansu.sosyashare.presentation.profile
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.akansu.sosyashare.data.remote.FirebaseUserPrivacyService
 import com.akansu.sosyashare.domain.model.Post
-import com.akansu.sosyashare.domain.model.UserPrivacy
 import com.akansu.sosyashare.domain.model.User
 import com.akansu.sosyashare.domain.repository.PostRepository
 import com.akansu.sosyashare.domain.repository.UserPrivacyRepository
@@ -18,6 +18,7 @@ import javax.inject.Inject
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
     private val userPrivacyRepository: UserPrivacyRepository,
+    private val userPrivacyService: FirebaseUserPrivacyService,
     private val userRepository: UserRepository,
     private val postRepository: PostRepository
 ) : ViewModel() {
@@ -61,44 +62,50 @@ class ProfileViewModel @Inject constructor(
     fun loadProfileData(currentUserId: String, userId: String) {
         viewModelScope.launch {
             try {
-                val privateAccount = userPrivacyRepository.getUserPrivacy(userId)
-                Log.d("ProfileViewModel", "Fetched UserPrivacy: $privateAccount")
-                _isPrivateAccount.value = privateAccount?.isPrivate ?: false
-                Log.d("ProfileViewModel", "isPrivateAccount value set to: ${_isPrivateAccount.value}")
+                Log.d("ProfileViewModel", "Loading profile data for userId: $userId")
+
+                val isPrivate = userPrivacyService.fetchIsPrivateDirectly(userId)
+                _isPrivateAccount.value = isPrivate
+                Log.d("ProfileViewModel", "isPrivateAccount for $userId is $isPrivate")
 
                 _isFollowing.value = userRepository.checkIfFollowing(currentUserId, userId)
-                Log.d("ProfileViewModel", "isFollowing value set to: ${_isFollowing.value}")
+                Log.d("ProfileViewModel", "isFollowing for $userId by $currentUserId is ${_isFollowing.value}")
 
-                // Kullanıcı bilgilerini yükle
                 _userDetails.value = userRepository.getUserDetails(userId)
-                Log.d("ProfileViewModel", "User details loaded: ${_userDetails.value}")
+                Log.d("ProfileViewModel", "User details for $userId loaded: ${_userDetails.value}")
 
-                // Gönderileri yükle
-                if (shouldFetchPosts(privateAccount, currentUserId)) {
+                val allowedFollowers = userPrivacyService.getUserPrivacy(userId)?.allowedFollowers ?: emptyList()
+                if (shouldFetchPosts(isPrivate, allowedFollowers)) {
                     _userPosts.value = postRepository.getUserPosts(userId)
-                    Log.d("ProfileViewModel", "User posts loaded: ${_userPosts.value.size} posts")
+                    Log.d("ProfileViewModel", "User posts loaded for $userId: ${_userPosts.value.size} posts")
+                } else {
+                    _userPosts.value = emptyList()
+                    Log.d("ProfileViewModel", "User posts hidden due to privacy settings for $userId")
                 }
 
-                // Followers ve Following listelerini yükle
                 loadFollowersAndFollowing(userId)
             } catch (e: Exception) {
-                Log.e("ProfileViewModel", "Error loading profile data: ${e.message}")
+                Log.e("ProfileViewModel", "Error loading profile data for $userId: ${e.message}")
             }
         }
     }
 
+
     private suspend fun loadFollowersAndFollowing(userId: String) {
         try {
             _followers.value = userRepository.getFollowers(userId)
+            Log.d("ProfileViewModel", "Followers loaded for $userId: ${_followers.value.size}")
+
             _following.value = userRepository.getFollowing(userId)
-            Log.d("ProfileViewModel", "Followers loaded: ${_followers.value.size}, Following loaded: ${_following.value.size}")
+            Log.d("ProfileViewModel", "Following loaded for $userId: ${_following.value.size}")
         } catch (e: Exception) {
-            Log.e("ProfileViewModel", "Error loading followers and following: ${e.message}")
+            Log.e("ProfileViewModel", "Error loading followers and following for $userId: ${e.message}")
         }
     }
 
-    private fun shouldFetchPosts(privateAccount: UserPrivacy?, currentUserId: String): Boolean {
-        val shouldFetch = !(_isPrivateAccount.value && !_isFollowing.value && privateAccount?.allowedFollowers?.contains(currentUserId) != true)
+    private fun shouldFetchPosts(isPrivate: Boolean, allowedFollowers: List<String>): Boolean {
+        val isAllowed = allowedFollowers.contains(currentUserId.value)
+        val shouldFetch = !(isPrivate && !isAllowed)
         Log.d("ProfileViewModel", "Should fetch posts: $shouldFetch")
         return shouldFetch
     }
@@ -106,13 +113,15 @@ class ProfileViewModel @Inject constructor(
     fun followUser(currentUserId: String, followUserId: String) {
         viewModelScope.launch {
             try {
-                Log.d("ProfileViewModel", "Attempting to follow user: $followUserId")
+                Log.d("ProfileViewModel", "Attempting to follow user: $followUserId by $currentUserId")
+
                 userRepository.followUser(currentUserId, followUserId)
                 userPrivacyRepository.addAllowedFollower(followUserId, currentUserId)
-                Log.d("ProfileViewModel", "Successfully followed user: $followUserId")
-                checkIfFollowing(currentUserId, followUserId)
+
+                Log.d("ProfileViewModel", "Successfully followed user: $followUserId by $currentUserId")
+                loadProfileData(currentUserId, followUserId)
             } catch (e: Exception) {
-                Log.e("ProfileViewModel", "Error following user: ${e.message}")
+                Log.e("ProfileViewModel", "Error following user: $followUserId by $currentUserId: ${e.message}")
             }
         }
     }
@@ -120,26 +129,20 @@ class ProfileViewModel @Inject constructor(
     fun unfollowUser(currentUserId: String, unfollowUserId: String) {
         viewModelScope.launch {
             try {
-                Log.d("ProfileViewModel", "Attempting to unfollow user: $unfollowUserId")
+                Log.d("ProfileViewModel", "Attempting to unfollow user: $unfollowUserId by $currentUserId")
+
                 userRepository.unfollowUser(currentUserId, unfollowUserId)
                 userPrivacyRepository.removeAllowedFollower(unfollowUserId, currentUserId)
-                Log.d("ProfileViewModel", "Successfully unfollowed user: $unfollowUserId")
-                checkIfFollowing(currentUserId, unfollowUserId)
+
+                // Kullanıcı unfollow yapıldığında, isPrivateAccount değerini güncelle
+                _isPrivateAccount.value = userPrivacyService.fetchIsPrivateDirectly(unfollowUserId)
+
+                Log.d("ProfileViewModel", "Successfully unfollowed user: $unfollowUserId by $currentUserId")
+                loadProfileData(currentUserId, unfollowUserId)  // Profil verilerini yeniden yükleyerek doğru state'i sağla
             } catch (e: Exception) {
-                Log.e("ProfileViewModel", "Error unfollowing user: ${e.message}")
+                Log.e("ProfileViewModel", "Error unfollowing user: $unfollowUserId by $currentUserId: ${e.message}")
             }
         }
     }
 
-    private fun checkIfFollowing(currentUserId: String, userId: String) {
-        viewModelScope.launch {
-            try {
-                val isFollowing = userRepository.checkIfFollowing(currentUserId, userId)
-                _isFollowing.value = isFollowing
-                Log.d("ProfileViewModel", "Following status updated: isFollowing = $isFollowing")
-            } catch (e: Exception) {
-                Log.e("ProfileViewModel", "Error checking follow status: ${e.message}")
-            }
-        }
-    }
 }

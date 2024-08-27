@@ -36,6 +36,7 @@ fun SettingsScreen(
     val isPrivate by settingsViewModel.isPrivate.collectAsState()
 
     LaunchedEffect(Unit) {
+        Log.d("SettingsScreen", "Initializing Settings Screen")
         settingsViewModel.initialize()
     }
 
@@ -68,6 +69,7 @@ fun SettingsScreen(
                         var isUpdating by remember { mutableStateOf(false) }
                         Switch(checked = privateStatus, onCheckedChange = { newValue ->
                             isUpdating = true
+                            Log.d("SettingsScreen", "Updating Private Account Setting to $newValue")
                             settingsViewModel.updateUserPrivacySetting(newValue)
                             isUpdating = false
                         })
@@ -91,3 +93,4 @@ fun SettingsScreen(
         }
     )
 }
+

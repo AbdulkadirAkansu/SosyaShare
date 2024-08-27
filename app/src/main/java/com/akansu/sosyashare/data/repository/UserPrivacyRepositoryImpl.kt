@@ -22,7 +22,7 @@ class UserPrivacyRepositoryImpl @Inject constructor(
             isPrivate = userPrivacy.isPrivate,
             allowedFollowers = userPrivacy.allowedFollowers
         )
-        service.updateUserPrivacyWithTransaction(entity)
+        service.updateUserPrivacyWithTransaction(userPrivacy.userId, entity.userId, true)
     }
 
     override suspend fun updateUserPrivacySetting(userId: String, isPrivate: Boolean) {
@@ -37,7 +37,6 @@ class UserPrivacyRepositoryImpl @Inject constructor(
         service.addAllowedFollower(userId, followerId)
     }
 
-    // Yeni eklenen işlev: Kullanıcıdan izin verilen bir takipçiyi kaldırır
     override suspend fun removeAllowedFollower(userId: String, followerId: String) {
         service.removeAllowedFollower(userId, followerId)
     }
