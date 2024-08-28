@@ -17,7 +17,7 @@ class UserRepositoryImpl @Inject constructor(
 ) : UserRepository {
 
     override suspend fun searchUsers(query: String): List<User> {
-        return firebaseUserService.searchUsers(query).map { it.toDomainModel() }
+        return firebaseUserService.searchUsers(query)
     }
 
     override suspend fun getCurrentUserName(): String? {

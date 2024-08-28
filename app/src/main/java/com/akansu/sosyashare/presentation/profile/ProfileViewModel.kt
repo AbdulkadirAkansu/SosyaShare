@@ -4,8 +4,10 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.akansu.sosyashare.data.remote.FirebaseUserPrivacyService
+import com.akansu.sosyashare.domain.model.BlockedUser
 import com.akansu.sosyashare.domain.model.Post
 import com.akansu.sosyashare.domain.model.User
+import com.akansu.sosyashare.domain.repository.BlockedUserRepository
 import com.akansu.sosyashare.domain.repository.PostRepository
 import com.akansu.sosyashare.domain.repository.UserPrivacyRepository
 import com.akansu.sosyashare.domain.repository.UserRepository
@@ -20,7 +22,8 @@ class ProfileViewModel @Inject constructor(
     private val userPrivacyRepository: UserPrivacyRepository,
     private val userPrivacyService: FirebaseUserPrivacyService,
     private val userRepository: UserRepository,
-    private val postRepository: PostRepository
+    private val postRepository: PostRepository,
+    private val blockedUserRepository: BlockedUserRepository
 ) : ViewModel() {
 
     private val _userPosts = MutableStateFlow<List<Post>>(emptyList())
@@ -134,15 +137,39 @@ class ProfileViewModel @Inject constructor(
                 userRepository.unfollowUser(currentUserId, unfollowUserId)
                 userPrivacyRepository.removeAllowedFollower(unfollowUserId, currentUserId)
 
-                // Kullanıcı unfollow yapıldığında, isPrivateAccount değerini güncelle
                 _isPrivateAccount.value = userPrivacyService.fetchIsPrivateDirectly(unfollowUserId)
 
                 Log.d("ProfileViewModel", "Successfully unfollowed user: $unfollowUserId by $currentUserId")
-                loadProfileData(currentUserId, unfollowUserId)  // Profil verilerini yeniden yükleyerek doğru state'i sağla
+                loadProfileData(currentUserId, unfollowUserId)
             } catch (e: Exception) {
                 Log.e("ProfileViewModel", "Error unfollowing user: $unfollowUserId by $currentUserId: ${e.message}")
             }
         }
     }
 
+    fun blockUser(currentUserId: String, blockUserId: String) {
+        viewModelScope.launch {
+            try {
+                val blockedUser = BlockedUser(
+                    blockerUserId = currentUserId,
+                    blockedUserId = blockUserId
+                )
+                blockedUserRepository.blockUser(blockedUser)
+                Log.d("ProfileViewModel", "User $blockUserId successfully blocked by $currentUserId")
+            } catch (e: Exception) {
+                Log.e("ProfileViewModel", "Error blocking user: ${e.message}")
+            }
+        }
+    }
+
+    fun unblockUser(currentUserId: String, blockedUserId: String) {
+        viewModelScope.launch {
+            try {
+                blockedUserRepository.unblockUser(currentUserId, blockedUserId)
+                Log.d("ProfileViewModel", "User $blockedUserId successfully unblocked by $currentUserId")
+            } catch (e: Exception) {
+                Log.e("ProfileViewModel", "Error unblocking user: ${e.message}")
+            }
+        }
+    }
 }

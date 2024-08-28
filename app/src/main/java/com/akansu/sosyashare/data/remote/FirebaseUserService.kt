@@ -2,8 +2,11 @@ package com.akansu.sosyashare.data.remote
 
 import android.net.Uri
 import android.util.Log
+import com.akansu.sosyashare.data.mapper.UserMapper
+import com.akansu.sosyashare.data.mapper.toDomainModel
 import com.akansu.sosyashare.data.model.PostEntity
 import com.akansu.sosyashare.data.model.UserEntity
+import com.akansu.sosyashare.domain.model.User
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -74,8 +77,8 @@ class FirebaseUserService @Inject constructor(
     }
 
 
-    suspend fun searchUsers(query: String): List<UserEntity> {
-        val users = mutableListOf<UserEntity>()
+    suspend fun searchUsers(query: String): List<User> {
+        val users = mutableListOf<User>()
         val result = firestore.collection("users")
             .whereGreaterThanOrEqualTo("username", query)
             .whereLessThanOrEqualTo("username", query + "\uf8ff")
@@ -83,13 +86,14 @@ class FirebaseUserService @Inject constructor(
             .await()
 
         for (document in result.documents) {
-            val user = document.toObject(UserEntity::class.java)?.copy(id = document.id)
-            if (user != null) {
-                users.add(user)
+            val userEntity = document.toObject(UserEntity::class.java)?.copy(id = document.id)
+            if (userEntity != null) {
+                users.add(userEntity.toDomainModel())  // Genişletme fonksiyonunu kullanarak UserEntity -> User dönüşümü
             }
         }
         return users
     }
+
 
     suspend fun followUser(currentUserId: String, followUserId: String) {
         firestore.runTransaction { transaction ->

@@ -3,7 +3,9 @@ package com.akansu.sosyashare.presentation.settings
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.akansu.sosyashare.domain.model.User
 import com.akansu.sosyashare.domain.model.UserPrivacy
+import com.akansu.sosyashare.domain.repository.BlockedUserRepository
 import com.akansu.sosyashare.domain.repository.UserPrivacyRepository
 import com.akansu.sosyashare.domain.repository.UserRepository
 import com.google.firebase.firestore.ListenerRegistration
@@ -16,11 +18,15 @@ import javax.inject.Inject
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val userPrivacyRepository: UserPrivacyRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val blockedUserRepository: BlockedUserRepository
 ) : ViewModel() {
 
     private val _isPrivate = MutableStateFlow<Boolean?>(null)
     val isPrivate: StateFlow<Boolean?> = _isPrivate
+
+    private val _blockedUsers = MutableStateFlow<List<User>>(emptyList())
+    val blockedUsers: StateFlow<List<User>> = _blockedUsers
 
     private val _userId = MutableStateFlow<String?>(null)
     val userId: StateFlow<String?> = _userId
@@ -39,6 +45,7 @@ class SettingsViewModel @Inject constructor(
                 if (userId != null) {
                     _userId.value = userId
                     loadUserPrivacySetting(userId)
+                    loadBlockedUsers(userId)
                     setupRealTimeUpdates(userId)
                 }
             } catch (e: Exception) {
@@ -80,6 +87,21 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    private fun loadBlockedUsers(userId: String) {
+        viewModelScope.launch {
+            try {
+                val blockedUsersList = blockedUserRepository.getBlockedUsersByUserId(userId)
+                val blockedUsers = blockedUsersList.mapNotNull { blockedUserEntity ->
+                    userRepository.getUserDetails(blockedUserEntity.blockedUserId)
+                }
+                _blockedUsers.value = blockedUsers
+            } catch (e: Exception) {
+                Log.e("SettingsViewModel", "Failed to load blocked users: ${e.message}")
+            }
+        }
+    }
+
+
     private fun setupRealTimeUpdates(userId: String) {
         Log.d("SettingsViewModel", "Setting up real-time updates for userId: $userId")
         privacyListener?.remove()
@@ -102,6 +124,20 @@ class SettingsViewModel @Inject constructor(
                     loadUserPrivacySetting(id)
                 } finally {
                     setupRealTimeUpdates(id)
+                }
+            }
+        }
+    }
+
+    fun unblockUser(blockedUserId: String) {
+        viewModelScope.launch {
+            _userId.value?.let { currentUserId ->
+                try {
+                    blockedUserRepository.unblockUser(currentUserId, blockedUserId)
+                    loadBlockedUsers(currentUserId)
+                    Log.d("SettingsViewModel", "User $blockedUserId successfully unblocked by $currentUserId")
+                } catch (e: Exception) {
+                    Log.e("SettingsViewModel", "Error unblocking user: ${e.message}")
                 }
             }
         }

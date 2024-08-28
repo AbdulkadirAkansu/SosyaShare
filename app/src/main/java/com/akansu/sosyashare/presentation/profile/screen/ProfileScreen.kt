@@ -27,7 +27,6 @@ import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.akansu.sosyashare.R
 import com.akansu.sosyashare.domain.model.Post
-import com.akansu.sosyashare.presentation.home.components.FollowersFollowingDialog
 import com.akansu.sosyashare.presentation.home.components.NavigationBar
 import com.akansu.sosyashare.presentation.profile.ProfileViewModel
 import com.akansu.sosyashare.presentation.userprofile.viewmodel.UserViewModel
@@ -54,7 +53,17 @@ fun ProfileScreen(
     }
 
     Scaffold(
-        topBar = { TopBar(navController, userDetails?.username ?: "Unknown") },
+        topBar = {
+            TopBar(
+                navController,
+                userDetails?.username ?: "Unknown",
+                onBlockUser = {
+                    currentUserId?.let { currentId ->
+                        userId?.let { id -> profileViewModel.blockUser(currentId, id) }
+                    }
+                }
+            )
+        },
         bottomBar = {
             NavigationBar(
                 selectedItem = 4,
@@ -115,7 +124,9 @@ fun ProfileScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TopBar(navController: NavHostController, username: String) {
+fun TopBar(navController: NavHostController, username: String, onBlockUser: () -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+
     TopAppBar(
         title = { Text(username, color = MaterialTheme.colorScheme.onBackground) },
         navigationIcon = {
@@ -124,8 +135,20 @@ fun TopBar(navController: NavHostController, username: String) {
             }
         },
         actions = {
-            IconButton(onClick = { navController.navigate("settings") }) {
+            IconButton(onClick = { expanded = true }) {
                 Icon(Icons.Default.MoreVert, contentDescription = "More options", tint = MaterialTheme.colorScheme.onBackground)
+            }
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Engelle") },
+                    onClick = {
+                        expanded = false
+                        onBlockUser()
+                    }
+                )
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
