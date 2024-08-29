@@ -8,5 +8,4 @@ interface BlockedUserRepository {
     suspend fun getBlockedUsersByUserId(userId: String): List<BlockedUser>
     suspend fun isUserBlocked(blockerUserId: String, blockedUserId: String): Boolean
     suspend fun getUsersWhoBlockedUserId(userId: String): List<BlockedUser>
-
 }

@@ -5,13 +5,13 @@ import com.akansu.sosyashare.domain.model.Post
 
 fun PostEntity.toDomainModel(): Post {
     return Post(
-        id = id,
-        userId = userId,
-        content = content,
-        imageUrl = imageUrl,
-        likeCount = likeCount,
-        likedBy = likedBy,
-        createdAt = createdAt
+        id = this.id,
+        userId = this.userId,
+        content = this.content,
+        imageUrl = this.imageUrl,
+        likeCount = this.likeCount,
+        likedBy = this.likedBy,
+        createdAt = this.createdAt
     )
 }
 

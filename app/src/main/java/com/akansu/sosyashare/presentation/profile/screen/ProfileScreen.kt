@@ -32,6 +32,7 @@ import com.akansu.sosyashare.presentation.profile.ProfileViewModel
 import com.akansu.sosyashare.presentation.userprofile.viewmodel.UserViewModel
 import com.akansu.sosyashare.util.poppinsFontFamily
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     navController: NavHostController,
@@ -52,11 +53,13 @@ fun ProfileScreen(
         }
     }
 
+    var selectedItem by remember { mutableIntStateOf(4) }
+
     Scaffold(
         topBar = {
             TopBar(
-                navController,
-                userDetails?.username ?: "Unknown",
+                navController = navController,
+                username = userDetails?.username ?: "Unknown",
                 onBlockUser = {
                     currentUserId?.let { currentId ->
                         userId?.let { id -> profileViewModel.blockUser(currentId, id) }
@@ -66,13 +69,14 @@ fun ProfileScreen(
         },
         bottomBar = {
             NavigationBar(
-                selectedItem = 4,
-                onItemSelected = {},
+                selectedItem = selectedItem,
+                onItemSelected = { selectedItem = it },
                 navController = navController,
-                profilePictureUrl = profilePictureUrl ?: userDetails?.profilePictureUrl
+                profilePictureUrl = profilePictureUrl ?: userDetails?.profilePictureUrl,
+                modifier = Modifier.height(65.dp)
             )
         },
-        modifier = Modifier.padding(WindowInsets.systemBars.asPaddingValues())
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
@@ -105,7 +109,7 @@ fun ProfileScreen(
 
                 if (isPrivateAccount && !isFollowing) {
                     Text(
-                        text = "Bu hesap gizlidir.",
+                        text = "This account is private.",
                         color = Color.Gray,
                         modifier = Modifier.padding(16.dp),
                         fontWeight = FontWeight.Bold,
@@ -121,29 +125,44 @@ fun ProfileScreen(
     }
 }
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopBar(navController: NavHostController, username: String, onBlockUser: () -> Unit) {
     var expanded by remember { mutableStateOf(false) }
 
     TopAppBar(
-        title = { Text(username, color = MaterialTheme.colorScheme.onBackground) },
+        title = {
+            Text(
+                text = username,
+                fontFamily = poppinsFontFamily,
+                fontWeight = FontWeight.Bold,
+                fontSize = 24.sp,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+        },
         navigationIcon = {
             IconButton(onClick = { navController.navigateUp() }) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onBackground)
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = MaterialTheme.colorScheme.onBackground
+                )
             }
         },
         actions = {
             IconButton(onClick = { expanded = true }) {
-                Icon(Icons.Default.MoreVert, contentDescription = "More options", tint = MaterialTheme.colorScheme.onBackground)
+                Icon(
+                    Icons.Default.MoreVert,
+                    contentDescription = "More options",
+                    tint = MaterialTheme.colorScheme.onBackground
+                )
             }
             DropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false }
             ) {
                 DropdownMenuItem(
-                    text = { Text("Engelle") },
+                    text = { Text("Block") },
                     onClick = {
                         expanded = false
                         onBlockUser()
@@ -152,7 +171,8 @@ fun TopBar(navController: NavHostController, username: String, onBlockUser: () -
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.background
+            containerColor = MaterialTheme.colorScheme.background,
+            titleContentColor = MaterialTheme.colorScheme.onBackground
         )
     )
 }
@@ -176,14 +196,14 @@ fun ProfileInfo(username: String, profilePictureUrl: String?, bio: String) {
         )
         Spacer(modifier = Modifier.height(12.dp))
         Text(
-            username,
+            text = username,
             fontWeight = FontWeight.Bold,
             fontSize = 22.sp,
             fontFamily = poppinsFontFamily,
             color = MaterialTheme.colorScheme.onBackground
         )
         Text(
-            bio,
+            text = bio,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontFamily = poppinsFontFamily,
             maxLines = 3
@@ -218,7 +238,7 @@ fun StatColumn(count: String, label: String, onClick: () -> Unit = {}) {
         modifier = Modifier.clickable { onClick() }
     ) {
         Text(
-            count,
+            text = count,
             fontWeight = FontWeight.Bold,
             fontSize = 18.sp,
             fontFamily = poppinsFontFamily,

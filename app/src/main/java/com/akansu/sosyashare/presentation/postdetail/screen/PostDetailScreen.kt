@@ -194,7 +194,8 @@ fun PostContent(
                 modifier = Modifier
                     .size(50.dp)
                     .clip(CircleShape)
-                    .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                    .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                contentScale = ContentScale.Crop
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column {

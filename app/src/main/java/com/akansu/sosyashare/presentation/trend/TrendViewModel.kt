@@ -1,0 +1,40 @@
+package com.akansu.sosyashare.presentation.trend
+
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.akansu.sosyashare.domain.model.Post
+import com.akansu.sosyashare.domain.repository.PostRepository
+import com.akansu.sosyashare.domain.repository.UserPrivacyRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+@HiltViewModel
+class TrendViewModel @Inject constructor(
+    private val postRepository: PostRepository,
+    private val userPrivacyRepository: UserPrivacyRepository
+) : ViewModel() {
+
+    private val _trendingPosts = MutableStateFlow<List<Post>>(emptyList())
+    val trendingPosts: StateFlow<List<Post>> = _trendingPosts
+
+    init {
+        loadTrendingPosts()
+    }
+
+    private fun loadTrendingPosts() {
+        viewModelScope.launch {
+            val allPosts = postRepository.getAllPosts().firstOrNull().orEmpty()
+            val filteredPosts = allPosts.filter { post ->
+                val userPrivacy = userPrivacyRepository.getUserPrivacy(post.userId)
+                userPrivacy?.isPrivate == false
+            }.sortedByDescending { it.likeCount }
+            _trendingPosts.value = filteredPosts
+        }
+    }
+
+}

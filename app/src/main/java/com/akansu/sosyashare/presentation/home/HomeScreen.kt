@@ -100,7 +100,7 @@ fun HomeScreen(
                             }
                             Spacer(modifier = Modifier.width(16.dp))
                             IconButton(
-                                onClick = { /* Mesajlar */ },
+                                onClick = { navController.navigate("messages") },
                                 modifier = Modifier
                                     .size(36.dp)
                                     .offset(y = (-4).dp)
