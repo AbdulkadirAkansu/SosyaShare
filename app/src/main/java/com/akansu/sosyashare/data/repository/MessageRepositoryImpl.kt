@@ -1,5 +1,6 @@
 package com.akansu.sosyashare.data.repository
 
+import android.util.Log
 import com.akansu.sosyashare.data.mapper.toDomainModel
 import com.akansu.sosyashare.data.mapper.toEntityModel
 import com.akansu.sosyashare.data.remote.FirebaseMessageService
@@ -13,28 +14,24 @@ class MessageRepositoryImpl @Inject constructor(
 ) : MessageRepository {
 
     override suspend fun sendMessage(senderId: String, receiverId: String, message: Message) {
+        Log.d("MessageRepositoryImpl", "sendMessage - Sending message: $message")
         messageService.sendMessage(senderId, receiverId, message.toEntityModel())
     }
 
     override suspend fun getMessagesByChatId(chatId: String): List<Message> {
-        return messageService.getMessagesByChatId(chatId).map { it.toDomainModel() }
+        val messages = messageService.getMessagesByChatId(chatId).map { it.toDomainModel() }
+        Log.d("MessageRepositoryImpl", "getMessagesByChatId - Messages: $messages")
+        return messages
     }
 
     override suspend fun getRecentChats(userId: String): List<Message> {
-        val chatDocuments = messageService.getRecentChats(userId)
-        return chatDocuments.map {
-            Message(
-                content = it["lastMessage"] as String,
-                timestamp = it["updatedAt"] as Date,
-                // Katılımcılardan currentUserId dışındaki kullanıcıyı belirleyip atamak gerekli
-                senderId = it["participants"].let { participants ->
-                    (participants as List<String>).find { id -> id != userId } ?: ""
-                }
-            )
-        }
+        val chatMessages = messageService.getRecentChats(userId)
+        Log.d("MessageRepositoryImpl", "getRecentChats - Messages: $chatMessages")
+        return chatMessages
     }
 
     override suspend fun updateMessageReadStatus(chatId: String, messageId: String, isRead: Boolean) {
+        Log.d("MessageRepositoryImpl", "updateMessageReadStatus - Updating read status for message: $messageId in chat: $chatId")
         messageService.updateMessageReadStatus(chatId, messageId, isRead)
     }
 }

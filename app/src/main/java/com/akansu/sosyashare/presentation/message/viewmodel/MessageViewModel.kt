@@ -3,6 +3,7 @@ package com.akansu.sosyashare.presentation.message.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.akansu.sosyashare.data.remote.FirebaseMessageService
 import com.akansu.sosyashare.domain.model.Message
 import com.akansu.sosyashare.domain.model.User
 import com.akansu.sosyashare.domain.repository.MessageRepository
@@ -18,7 +19,8 @@ import javax.inject.Inject
 @HiltViewModel
 class MessageViewModel @Inject constructor(
     private val messageRepository: MessageRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val firebaseMessageService: FirebaseMessageService
 ) : ViewModel() {
 
     private val _recentMessages = MutableStateFlow<List<Message>>(emptyList())
@@ -33,6 +35,15 @@ class MessageViewModel @Inject constructor(
     private val _currentUsername = MutableStateFlow<String?>(null)
     val currentUsername: StateFlow<String?> = _currentUsername
 
+    private val _currentUserProfilePictureUrl = MutableStateFlow<String?>(null)
+    val currentUserProfilePictureUrl: StateFlow<String?> = _currentUserProfilePictureUrl
+
+    private val _searchResults = MutableStateFlow<List<Message>>(emptyList())
+    val searchResults: StateFlow<List<Message>> = _searchResults
+
+    private val _recentMessagesUpdated = MutableStateFlow(false)
+    val recentMessagesUpdated: StateFlow<Boolean> = _recentMessagesUpdated
+
     init {
         loadCurrentUserIdAndUsername()
     }
@@ -41,10 +52,41 @@ class MessageViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 _currentUserId.value = userRepository.getCurrentUserId()
+                Log.d("MessageViewModel", "Current User ID: ${_currentUserId.value}")
                 _currentUsername.value = userRepository.getCurrentUserName()
+                loadCurrentUserProfilePicture()
             } catch (e: Exception) {
                 _error.value = "Failed to get User ID or Username: ${e.message}"
+                Log.e("MessageViewModel", "Error loading User ID and Username: ${e.message}")
             }
+        }
+    }
+
+    fun searchChatsByUsername(username: String) {
+        viewModelScope.launch {
+            try {
+                val userId = _currentUserId.value ?: return@launch
+                Log.d("MessageViewModel", "searchChatsByUsername - Searching chats for username: $username")
+                val allChats = messageRepository.getRecentChats(userId)
+                val matchingChats = allChats.filter { chat ->
+                    val otherUserId = if (chat.senderId == userId) chat.receiverId else chat.senderId
+                    val otherUser = userRepository.getUserById(otherUserId).firstOrNull()
+                    otherUser?.username?.contains(username, ignoreCase = true) == true
+                }
+                _searchResults.value = matchingChats
+                Log.d("MessageViewModel", "searchChatsByUsername - Matching Chats: $matchingChats")
+            } catch (e: Exception) {
+                _error.value = "Failed to search chats: ${e.message}"
+                Log.e("MessageViewModel", "Error searching chats: ${e.message}")
+            }
+        }
+    }
+
+    private suspend fun loadCurrentUserProfilePicture() {
+        _currentUserId.value?.let { userId ->
+            val user = userRepository.getUserById(userId).firstOrNull()
+            _currentUserProfilePictureUrl.value = user?.profilePictureUrl
+            Log.d("MessageViewModel", "Current User Profile Picture URL: ${_currentUserProfilePictureUrl.value}")
         }
     }
 
@@ -52,46 +94,47 @@ class MessageViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val userId = _currentUserId.value ?: return@launch
+                Log.d("MessageViewModel", "Loading recent chats for user ID: $userId")
                 val chats = messageRepository.getRecentChats(userId)
                 _recentMessages.value = chats
+
+                _recentMessagesUpdated.value = false
+
+                Log.d("MessageViewModel", "Loaded recent chats: $chats")
             } catch (e: Exception) {
                 _error.value = "Failed to load recent messages: ${e.message}"
-
-                // Firebase index hatası durumunda loga linki ekleyin
-                if (e.message?.contains("FAILED_PRECONDITION") == true) {
-                    val projectId = "YOUR_PROJECT_ID"  // Kendi proje ID'nizle değiştirin
-                    Log.e(
-                        "MessageViewModel",
-                        "Firebase index hatası: ${e.message}. Index'i oluşturmak için bu linki takip edin: https://console.firebase.google.com/v1/r/project/$projectId/firestore/indexes?create_composite=Cktwcm9qZWN0cy9zb3N5YXNoYXJlL2RhdGFiYXNlcy8oZGVmYXVsdCkvY29sbGVjdGlvbkdyb3Vwcy9tZXNzYWdlcy9pbmRleGVzL18QARoMCghzZW5kZXJJZBABGg0KCXRpbWVzdGFtcBACGgwKCF9fbmFtZV9fEAI"
-                    )
-                }
+                Log.e("MessageViewModel", "Error loading recent messages: ${e.message}")
             }
         }
     }
 
-    fun sendMessage(receiverId: String, content: String) {
+
+    fun refreshRecentChats() {
+        _recentMessagesUpdated.value = true
+    }
+
+    fun updateMessageReadStatus(chatId: String, messageId: String) {
         viewModelScope.launch {
             try {
-                val senderId = _currentUserId.value ?: return@launch
-                val message = Message(
-                    senderId = senderId,
-                    receiverId = receiverId,
-                    content = content,
-                    timestamp = Date()
-                )
-                messageRepository.sendMessage(senderId, receiverId, message)
-                loadRecentChats() // Mesaj gönderildikten sonra güncel sohbetleri yükle
+                Log.d("ViewModel", "Updating message isRead status for message: $messageId in chat: $chatId")
+                firebaseMessageService.updateMessageReadStatus(chatId, messageId, true)
+                Log.d("ViewModel", "Successfully updated message isRead status for message: $messageId")
             } catch (e: Exception) {
-                _error.value = "Failed to send message: ${e.message}"
+                _error.value = "Failed to update message read status: ${e.message}"
+                Log.e("MessageViewModel", "Error updating isRead status for message $messageId", e)
             }
         }
     }
+
 
     suspend fun getUserById(userId: String): User? {
         return try {
-            userRepository.getUserById(userId).firstOrNull()
+            val user = userRepository.getUserById(userId).firstOrNull()
+            Log.d("MessageViewModel", "Fetched user by ID: $userId - $user")
+            user
         } catch (e: Exception) {
             _error.value = "Failed to fetch user by id: ${e.message}"
+            Log.e("MessageViewModel", "Error fetching user by ID: ${e.message}")
             null
         }
     }

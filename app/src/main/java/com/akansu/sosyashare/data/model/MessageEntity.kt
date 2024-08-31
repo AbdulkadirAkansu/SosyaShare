@@ -1,6 +1,8 @@
 package com.akansu.sosyashare.data.model
 
+import com.google.firebase.firestore.PropertyName
 import java.util.Date
+
 
 data class MessageEntity(
     val id: String = "",
@@ -8,5 +10,8 @@ data class MessageEntity(
     val receiverId: String = "",
     val content: String = "",
     val timestamp: Date = Date(),
-    val isRead: Boolean = false
+    @get:PropertyName("isRead") val isRead: Boolean = false
 )
+
+
+

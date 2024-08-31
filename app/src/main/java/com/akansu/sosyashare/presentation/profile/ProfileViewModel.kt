@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
     private val userPrivacyRepository: UserPrivacyRepository,

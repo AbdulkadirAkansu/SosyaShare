@@ -1,6 +1,8 @@
 package com.akansu.sosyashare.data.remote
 
+import android.util.Log
 import com.akansu.sosyashare.data.model.MessageEntity
+import com.akansu.sosyashare.domain.model.Message
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
@@ -10,6 +12,7 @@ import javax.inject.Inject
 class FirebaseMessageService @Inject constructor(
     private val firestore: FirebaseFirestore
 ) {
+
     private fun getChatId(user1Id: String, user2Id: String): String {
         return if (user1Id < user2Id) {
             "$user1Id-$user2Id"
@@ -22,13 +25,16 @@ class FirebaseMessageService @Inject constructor(
         val chatId = getChatId(senderId, receiverId)
         val chatRef = firestore.collection("chats").document(chatId)
 
-        // Mesajı alt koleksiyona ekle
-        chatRef.collection("messages").add(message).await()
+        val documentRef = chatRef.collection("messages").add(message).await()
 
-        // Son mesaj ve zaman bilgilerini güncelle
+        val messageWithId = message.copy(id = documentRef.id)
+        Log.d("FirebaseMessageService", "sendMessage - Message with ID: $messageWithId")
+
+        chatRef.collection("messages").document(documentRef.id).set(messageWithId).await()
+
         chatRef.set(mapOf(
-            "lastMessage" to message.content,
-            "updatedAt" to message.timestamp,
+            "lastMessage" to messageWithId.content,
+            "updatedAt" to messageWithId.timestamp,
             "participants" to listOf(senderId, receiverId)
         )).await()
     }
@@ -38,39 +44,71 @@ class FirebaseMessageService @Inject constructor(
             .document(chatId)
             .collection("messages")
             .orderBy("timestamp")
-            .get()
+            .get(com.google.firebase.firestore.Source.SERVER)
             .await()
 
-        return messagesSnapshot.toObjects(MessageEntity::class.java)
+        val messages = messagesSnapshot.documents.map { document ->
+            val message = document.toObject(MessageEntity::class.java)
+            Log.d("FirebaseMessageService", "getMessagesByChatId - Message: $message")
+            message?.copy(id = document.id)
+        }.filterNotNull()
+
+        Log.d("FirebaseMessageService", "getMessagesByChatId - Messages: $messages")
+        return messages
     }
 
-    suspend fun getRecentChats(userId: String): List<Map<String, Any>> {
+    suspend fun getRecentChats(userId: String): List<Message> {
         val chatsSnapshot = firestore.collection("chats")
             .whereArrayContains("participants", userId)
             .orderBy("updatedAt", com.google.firebase.firestore.Query.Direction.DESCENDING)
             .get()
             .await()
 
-        return chatsSnapshot.documents.map { document ->
-            document.data?.let {
-                // `Timestamp` türündeki `updatedAt` alanını `Date` türüne dönüştürelim
-                val updatedAtTimestamp = it["updatedAt"] as? Timestamp
-                val updatedAtDate = updatedAtTimestamp?.toDate()
+        val recentChats = mutableListOf<Message>()
 
-                // `Map` içinde `updatedAt` alanını `Date` ile güncelleyelim
-                it.toMutableMap().apply {
-                    this["updatedAt"] = updatedAtDate
+        for (document in chatsSnapshot.documents) {
+            val chatId = document.id
+            val lastMessageDoc = document.reference.collection("messages")
+                .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                .limit(1)
+                .get()
+                .await()
+                .documents
+                .firstOrNull()
+
+            if (lastMessageDoc != null) {
+                val lastMessageData = lastMessageDoc.data
+                if (lastMessageData != null) {
+                    val message = Message(
+                        id = lastMessageDoc.id,
+                        content = lastMessageData["content"] as? String ?: "",
+                        timestamp = lastMessageData["timestamp"] as? Date ?: Date(),
+                        senderId = lastMessageData["senderId"] as? String ?: "",
+                        isRead = lastMessageData["isRead"] as? Boolean ?: false
+                    )
+                    recentChats.add(message)
                 }
-            } ?: emptyMap()
+            }
         }
+
+        Log.d("FirebaseMessageService", "getRecentChats - Recent Chats: $recentChats")
+        return recentChats
     }
 
+
+
     suspend fun updateMessageReadStatus(chatId: String, messageId: String, isRead: Boolean) {
-        firestore.collection("chats")
-            .document(chatId)
-            .collection("messages")
-            .document(messageId)
-            .update("isRead", isRead)
-            .await()
+        Log.d("FirebaseMessageService", "Attempting to update isRead for message: $messageId in chat: $chatId")
+        try {
+            firestore.collection("chats")
+                .document(chatId)
+                .collection("messages")
+                .document(messageId)
+                .update("isRead", isRead)
+                .await()
+            Log.d("FirebaseMessageService", "Successfully updated isRead for message: $messageId to $isRead")
+        } catch (e: Exception) {
+            Log.e("FirebaseMessageService", "Failed to update isRead for message: $messageId", e)
+        }
     }
 }

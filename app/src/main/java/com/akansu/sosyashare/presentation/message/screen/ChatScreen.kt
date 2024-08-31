@@ -1,10 +1,11 @@
 package com.akansu.sosyashare.presentation.message.screen
 
-import android.util.Log
+import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -13,10 +14,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import com.akansu.sosyashare.R
 import com.akansu.sosyashare.domain.model.Message
 import com.akansu.sosyashare.presentation.message.viewmodel.ChatViewModel
 
@@ -35,37 +38,55 @@ fun ChatScreen(
         viewModel.loadMessages(userId)
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        TopAppBar(
-            title = { Text(text = "Chat") },
-            navigationIcon = {
-                IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                }
-            }
-        )
-
-        LazyColumn(modifier = Modifier.weight(1f).padding(16.dp)) {
-            items(messages) { message ->
-                ChatBubble(message = message, isOwnMessage = message.senderId == currentUserId)
-            }
-        }
-
-        Row(modifier = Modifier.padding(16.dp)) {
-            BasicTextField(
-                value = newMessage,
-                onValueChange = { newMessage = it },
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(text = "Chat", color = MaterialTheme.colorScheme.onBackground) },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onBackground)
+                    }
+                },
+                colors = TopAppBarDefaults.mediumTopAppBarColors(
+                    containerColor = Color.Transparent
+                )
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            LazyColumn(
                 modifier = Modifier
                     .weight(1f)
-                    .background(MaterialTheme.colorScheme.background, MaterialTheme.shapes.small)
-                    .padding(8.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Button(onClick = {
-                viewModel.sendMessage(userId, newMessage.text)
-                newMessage = TextFieldValue("")
-            }) {
-                Text("Send")
+                    .padding(16.dp)
+            ) {
+                items(messages) { message ->
+                    ChatBubble(message = message, isOwnMessage = message.senderId == currentUserId)
+                }
+            }
+
+            Row(modifier = Modifier.padding(16.dp)) {
+                BasicTextField(
+                    value = newMessage,
+                    onValueChange = { newMessage = it },
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.small)
+                        .padding(8.dp),
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Button(onClick = {
+                    viewModel.sendMessage(userId, newMessage.text)
+                    newMessage = TextFieldValue("")
+                }) {
+                    Text("Send")
+                }
             }
         }
     }
@@ -74,8 +95,7 @@ fun ChatScreen(
 @Composable
 fun ChatBubble(message: Message, isOwnMessage: Boolean) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (isOwnMessage) Arrangement.End else Arrangement.Start
     ) {
         Column(
@@ -83,22 +103,36 @@ fun ChatBubble(message: Message, isOwnMessage: Boolean) {
             modifier = Modifier.padding(8.dp)
         ) {
             Text(
-                text = message.senderId, // Sender username
-                color = Color.LightGray,
+                text = message.senderId,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                 style = MaterialTheme.typography.bodySmall
             )
             Box(
                 modifier = Modifier
                     .background(
-                        if (isOwnMessage) Color.Blue else Color.Gray,
+                        if (isOwnMessage) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
                         shape = MaterialTheme.shapes.medium
                     )
                     .padding(8.dp)
             ) {
                 Text(
                     text = message.content,
-                    color = Color.White,
+                    color = if (isOwnMessage) Color.White else MaterialTheme.colorScheme.onBackground,
                     style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            if (!isOwnMessage && !message.isRead) {
+                Box(
+                    modifier = Modifier
+                        .size(12.dp)
+                        .background(Color(0xFF1E88E5), CircleShape)
+                )
+            } else if (!isOwnMessage && message.isRead) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_check), // Assuming ic_check is the modern tick icon
+                    contentDescription = "Read",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(12.dp)
                 )
             }
         }
