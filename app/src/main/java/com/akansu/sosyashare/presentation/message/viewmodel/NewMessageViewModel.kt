@@ -9,6 +9,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -23,7 +24,24 @@ class NewMessageViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
-    private var searchJob: Job? = null  // Arama işini kontrol etmek için Job tanımlıyoruz
+    private val _currentUserProfilePictureUrl = MutableStateFlow<String?>(null)
+    val currentUserProfilePictureUrl: StateFlow<String?> = _currentUserProfilePictureUrl
+
+    private var searchJob: Job? = null
+
+    init {
+        loadCurrentUserProfilePicture()
+    }
+
+    private fun loadCurrentUserProfilePicture() {
+        viewModelScope.launch {
+            val userId = userRepository.getCurrentUserId()
+            if (userId != null) {
+                val user = userRepository.getUserById(userId).firstOrNull()
+                _currentUserProfilePictureUrl.value = user?.profilePictureUrl
+            }
+        }
+    }
 
     fun searchUsers(query: String) {
         if (query.isBlank()) {
@@ -35,7 +53,7 @@ class NewMessageViewModel @Inject constructor(
 
         searchJob = viewModelScope.launch {
             delay(200)  // Kısa bir gecikme ekliyoruz (200ms)
-            _searchResults.value = userRepository.searchUsers(query)  // Sonuçları hızlıca alıyoruz
+            _searchResults.value = userRepository.searchUsers(query)
         }
     }
 }

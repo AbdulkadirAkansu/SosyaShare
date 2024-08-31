@@ -66,15 +66,18 @@ class MessageViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val userId = _currentUserId.value ?: return@launch
-                Log.d("MessageViewModel", "searchChatsByUsername - Searching chats for username: $username")
+                Log.d("MessageViewModel", "Searching chats for username: $username with userId: $userId")
                 val allChats = messageRepository.getRecentChats(userId)
+                Log.d("MessageViewModel", "All chats: $allChats")
+
                 val matchingChats = allChats.filter { chat ->
                     val otherUserId = if (chat.senderId == userId) chat.receiverId else chat.senderId
                     val otherUser = userRepository.getUserById(otherUserId).firstOrNull()
+                    Log.d("MessageViewModel", "Other user fetched for chat: $otherUser")
                     otherUser?.username?.contains(username, ignoreCase = true) == true
                 }
                 _searchResults.value = matchingChats
-                Log.d("MessageViewModel", "searchChatsByUsername - Matching Chats: $matchingChats")
+                Log.d("MessageViewModel", "Matching Chats: $matchingChats")
             } catch (e: Exception) {
                 _error.value = "Failed to search chats: ${e.message}"
                 Log.e("MessageViewModel", "Error searching chats: ${e.message}")
@@ -94,34 +97,26 @@ class MessageViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val userId = _currentUserId.value ?: return@launch
-                Log.d("MessageViewModel", "Loading recent chats for user ID: $userId")
-                val chats = messageRepository.getRecentChats(userId)
-                _recentMessages.value = chats
+                Log.d("MessageViewModel", "loadRecentChats - Loading recent chats for user ID: $userId")
 
+                val chats = messageRepository.getRecentChats(userId)
+                Log.d("MessageViewModel", "loadRecentChats - Loaded recent chats: $chats")
+
+                // Chat'leri yükledikten sonra receiverId'nin boş olup olmadığını kontrol edin.
+                chats.forEach { chat ->
+                    if (chat.receiverId.isBlank()) {
+                        Log.e("MessageViewModel", "loadRecentChats - Chat with id: ${chat.id} has an empty receiverId!")
+                    } else {
+                        Log.d("MessageViewModel", "loadRecentChats - Chat with id: ${chat.id} has receiverId: ${chat.receiverId}")
+                    }
+                }
+
+                _recentMessages.value = chats
                 _recentMessagesUpdated.value = false
 
-                Log.d("MessageViewModel", "Loaded recent chats: $chats")
             } catch (e: Exception) {
                 _error.value = "Failed to load recent messages: ${e.message}"
-                Log.e("MessageViewModel", "Error loading recent messages: ${e.message}")
-            }
-        }
-    }
-
-
-    fun refreshRecentChats() {
-        _recentMessagesUpdated.value = true
-    }
-
-    fun updateMessageReadStatus(chatId: String, messageId: String) {
-        viewModelScope.launch {
-            try {
-                Log.d("ViewModel", "Updating message isRead status for message: $messageId in chat: $chatId")
-                firebaseMessageService.updateMessageReadStatus(chatId, messageId, true)
-                Log.d("ViewModel", "Successfully updated message isRead status for message: $messageId")
-            } catch (e: Exception) {
-                _error.value = "Failed to update message read status: ${e.message}"
-                Log.e("MessageViewModel", "Error updating isRead status for message $messageId", e)
+                Log.e("MessageViewModel", "loadRecentChats - Error loading recent messages: ${e.message}")
             }
         }
     }
@@ -129,6 +124,10 @@ class MessageViewModel @Inject constructor(
 
     suspend fun getUserById(userId: String): User? {
         return try {
+            if (userId.isBlank()) {
+                Log.e("MessageViewModel", "Attempted to fetch user with empty userId!")
+                return null
+            }
             val user = userRepository.getUserById(userId).firstOrNull()
             Log.d("MessageViewModel", "Fetched user by ID: $userId - $user")
             user

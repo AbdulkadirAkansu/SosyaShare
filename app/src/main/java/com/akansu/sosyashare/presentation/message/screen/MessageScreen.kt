@@ -103,10 +103,10 @@ fun MessageScreen(
                 actions = {
                     IconButton(onClick = { navController.navigate("new_message_screen") }) {
                         Icon(
-                            painter = painterResource(id = R.drawable.pen_square),
+                            painter = painterResource(id = R.drawable.square_pencil),
                             contentDescription = "New Message",
                             tint = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 },

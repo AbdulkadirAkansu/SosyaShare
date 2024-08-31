@@ -2,16 +2,18 @@ package com.akansu.sosyashare.presentation.message.screen
 
 import android.annotation.SuppressLint
 import android.util.Log
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,10 +25,12 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
-import coil.compose.rememberImagePainter
+import coil.compose.AsyncImage
 import com.akansu.sosyashare.R
 import com.akansu.sosyashare.domain.model.User
+import com.akansu.sosyashare.presentation.home.components.NavigationBar
 import com.akansu.sosyashare.presentation.message.viewmodel.NewMessageViewModel
+import com.akansu.sosyashare.util.poppinsFontFamily
 
 @SuppressLint("StateFlowValueCalledInComposition")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,51 +41,63 @@ fun NewMessageScreen(
 ) {
     var searchQuery by remember { mutableStateOf(TextFieldValue("")) }
     val searchResults by viewModel.searchResults.collectAsState(initial = emptyList())
+    val isDarkTheme = isSystemInDarkTheme()
+
+    val backgroundColor = if (isDarkTheme) MaterialTheme.colorScheme.background else Color.White
+    val textColor = if (isDarkTheme) Color.White else MaterialTheme.colorScheme.onBackground
+    val currentUserProfilePictureUrl by viewModel.currentUserProfilePictureUrl.collectAsState()
+
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Yeni Mesaj") },
+                title = { Text("Yeni Mesaj", color = textColor) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Rounded.ArrowBack, contentDescription = "Back", tint = textColor)
                     }
-                }
+                },
+                colors = TopAppBarDefaults.mediumTopAppBarColors(
+                    containerColor = Color.Transparent
+                )
             )
-        }
+        },
+        bottomBar = {
+            NavigationBar(
+                selectedItem = 0,
+                onItemSelected = { /* Handle item selection */ },
+                navController = navController,
+                profilePictureUrl = currentUserProfilePictureUrl, // Burada doğru profil resmini sağlayın
+                modifier = Modifier.height(60.dp)
+            )
+        },
+        containerColor = backgroundColor
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(Color.Black)
+                .background(backgroundColor)
                 .padding(16.dp)
         ) {
-            // Kullanıcı arama girişi
-            BasicTextField(
-                value = searchQuery,
-                onValueChange = { query ->
-                    searchQuery = query
-                    Log.d("NewMessageScreen", "Searching users with query: ${query.text}")
-                    viewModel.searchUsers(query.text)  // Arama fonksiyonunu çağırıyoruz
+            // Modern arama çubuğu
+            SearchBar(
+                query = searchQuery.text,
+                onQueryChange = { query ->
+                    searchQuery = TextFieldValue(query)
+                    Log.d("NewMessageScreen", "Searching users with query: $query")
+                    viewModel.searchUsers(query)  // Arama fonksiyonunu çağırıyoruz
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.White, shape = MaterialTheme.shapes.small)
-                    .padding(16.dp)
-            ) {
-                Text(
-                    text = if (searchQuery.text.isEmpty()) "Kullanıcı Ara..." else searchQuery.text,
-                    color = if (searchQuery.text.isEmpty()) Color.Gray else Color.Black
-                )
-            }
+                textColor = textColor,
+                backgroundColor = if (isDarkTheme) MaterialTheme.colorScheme.surface else Color.LightGray
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             LazyColumn {
                 items(searchResults) { user ->
                     Log.d("NewMessageScreen", "Displaying search result user: ${user.username}")
-                    UserItem(user = user) {
+                    UserItem(user = user, textColor = textColor) {
                         navController.navigate("chat/${user.id}")
                     }
                 }
@@ -91,7 +107,50 @@ fun NewMessageScreen(
 }
 
 @Composable
-fun UserItem(user: User, onClick: () -> Unit) {
+fun SearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    textColor: Color,
+    backgroundColor: Color
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(backgroundColor)
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(
+                Icons.Rounded.Search,
+                contentDescription = "Search",
+                tint = textColor.copy(alpha = 0.5f),
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            BasicTextField(
+                value = query,
+                onValueChange = onQueryChange,
+                textStyle = MaterialTheme.typography.bodyLarge.copy(color = textColor),
+                modifier = Modifier
+                    .weight(1f)
+                    .background(Color.Transparent)
+            ) {
+                if (query.isEmpty()) {
+                    Text("Kullanıcı Ara...", color = textColor.copy(alpha = 0.5f))
+                } else {
+                    it()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun UserItem(user: User, textColor: Color, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -99,8 +158,8 @@ fun UserItem(user: User, onClick: () -> Unit) {
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Image(
-            painter = rememberImagePainter(data = user.profilePictureUrl ?: R.drawable.profile),
+        AsyncImage(
+            model = user.profilePictureUrl ?: R.drawable.profile,
             contentDescription = null,
             modifier = Modifier
                 .size(50.dp)
@@ -112,8 +171,8 @@ fun UserItem(user: User, onClick: () -> Unit) {
 
         Text(
             text = user.username,
-            color = Color.White,
-            style = MaterialTheme.typography.bodyLarge
+            color = textColor,
+            style = MaterialTheme.typography.bodyLarge.copy(fontFamily = poppinsFontFamily)
         )
     }
 }
