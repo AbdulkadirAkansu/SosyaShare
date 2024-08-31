@@ -1,6 +1,7 @@
 package com.akansu.sosyashare.presentation.message.screen
 
 import android.annotation.SuppressLint
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -11,14 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -68,6 +62,7 @@ fun NewMessageScreen(
                 value = searchQuery,
                 onValueChange = { query ->
                     searchQuery = query
+                    Log.d("NewMessageScreen", "Searching users with query: ${query.text}")
                     viewModel.searchUsers(query.text)  // Arama fonksiyonunu çağırıyoruz
                 },
                 modifier = Modifier
@@ -85,6 +80,7 @@ fun NewMessageScreen(
 
             LazyColumn {
                 items(searchResults) { user ->
+                    Log.d("NewMessageScreen", "Displaying search result user: ${user.username}")
                     UserItem(user = user) {
                         navController.navigate("chat/${user.id}")
                     }

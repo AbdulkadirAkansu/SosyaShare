@@ -21,15 +21,24 @@ class ChatViewModel @Inject constructor(
     private val _messages = MutableStateFlow<List<Message>>(emptyList())
     val messages: StateFlow<List<Message>> = _messages
 
+    private val _currentUserId = MutableStateFlow<String?>(null)
+    val currentUserId: StateFlow<String?> = _currentUserId
+
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
     private var chatId: String? = null
 
+    init {
+        viewModelScope.launch {
+            _currentUserId.value = userRepository.getCurrentUserId()
+        }
+    }
+
     fun loadMessages(otherUserId: String) {
         viewModelScope.launch {
             try {
-                val currentUserId = userRepository.getCurrentUserId() ?: throw Exception("User ID not found")
+                val currentUserId = _currentUserId.value ?: throw Exception("User ID not found")
                 chatId = getChatId(currentUserId, otherUserId)
                 _messages.value = messageRepository.getMessagesByChatId(chatId!!)
             } catch (e: Exception) {
@@ -41,14 +50,14 @@ class ChatViewModel @Inject constructor(
     fun sendMessage(receiverId: String, content: String) {
         viewModelScope.launch {
             try {
-                val currentUserId = userRepository.getCurrentUserId() ?: return@launch
+                val currentUserId = _currentUserId.value ?: return@launch
                 val message = Message(
                     senderId = currentUserId,
                     receiverId = receiverId,
                     content = content,
                     timestamp = Date()
                 )
-                messageRepository.sendMessage(chatId!!, message)
+                messageRepository.sendMessage(currentUserId, receiverId, message)
                 loadMessages(receiverId)
             } catch (e: Exception) {
                 _error.value = "Failed to send message: ${e.message}"
