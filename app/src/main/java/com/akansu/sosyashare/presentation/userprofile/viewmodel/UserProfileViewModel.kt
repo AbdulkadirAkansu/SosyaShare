@@ -1,16 +1,19 @@
 package com.akansu.sosyashare.presentation.userprofile.viewmodel
 
+import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.akansu.sosyashare.domain.model.User
 import com.akansu.sosyashare.domain.repository.UserRepository
 import com.akansu.sosyashare.domain.repository.StorageRepository
+import com.akansu.sosyashare.util.FileUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import java.io.File
 import javax.inject.Inject
 
 @HiltViewModel
@@ -25,10 +28,10 @@ class UserProfileViewModel @Inject constructor(
     private val _profilePictureUrl = MutableStateFlow<String?>(null)
     val profilePictureUrl: StateFlow<String?> get() = _profilePictureUrl
 
-    fun uploadProfilePicture(uri: Uri, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit) {
+    fun uploadProfilePicture(file: File, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit) {
         viewModelScope.launch {
             try {
-                val url = storageRepository.uploadProfilePicture(uri)
+                val url = storageRepository.uploadProfilePicture(file)
                 _profilePictureUrl.value = url
                 saveProfilePictureUrlToDatabase(url)
                 onSuccess(url)
@@ -37,6 +40,7 @@ class UserProfileViewModel @Inject constructor(
             }
         }
     }
+
 
     private fun saveProfilePictureUrlToDatabase(url: String) {
         viewModelScope.launch {

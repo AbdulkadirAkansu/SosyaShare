@@ -2,7 +2,10 @@ package com.akansu.sosyashare.presentation.share
 
 import android.net.Uri
 import android.app.Activity
+import android.content.Intent
+import android.util.Log
 import android.view.MotionEvent
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Spring
@@ -32,11 +35,14 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import coil.compose.rememberAsyncImagePainter
 import com.akansu.sosyashare.R
 import com.akansu.sosyashare.presentation.share.viewmodel.ShareViewModel
+import com.akansu.sosyashare.util.FileUtils
 import com.akansu.sosyashare.util.PermissionHandler
 import com.akansu.sosyashare.util.poppinsFontFamily
 import java.io.File
+
 
 @Composable
 fun ShareScreen(
@@ -45,22 +51,36 @@ fun ShareScreen(
 ) {
     val context = LocalContext.current
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
-    var cameraImageUri by remember { mutableStateOf<Uri?>(null) }
 
-    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        selectedImageUri = uri
-        if (uri != null) {
-            navController.navigate("post_creation?imageUri=$uri")
+    Log.d("ShareScreen", "ShareScreen launched")
+
+    val openDocumentLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+        uri?.let {
+            // Kullanıcıya seçilen URI için kalıcı erişim izni veriyoruz
+            context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+
+            // Seçilen URI'den dosya oluşturuyoruz
+            val file = FileUtils.createFileFromUri(context, it)
+
+            // Dosya başarılı bir şekilde oluşturulduysa PostCreationScreen'e yönlendiriyoruz
+            file?.let { selectedFile ->
+                navController.navigate("post_creation?imageUri=${Uri.fromFile(selectedFile)}")
+            } ?: run {
+                Toast.makeText(context, "Failed to create file from URI", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
+
     val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
-        if (success && cameraImageUri != null) {
-            navController.navigate("post_creation?imageUri=$cameraImageUri")
+        Log.d("ShareScreen", "Camera photo taken, success: $success")
+        if (success) {
+            navController.navigate("post_creation?imageUri=$selectedImageUri")
         }
     }
 
     fun createImageFileUri(): Uri {
+        Log.d("ShareScreen", "Creating image file URI")
         val storageDir: File = context.getExternalFilesDir(null) ?: throw IllegalStateException("External storage not available")
         val file = File.createTempFile("IMG_", ".jpg", storageDir)
         return FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
@@ -71,16 +91,33 @@ fun ShareScreen(
             .fillMaxSize()
             .clickable {}
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.sharephoto),
-            contentDescription = null,
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    alpha = 0.6f // Resmin üzerine karartma efekti
-                },
-            contentScale = ContentScale.Crop
-        )
+        if (selectedImageUri != null) {
+            Log.d("ShareScreen", "Displaying selected image: $selectedImageUri")
+            Image(
+                painter = rememberAsyncImagePainter(selectedImageUri),
+                contentDescription = "Selected Image",
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable {
+                        Log.d("ShareScreen", "Image clicked, launching gallery")
+                        openDocumentLauncher.launch(arrayOf("image/*"))
+                    },
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Log.d("ShareScreen", "Displaying default share photo")
+            Image(
+                painter = painterResource(id = R.drawable.sharephoto),
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        alpha = 0.6f
+                    },
+                contentScale = ContentScale.Crop
+            )
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -101,22 +138,24 @@ fun ShareScreen(
         ) {
             Spacer(modifier = Modifier.height(8.dp))
             ShareCard(
-                text = "Select from Gallery",
-                gradient = Brush.horizontalGradient(listOf(Color(0xFF56CCF2), Color(0xFF2F80ED))), // Mavi gradient
-                onClick = { galleryLauncher.launch("image/*") },
+                text = "Galeriden Seç",
+                gradient = Brush.horizontalGradient(listOf(Color(0xFF56CCF2), Color(0xFF2F80ED))),
+                onClick = {
+                    Log.d("ShareScreen", "Launching gallery to select image")
+                    openDocumentLauncher.launch(arrayOf("image/*"))
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
             )
             ShareCard(
-                text = "Take a Photo",
-                gradient = Brush.horizontalGradient(listOf(Color(0xFFF2994A), Color(0xFFF2C94C))), // Turuncu gradient
+                text = "Fotoğraf Çek",
+                gradient = Brush.horizontalGradient(listOf(Color(0xFFF2994A), Color(0xFFF2C94C))),
                 onClick = {
+                    Log.d("ShareScreen", "Attempting to launch camera")
                     if (PermissionHandler.hasCameraPermission(context as Activity)) {
-                        cameraImageUri = createImageFileUri()
-                        cameraImageUri?.let {
-                            cameraLauncher.launch(it)
-                        }
+                        selectedImageUri = createImageFileUri()
+                        cameraLauncher.launch(selectedImageUri!!)
                     } else {
                         PermissionHandler.requestCameraPermission(context)
                     }

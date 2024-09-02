@@ -29,7 +29,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
+import coil.request.ImageRequest
 import com.akansu.sosyashare.R
 import com.akansu.sosyashare.domain.model.User
 import com.akansu.sosyashare.presentation.home.components.FollowersFollowingDialog
@@ -37,6 +39,7 @@ import com.akansu.sosyashare.presentation.home.components.NavigationBar
 import com.akansu.sosyashare.presentation.login.viewmodel.AuthViewModel
 import com.akansu.sosyashare.presentation.share.viewmodel.ShareViewModel
 import com.akansu.sosyashare.presentation.userprofile.viewmodel.UserProfileViewModel
+import com.akansu.sosyashare.util.FileUtils
 import com.akansu.sosyashare.util.PermissionHandler
 import com.akansu.sosyashare.util.poppinsFontFamily
 
@@ -53,6 +56,8 @@ fun UserProfileScreen(
     var showFollowingDialog by remember { mutableStateOf(false) }
     var followers by remember { mutableStateOf<List<User>>(emptyList()) }
     var following by remember { mutableStateOf<List<User>>(emptyList()) }
+
+
 
     LaunchedEffect(currentUser?.uid) {
         currentUser?.uid?.let { userId ->
@@ -107,16 +112,25 @@ fun UserProfileScreen(
     val context = LocalContext.current as Activity
 
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        uri?.let { it ->
-            profileViewModel.uploadProfilePicture(it, onSuccess = { newUrl ->
-                profilePictureUrl = newUrl
-                userDetails = userDetails?.copy(profilePictureUrl = newUrl)
-                profileViewModel.updateUserProfilePictureUrl(newUrl)
-            }, onFailure = { e ->
-                Toast.makeText(context, "Failed to upload profile picture: ${e.message}", Toast.LENGTH_SHORT).show()
-            })
+        uri?.let {
+            val file = FileUtils.createFileFromUri(context, it)
+
+            file?.let {
+                profileViewModel.uploadProfilePicture(file, onSuccess = { newUrl ->
+                    profilePictureUrl = newUrl
+                    userDetails = userDetails?.copy(profilePictureUrl = newUrl)
+                    profileViewModel.updateUserProfilePictureUrl(newUrl)
+                }, onFailure = { e ->
+                    Toast.makeText(context, "Failed to upload profile picture: ${e.message}", Toast.LENGTH_SHORT).show()
+                })
+            } ?: run {
+                Toast.makeText(context, "Failed to convert URI to File", Toast.LENGTH_SHORT).show()
+            }
         }
     }
+
+
+
 
     LaunchedEffect(Unit) {
         shareViewModel.refreshUserPosts()
@@ -311,7 +325,7 @@ fun PostGrid(posts: List<String>, userId: String, navController: NavHostControll
         contentPadding = PaddingValues(0.dp),
         modifier = Modifier.height(500.dp)
     ) {
-        if (posts.isNullOrEmpty()) {
+        if (posts.isEmpty()) {
             item {
                 Box(
                     modifier = Modifier
@@ -332,8 +346,11 @@ fun PostGrid(posts: List<String>, userId: String, navController: NavHostControll
                             navController.navigate("post_detail/${userId}/${index}/false")
                         }
                 ) {
-                    Image(
-                        painter = rememberAsyncImagePainter(posts[index]),
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(posts[posts.size - 1 - index])
+                            .crossfade(true)
+                            .build(),
                         contentDescription = "Post",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),

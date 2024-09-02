@@ -1,8 +1,8 @@
 package com.akansu.sosyashare.domain.repository
 
-import android.net.Uri
+import java.io.File
 
 interface StorageRepository {
-    suspend fun uploadProfilePicture(uri: Uri): String
-    suspend fun uploadPostPicture(uri: Uri): String
+    suspend fun uploadProfilePicture(file: File): String
+    suspend fun uploadPostPicture(file: File): String
 }
