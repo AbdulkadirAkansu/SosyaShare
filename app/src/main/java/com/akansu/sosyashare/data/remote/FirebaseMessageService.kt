@@ -1,35 +1,73 @@
 package com.akansu.sosyashare.data.remote
 
+import android.net.Uri
 import android.util.Log
 import com.akansu.sosyashare.data.model.MessageEntity
 import com.akansu.sosyashare.domain.model.Message
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.tasks.await
 import java.util.Date
+import java.util.UUID
 import javax.inject.Inject
 
 class FirebaseMessageService @Inject constructor(
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    private val storage: FirebaseStorage
 ) {
 
-    suspend fun deleteMessage(chatId: String, messageId: String) {
-        firestore.collection("chats")
+    suspend fun deleteMessage(chatId: String, messageId: String, userId: String) {
+        val message = firestore.collection("chats")
             .document(chatId)
             .collection("messages")
             .document(messageId)
-            .delete()
+            .get()
             .await()
+            .toObject(MessageEntity::class.java)
+
+        if (message?.senderId == userId) {
+            firestore.collection("chats")
+                .document(chatId)
+                .collection("messages")
+                .document(messageId)
+                .delete()
+                .await()
+        }
+    }
+
+    suspend fun sendImageMessage(senderId: String, receiverId: String, imageUri: Uri): String {
+        val imageUrl = uploadImageToStorage(imageUri)
+
+        // Mesajı Firestore’a kaydedelim
+        val chatId = getChatId(senderId, receiverId)
+        val message = MessageEntity(
+            senderId = senderId,
+            receiverId = receiverId,
+            content = imageUrl, // Resim URL'sini içerik olarak kaydediyoruz
+            timestamp = Date(),
+            chatId = chatId
+        )
+        sendMessage(senderId, receiverId, message)
+        return imageUrl
+    }
+
+    private suspend fun uploadImageToStorage(imageUri: Uri): String {
+        val uniqueFileName = "images/${UUID.randomUUID()}.jpg"
+        val ref = storage.reference.child(uniqueFileName)
+        ref.putFile(imageUri).await()
+        return ref.downloadUrl.await().toString()
     }
 
     suspend fun forwardMessage(senderId: String, receiverId: String, originalMessage: MessageEntity) {
-        val newMessage = originalMessage.copy(
+        val forwardedMessage = originalMessage.copy(
             id = "",
             senderId = senderId,
             receiverId = receiverId,
+            content = "${originalMessage.content} (İletildi)",
             timestamp = Date()
         )
-        sendMessage(senderId, receiverId, newMessage)
+        sendMessage(senderId, receiverId, forwardedMessage)
     }
 
     suspend fun replyToMessage(senderId: String, receiverId: String, originalMessage: MessageEntity, replyContent: String) {

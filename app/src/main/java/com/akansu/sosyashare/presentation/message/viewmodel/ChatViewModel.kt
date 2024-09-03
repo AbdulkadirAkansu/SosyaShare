@@ -1,25 +1,34 @@
 package com.akansu.sosyashare.presentation.message.viewmodel
 
-import android.util.Log
+import android.content.Context
+import android.graphics.Bitmap
+import android.net.Uri
+import android.os.Environment
+import android.widget.Toast
+import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.akansu.sosyashare.data.remote.FirebaseMessageService
+import coil.ImageLoader
+import coil.request.ImageRequest
 import com.akansu.sosyashare.domain.model.Message
 import com.akansu.sosyashare.domain.model.User
 import com.akansu.sosyashare.domain.repository.MessageRepository
 import com.akansu.sosyashare.domain.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
 import javax.inject.Inject
 
 @HiltViewModel
 class ChatViewModel @Inject constructor(
     private val messageRepository: MessageRepository,
-    private val userRepository: UserRepository,
-    private val firebaseMessageService: FirebaseMessageService
+    private val userRepository: UserRepository
 ) : ViewModel() {
 
     private val _messages = MutableStateFlow<List<Message>>(emptyList())
@@ -43,8 +52,55 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             _currentUserId.value = userRepository.getCurrentUserId()
             _currentUser.value = _currentUserId.value?.let { userRepository.getUserById(it).firstOrNull() }
-            Log.d("ChatViewModel", "Current User ID: ${_currentUserId.value}")
-            Log.d("ChatViewModel", "Current User: ${_currentUser.value}")
+        }
+    }
+
+    fun forwardImageMessage(receiverId: String, originalMessage: Message) {
+        viewModelScope.launch {
+            try {
+                val senderId = _currentUserId.value ?: return@launch
+                if (originalMessage.content.startsWith("http") && originalMessage.content.contains("firebase")) {
+                    messageRepository.sendImageMessage(senderId, receiverId, Uri.parse(originalMessage.content))
+                } else {
+                    messageRepository.forwardMessage(senderId, receiverId, originalMessage)
+                }
+            } catch (e: Exception) {
+                _error.value = "Failed to forward image message: ${e.message}"
+            }
+        }
+    }
+
+
+    suspend fun saveImageToGallery(imageUrl: String, context: Context) {
+        val directory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
+        if (!directory.exists()) {
+            directory.mkdirs()
+        }
+        val fileName = "${System.currentTimeMillis()}.jpg"
+        val file = File(directory, fileName)
+
+        try {
+            val outputStream = withContext(Dispatchers.IO) {
+                FileOutputStream(file)
+            }
+            val bitmap = ImageLoader(context).execute(
+                ImageRequest.Builder(context)
+                    .data(imageUrl)
+                    .build()
+            ).drawable?.toBitmap()
+            bitmap?.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+            outputStream.flush()
+            outputStream.close()
+
+            // Notify gallery about new image
+            val mediaScanIntent = android.content.Intent(android.content.Intent.ACTION_MEDIA_SCANNER_SCAN_FILE)
+            mediaScanIntent.data = android.net.Uri.fromFile(file)
+            context.sendBroadcast(mediaScanIntent)
+
+            Toast.makeText(context, "Resim galeriye kaydedildi", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(context, "Resim kaydedilemedi", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -53,11 +109,10 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val chatId = chatId ?: return@launch
-                messageRepository.deleteMessage(chatId, messageId)
-                Log.d("ChatViewModel", "deleteMessage - Message deleted with ID: $messageId")
+                val currentUserId = _currentUserId.value ?: return@launch
+                messageRepository.deleteMessage(chatId, messageId, currentUserId)
             } catch (e: Exception) {
                 _error.value = "Failed to delete message: ${e.message}"
-                Log.e("ChatViewModel", "deleteMessage - Error deleting message: ${e.message}")
             }
         }
     }
@@ -67,10 +122,8 @@ class ChatViewModel @Inject constructor(
             try {
                 val senderId = _currentUserId.value ?: return@launch
                 messageRepository.forwardMessage(senderId, receiverId, originalMessage)
-                Log.d("ChatViewModel", "forwardMessage - Message forwarded: $originalMessage")
             } catch (e: Exception) {
                 _error.value = "Failed to forward message: ${e.message}"
-                Log.e("ChatViewModel", "forwardMessage - Error forwarding message: ${e.message}")
             }
         }
     }
@@ -80,73 +133,65 @@ class ChatViewModel @Inject constructor(
             try {
                 val senderId = _currentUserId.value ?: return@launch
                 messageRepository.replyToMessage(senderId, receiverId, originalMessage, replyContent)
-                Log.d("ChatViewModel", "replyToMessage - Replied to message: $originalMessage")
             } catch (e: Exception) {
                 _error.value = "Failed to reply to message: ${e.message}"
-                Log.e("ChatViewModel", "replyToMessage - Error replying to message: ${e.message}")
             }
         }
     }
-
 
     fun listenForMessages(otherUserId: String) {
         viewModelScope.launch {
             try {
                 val currentUserId = _currentUserId.value ?: throw Exception("User ID not found")
-                Log.d("ChatViewModel", "listenForMessages - Listening for messages in chat with otherUserId: $otherUserId")
-
                 chatId = getChatId(currentUserId, otherUserId)
-                Log.d("ChatViewModel", "listenForMessages - Generated chatId: $chatId")
-
                 _otherUser.value = userRepository.getUserById(otherUserId).firstOrNull()
-                Log.d("ChatViewModel", "listenForMessages - Other User: ${_otherUser.value}")
-
 
                 messageRepository.listenForMessages(chatId!!) { newMessages ->
                     _messages.value = newMessages
-
                     viewModelScope.launch {
-                        val unreadMessages = newMessages.filter { !it.isRead && it.receiverId == currentUserId }
-                        unreadMessages.forEach { message ->
-                            messageRepository.updateMessageReadStatus(chatId!!, message.id, true)
-                        }
+                        markMessagesAsRead(newMessages, currentUserId)
                     }
                 }
             } catch (e: Exception) {
                 _error.value = "Failed to listen for messages: ${e.message}"
-                Log.e("ChatViewModel", "listenForMessages - Error listening for messages: ${e.message}")
             }
         }
     }
 
 
+    fun sendImageMessage(receiverId: String, imageUri: Uri) {
+        viewModelScope.launch {
+            try {
+                val senderId = _currentUserId.value ?: return@launch
+                messageRepository.sendImageMessage(senderId, receiverId, imageUri)
+            } catch (e: Exception) {
+                _error.value = "Failed to send image message: ${e.message}"
+            }
+        }
+    }
+
+
+    private suspend fun markMessagesAsRead(messages: List<Message>, currentUserId: String) {
+        val unreadMessages = messages.filter { !it.isRead && it.receiverId == currentUserId }
+        unreadMessages.forEach { message ->
+            messageRepository.updateMessageReadStatus(chatId!!, message.id, true)
+        }
+    }
+
     fun sendMessage(receiverId: String, content: String) {
         viewModelScope.launch {
             try {
                 val currentUserId = _currentUserId.value ?: return@launch
-                Log.d("ChatViewModel", "sendMessage - Sending message to receiverId: $receiverId with content: $content")
-
-                if (receiverId.isBlank()) {
-                    Log.e("ChatViewModel", "sendMessage - Attempted to send a message with an empty receiverId!")
-                    return@launch
-                }
-
                 val message = Message(
                     senderId = currentUserId,
                     receiverId = receiverId,
                     content = content,
                     timestamp = java.util.Date()
                 )
-
-                Log.d("ChatViewModel", "sendMessage - Created Message object: $message")
-
                 messageRepository.sendMessage(currentUserId, receiverId, message)
-                Log.d("ChatViewModel", "sendMessage - Message sent: $message")
-
                 loadMessages(receiverId)
             } catch (e: Exception) {
                 _error.value = "Failed to send message: ${e.message}"
-                Log.e("ChatViewModel", "sendMessage - Error sending message: ${e.message}")
             }
         }
     }
@@ -155,44 +200,22 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val currentUserId = _currentUserId.value ?: throw Exception("User ID not found")
-                Log.d("ChatViewModel", "loadMessages - Loading messages for chat with otherUserId: $otherUserId")
-
                 chatId = getChatId(currentUserId, otherUserId)
-                Log.d("ChatViewModel", "loadMessages - Generated chatId: $chatId")
-
                 val messages = messageRepository.getMessagesByChatId(chatId!!)
-                Log.d("ChatViewModel", "loadMessages - Fetched messages: $messages")
-
                 _otherUser.value = userRepository.getUserById(otherUserId).firstOrNull()
-                Log.d("ChatViewModel", "loadMessages - Other User: ${_otherUser.value}")
-
-                // Mesajları okundu olarak işaretle
-                val unreadMessages = messages.filter { !it.isRead && it.receiverId == currentUserId }
-                Log.d("ChatViewModel", "loadMessages - Unread messages: $unreadMessages")
-
-                unreadMessages.forEach { message ->
-                    messageRepository.updateMessageReadStatus(chatId!!, message.id, true)
-                }
-
-                // Okundu olarak işaretlenmiş mesajları yeniden yükle
-                val updatedMessages = messageRepository.getMessagesByChatId(chatId!!)
-                Log.d("ChatViewModel", "loadMessages - Updated messages after marking as read: $updatedMessages")
-
-                _messages.value = updatedMessages
+                markMessagesAsRead(messages, currentUserId)
+                _messages.value = messages
             } catch (e: Exception) {
                 _error.value = "Failed to load messages: ${e.message}"
-                Log.e("ChatViewModel", "loadMessages - Error loading messages: ${e.message}")
             }
         }
     }
 
     private fun getChatId(userId1: String, userId2: String): String {
-        val chatId = if (userId1 < userId2) {
+        return if (userId1 < userId2) {
             "$userId1-$userId2"
         } else {
             "$userId2-$userId1"
         }
-        Log.d("ChatViewModel", "Generated chatId: $chatId")
-        return chatId
     }
 }

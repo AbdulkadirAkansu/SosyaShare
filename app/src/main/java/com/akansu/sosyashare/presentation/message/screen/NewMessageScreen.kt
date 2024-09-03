@@ -37,7 +37,8 @@ import com.akansu.sosyashare.util.poppinsFontFamily
 @Composable
 fun NewMessageScreen(
     navController: NavHostController,
-    viewModel: NewMessageViewModel = hiltViewModel()
+    viewModel: NewMessageViewModel = hiltViewModel(),
+    messageContent: String? = null // Bu parametre forward edilen içerik için
 ) {
     var searchQuery by remember { mutableStateOf(TextFieldValue("")) }
     val searchResults by viewModel.searchResults.collectAsState(initial = emptyList())
@@ -46,7 +47,6 @@ fun NewMessageScreen(
     val backgroundColor = if (isDarkTheme) MaterialTheme.colorScheme.background else Color.White
     val textColor = if (isDarkTheme) Color.White else MaterialTheme.colorScheme.onBackground
     val currentUserProfilePictureUrl by viewModel.currentUserProfilePictureUrl.collectAsState()
-
 
     Scaffold(
         topBar = {
@@ -67,7 +67,7 @@ fun NewMessageScreen(
                 selectedItem = 0,
                 onItemSelected = { /* Handle item selection */ },
                 navController = navController,
-                profilePictureUrl = currentUserProfilePictureUrl, // Burada doğru profil resmini sağlayın
+                profilePictureUrl = currentUserProfilePictureUrl,
                 modifier = Modifier.height(60.dp)
             )
         },
@@ -80,13 +80,11 @@ fun NewMessageScreen(
                 .background(backgroundColor)
                 .padding(16.dp)
         ) {
-            // Modern arama çubuğu
             SearchBar(
                 query = searchQuery.text,
                 onQueryChange = { query ->
                     searchQuery = TextFieldValue(query)
-                    Log.d("NewMessageScreen", "Searching users with query: $query")
-                    viewModel.searchUsers(query)  // Arama fonksiyonunu çağırıyoruz
+                    viewModel.searchUsers(query)
                 },
                 textColor = textColor,
                 backgroundColor = if (isDarkTheme) MaterialTheme.colorScheme.surface else Color.LightGray
@@ -96,15 +94,22 @@ fun NewMessageScreen(
 
             LazyColumn {
                 items(searchResults) { user ->
-                    Log.d("NewMessageScreen", "Displaying search result user: ${user.username}")
                     UserItem(user = user, textColor = textColor) {
-                        navController.navigate("chat/${user.id}")
+                        if (messageContent != null && messageContent.startsWith("http")) {
+                            viewModel.forwardImageMessage(user.id, messageContent)
+                        } else if (messageContent != null) {
+                            viewModel.forwardMessage(user.id, messageContent)
+                        } else {
+                            navController.navigate("chat/${user.id}")
+                        }
                     }
                 }
             }
         }
     }
 }
+
+
 
 @Composable
 fun SearchBar(
@@ -149,6 +154,7 @@ fun SearchBar(
     }
 }
 
+
 @Composable
 fun UserItem(user: User, textColor: Color, onClick: () -> Unit) {
     Row(
@@ -176,3 +182,4 @@ fun UserItem(user: User, textColor: Color, onClick: () -> Unit) {
         )
     }
 }
+

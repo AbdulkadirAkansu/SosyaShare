@@ -1,11 +1,14 @@
 package com.akansu.sosyashare.data.repository
 
+import android.net.Uri
 import android.util.Log
 import com.akansu.sosyashare.data.mapper.toDomainModel
 import com.akansu.sosyashare.data.mapper.toEntityModel
 import com.akansu.sosyashare.data.remote.FirebaseMessageService
 import com.akansu.sosyashare.domain.model.Message
 import com.akansu.sosyashare.domain.repository.MessageRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import java.util.Date
 import javax.inject.Inject
 
@@ -13,8 +16,13 @@ class MessageRepositoryImpl @Inject constructor(
     private val messageService: FirebaseMessageService
 ) : MessageRepository {
 
-    override suspend fun deleteMessage(chatId: String, messageId: String) {
-        messageService.deleteMessage(chatId, messageId)
+
+    override suspend fun deleteMessage(chatId: String, messageId: String, currentUserId: String) {
+        messageService.deleteMessage(chatId, messageId, currentUserId)
+    }
+
+    override suspend fun sendImageMessage(senderId: String, receiverId: String, imageUri: Uri): String {
+        return messageService.sendImageMessage(senderId, receiverId, imageUri)
     }
 
     override suspend fun forwardMessage(senderId: String, receiverId: String, originalMessage: Message) {

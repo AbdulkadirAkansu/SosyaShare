@@ -1,5 +1,12 @@
 package com.akansu.sosyashare.presentation.message.screen
 
+import android.content.Context
+import android.graphics.Bitmap
+import android.net.Uri
+import android.os.Environment
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -13,8 +20,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.MoreVert
-import androidx.compose.material.icons.rounded.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,18 +30,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.graphics.drawable.toBitmap
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import coil.ImageLoader
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.akansu.sosyashare.R
 import com.akansu.sosyashare.domain.model.Message
 import com.akansu.sosyashare.presentation.message.viewmodel.ChatViewModel
+import com.akansu.sosyashare.presentation.postdetail.screen.FullScreenImage
 import com.akansu.sosyashare.util.poppinsFontFamily
+import kotlinx.coroutines.launch
+import java.io.File
+import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -51,6 +67,10 @@ fun ChatScreen(
     var selectedMessage by remember { mutableStateOf<Message?>(null) }
     var isMenuVisible by remember { mutableStateOf(false) }
     var replyToMessage by remember { mutableStateOf<Message?>(null) }
+    var showFullScreenImage by remember { mutableStateOf<String?>(null) }
+
+    val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     LaunchedEffect(userId) {
         viewModel.listenForMessages(userId)
@@ -93,13 +113,11 @@ fun ChatScreen(
                     var lastSenderId: String? = null
                     var lastMessageTimestamp: Long? = null
 
-
-
                     items(messages) { message ->
-                        val messageTimestamp = message.timestamp.time // Date'ten Long'a dönüştürülmüş zaman damgası
+                        val messageTimestamp = message.timestamp.time
                         val messageDayTime = SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault()).format(messageTimestamp)
 
-                        val shouldShowTime = lastMessageTimestamp == null || (messageTimestamp - lastMessageTimestamp!!) > 300000 // 5 dakika
+                        val shouldShowTime = lastMessageTimestamp == null || (messageTimestamp - lastMessageTimestamp!!) > 300000
 
                         if (shouldShowTime) {
                             Box(
@@ -128,6 +146,13 @@ fun ChatScreen(
                             textColor = textColor,
                             onMessageLongPress = {
                                 selectedMessage = it
+                                isMenuVisible = true
+                            },
+                            onImageClick = { imageUrl ->
+                                showFullScreenImage = imageUrl
+                            },
+                            onImageLongPress = { imageUrl ->
+                                selectedMessage = message
                                 isMenuVisible = true
                             },
                             currentUserId = currentUser?.id ?: "",
@@ -162,7 +187,23 @@ fun ChatScreen(
                             DropdownMenuItem(
                                 text = { Text("İlet") },
                                 onClick = {
-                                    viewModel.forwardMessage(userId, selectedMessage!!)
+                                    if (selectedMessage != null) {
+                                        if (selectedMessage!!.content.startsWith("http") && selectedMessage!!.content.contains("firebase")) {
+                                            navController.navigate("new_message_screen/${selectedMessage!!.content}")
+                                        } else {
+                                            viewModel.forwardMessage(userId, selectedMessage!!)
+                                        }
+                                        isMenuVisible = false
+                                    }
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Galeriye Kaydet") },
+                                onClick = {
+                                    val imageUrl = selectedMessage?.content ?: return@DropdownMenuItem
+                                    coroutineScope.launch {
+                                        viewModel.saveImageToGallery(imageUrl, context)
+                                    }
                                     isMenuVisible = false
                                 }
                             )
@@ -229,13 +270,20 @@ fun ChatScreen(
                         isTyping = false
                     }
                 },
+                onImageSelected = { imageUri ->
+                    viewModel.sendImageMessage(userId, imageUri)
+                },
                 textColor = textColor,
                 surfaceColor = surfaceColor
             )
+
         }
     }
-}
 
+    showFullScreenImage?.let { imageUrl ->
+        FullScreenImage(imageUrl = imageUrl, onDismiss = { showFullScreenImage = null })
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -266,11 +314,63 @@ fun ChatTopBar(
         },
         actions = {
             IconButton(onClick = { /* TODO: Handle more options */ }) {
-                Icon(Icons.Rounded.MoreVert, contentDescription = "More", tint = textColor)
+                Icon(Icons.Rounded.MoreVert, contentDescription = "Gallery", tint = textColor)
             }
         },
         colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Transparent)
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ChatInputField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    onSendClick: () -> Unit,
+    onImageSelected: (Uri) -> Unit,
+    textColor: Color,
+    surfaceColor: Color
+) {
+    // Galeri seçim işlemi için bir launcher oluşturuyoruz
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+        onResult = { uri: Uri? ->
+            uri?.let { onImageSelected(it) }
+        }
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .background(surfaceColor, RoundedCornerShape(24.dp))
+            .padding(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = { galleryLauncher.launch("image/*") }) {
+            Icon(Icons.Rounded.Add, contentDescription = "Gallery", tint = textColor)
+        }
+
+        TextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier.weight(1f),
+            placeholder = {
+                Text("Message...", fontFamily = poppinsFontFamily, color = textColor.copy(alpha = 0.5f))
+            },
+            colors = TextFieldDefaults.textFieldColors(
+                containerColor = Color.Transparent,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+            ),
+            singleLine = true,
+            textStyle = LocalTextStyle.current.copy(fontFamily = poppinsFontFamily)
+        )
+
+        IconButton(onClick = onSendClick) {
+            Icon(Icons.Filled.Send, contentDescription = "Send", tint = textColor)
+        }
+    }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -286,6 +386,8 @@ fun ChatBubble(
     bubbleColorOther: Color,
     textColor: Color,
     onMessageLongPress: (Message) -> Unit,
+    onImageClick: (String) -> Unit,
+    onImageLongPress: (String) -> Unit,
     currentUserId: String,
     otherUsername: String?,
     messages: List<Message>,
@@ -371,12 +473,29 @@ fun ChatBubble(
                         )
                         .padding(horizontal = 12.dp, vertical = 10.dp)
                 ) {
-                    Text(
-                        text = message.content,
-                        color = if (isOwnMessage && isSystemInDarkTheme()) Color.Black else textColor,
-                        fontSize = 14.sp,
-                        fontFamily = poppinsFontFamily
-                    )
+                    if (message.content.startsWith("http") && message.content.contains("firebase")) {
+                        // Eğer mesajın içeriği bir resim URL'si ise, AsyncImage ile görüntüleyin
+                        AsyncImage(
+                            model = message.content,
+                            contentDescription = "Image Message",
+                            modifier = Modifier
+                                .size(150.dp) // Resim boyutu
+                                .clip(RoundedCornerShape(8.dp))
+                                .combinedClickable(
+                                    onClick = { onImageClick(message.content) },
+                                    onLongClick = { onImageLongPress(message.content) }
+                                ),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        // Normal metin mesajı olarak göster
+                        Text(
+                            text = message.content,
+                            color = if (isOwnMessage && isSystemInDarkTheme()) Color.Black else textColor,
+                            fontSize = 14.sp,
+                            fontFamily = poppinsFontFamily
+                        )
+                    }
                 }
 
                 if (isOwnMessage) {
@@ -394,15 +513,15 @@ fun ChatBubble(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReplyBubble(
-    repliedMessage: Message, // Yanıtlanan mesaj
+    repliedMessage: Message,
     currentUserId: String,
     otherUsername: String?,
     textColor: Color,
     bubbleColor: Color,
     bubbleShape: RoundedCornerShape,
-    avatarUrl: String?, // Profil resmi URL'si
+    avatarUrl: String?,
     isOwnMessage: Boolean,
-    newMessage: String // Kullanıcının yazdığı yeni mesaj
+    newMessage: String
 ) {
     Row(
         modifier = Modifier
@@ -426,8 +545,8 @@ fun ReplyBubble(
                 modifier = Modifier
                     .background(bubbleColor, bubbleShape)
                     .padding(horizontal = 12.dp, vertical = 8.dp)
-                    .heightIn(min = 64.dp) // Minimum yüksekliği belirleyin
-                    .fillMaxWidth(0.75f) // Maksimum genişliği sınırlayın
+                    .heightIn(min = 64.dp)
+                    .fillMaxWidth(0.75f)
             ) {
                 Column {
                     Box(
@@ -472,7 +591,6 @@ fun ReplyBubble(
     }
 }
 
-
 @Composable
 fun TypingIndicator(bubbleColor: Color) {
     Row(
@@ -497,49 +615,6 @@ fun TypingIndicator(bubbleColor: Color) {
                     if (i < 3) Spacer(modifier = Modifier.width(4.dp))
                 }
             }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ChatInputField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    onSendClick: () -> Unit,
-    textColor: Color,
-    surfaceColor: Color
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
-            .background(surfaceColor, RoundedCornerShape(24.dp))
-            .padding(4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        IconButton(onClick = { /* TODO: Handle voice message */ }) {
-            Icon(Icons.Rounded.MoreVert, contentDescription = "Voice", tint = textColor)
-        }
-
-        TextField(
-            value = value,
-            onValueChange = onValueChange,
-            modifier = Modifier.weight(1f),
-            placeholder = {
-                Text("Message...", fontFamily = poppinsFontFamily, color = textColor.copy(alpha = 0.5f))
-            },
-            colors = TextFieldDefaults.textFieldColors(
-                containerColor = Color.Transparent,
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent,
-            ),
-            singleLine = true,
-            textStyle = LocalTextStyle.current.copy(fontFamily = poppinsFontFamily)
-        )
-
-        IconButton(onClick = onSendClick) {
-            Icon(Icons.Rounded.Send, contentDescription = "Send", tint = textColor)
         }
     }
 }

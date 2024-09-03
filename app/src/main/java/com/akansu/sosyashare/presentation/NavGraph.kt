@@ -203,8 +203,12 @@ fun NavGraph(navController: NavHostController, authViewModel: AuthViewModel, use
             ChatScreen(navController = navController, userId = userId)
         }
 
-        composable("new_message_screen") {
-            NewMessageScreen(navController = navController)
+        composable(
+            route = "new_message_screen/{messageContent}",
+            arguments = listOf(navArgument("messageContent") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val messageContent = backStackEntry.arguments?.getString("messageContent") ?: ""
+            NewMessageScreen(navController = navController, messageContent = messageContent)
         }
     }
 }

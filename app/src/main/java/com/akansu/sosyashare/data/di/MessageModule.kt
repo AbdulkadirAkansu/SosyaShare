@@ -4,6 +4,7 @@ import com.akansu.sosyashare.data.remote.FirebaseMessageService
 import com.akansu.sosyashare.data.repository.MessageRepositoryImpl
 import com.akansu.sosyashare.domain.repository.MessageRepository
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -16,8 +17,8 @@ object MessageModule {
 
     @Provides
     @Singleton
-    fun provideMessageService(firestore: FirebaseFirestore): FirebaseMessageService {
-        return FirebaseMessageService(firestore)
+    fun provideMessageService(firestore: FirebaseFirestore, storage: FirebaseStorage): FirebaseMessageService {
+        return FirebaseMessageService(firestore,storage)
     }
 
     @Provides
