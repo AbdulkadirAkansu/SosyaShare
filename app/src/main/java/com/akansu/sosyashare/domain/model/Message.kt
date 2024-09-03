@@ -8,5 +8,7 @@ data class Message(
     val receiverId: String = "",
     val content: String = "",
     val timestamp: Date = Date(),
-    val isRead: Boolean = false
+    val isRead: Boolean = false,
+    val replyToMessageId: String? = null,
+    val chatId: String = "",
 )

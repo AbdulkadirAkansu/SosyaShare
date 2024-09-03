@@ -13,12 +13,62 @@ class FirebaseMessageService @Inject constructor(
     private val firestore: FirebaseFirestore
 ) {
 
+    suspend fun deleteMessage(chatId: String, messageId: String) {
+        firestore.collection("chats")
+            .document(chatId)
+            .collection("messages")
+            .document(messageId)
+            .delete()
+            .await()
+    }
+
+    suspend fun forwardMessage(senderId: String, receiverId: String, originalMessage: MessageEntity) {
+        val newMessage = originalMessage.copy(
+            id = "",
+            senderId = senderId,
+            receiverId = receiverId,
+            timestamp = Date()
+        )
+        sendMessage(senderId, receiverId, newMessage)
+    }
+
+    suspend fun replyToMessage(senderId: String, receiverId: String, originalMessage: MessageEntity, replyContent: String) {
+        val replyMessage = MessageEntity(
+            id = "", // Boş bir id kullanıyoruz, bu id veritabanında oluşturulacaktır.
+            senderId = senderId,
+            receiverId = receiverId,
+            content = replyContent,
+            replyToMessageId = originalMessage.id,
+            timestamp = Date(),
+            chatId = originalMessage.chatId
+        )
+        sendMessage(senderId, receiverId, replyMessage)
+    }
+
+
+
     private fun getChatId(user1Id: String, user2Id: String): String {
         return if (user1Id < user2Id) {
             "$user1Id-$user2Id"
         } else {
             "$user2Id-$user1Id"
         }
+    }
+
+    fun listenForMessages(chatId: String, onMessagesChanged: (List<MessageEntity>) -> Unit) {
+        firestore.collection("chats")
+            .document(chatId)
+            .collection("messages")
+            .orderBy("timestamp")
+            .addSnapshotListener { snapshot, e ->
+                if (e != null || snapshot == null) {
+                    Log.e("FirebaseMessageService", "listenForMessages - Failed to listen for messages: ${e?.message}")
+                    return@addSnapshotListener
+                }
+
+                val messages = snapshot.documents.mapNotNull { it.toObject(MessageEntity::class.java) }
+                onMessagesChanged(messages)
+            }
     }
 
     suspend fun sendMessage(senderId: String, receiverId: String, message: MessageEntity) {

@@ -13,9 +13,28 @@ class MessageRepositoryImpl @Inject constructor(
     private val messageService: FirebaseMessageService
 ) : MessageRepository {
 
+    override suspend fun deleteMessage(chatId: String, messageId: String) {
+        messageService.deleteMessage(chatId, messageId)
+    }
+
+    override suspend fun forwardMessage(senderId: String, receiverId: String, originalMessage: Message) {
+        messageService.forwardMessage(senderId, receiverId, originalMessage.toEntityModel())
+    }
+
+    override suspend fun replyToMessage(senderId: String, receiverId: String, originalMessage: Message, replyContent: String) {
+        messageService.replyToMessage(senderId, receiverId, originalMessage.toEntityModel(), replyContent)
+    }
+
     override suspend fun sendMessage(senderId: String, receiverId: String, message: Message) {
         Log.d("MessageRepositoryImpl", "sendMessage - Sending message: $message")
         messageService.sendMessage(senderId, receiverId, message.toEntityModel())
+    }
+
+    override fun listenForMessages(chatId: String, onMessagesChanged: (List<Message>) -> Unit) {
+        messageService.listenForMessages(chatId) { messageEntities ->
+            val messages = messageEntities.map { it.toDomainModel() }
+            onMessagesChanged(messages)
+        }
     }
 
     override suspend fun getMessagesByChatId(chatId: String): List<Message> {

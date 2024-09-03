@@ -48,6 +48,78 @@ class ChatViewModel @Inject constructor(
         }
     }
 
+
+    fun deleteMessage(messageId: String) {
+        viewModelScope.launch {
+            try {
+                val chatId = chatId ?: return@launch
+                messageRepository.deleteMessage(chatId, messageId)
+                Log.d("ChatViewModel", "deleteMessage - Message deleted with ID: $messageId")
+            } catch (e: Exception) {
+                _error.value = "Failed to delete message: ${e.message}"
+                Log.e("ChatViewModel", "deleteMessage - Error deleting message: ${e.message}")
+            }
+        }
+    }
+
+    fun forwardMessage(receiverId: String, originalMessage: Message) {
+        viewModelScope.launch {
+            try {
+                val senderId = _currentUserId.value ?: return@launch
+                messageRepository.forwardMessage(senderId, receiverId, originalMessage)
+                Log.d("ChatViewModel", "forwardMessage - Message forwarded: $originalMessage")
+            } catch (e: Exception) {
+                _error.value = "Failed to forward message: ${e.message}"
+                Log.e("ChatViewModel", "forwardMessage - Error forwarding message: ${e.message}")
+            }
+        }
+    }
+
+    fun replyToMessage(receiverId: String, originalMessage: Message, replyContent: String) {
+        viewModelScope.launch {
+            try {
+                val senderId = _currentUserId.value ?: return@launch
+                messageRepository.replyToMessage(senderId, receiverId, originalMessage, replyContent)
+                Log.d("ChatViewModel", "replyToMessage - Replied to message: $originalMessage")
+            } catch (e: Exception) {
+                _error.value = "Failed to reply to message: ${e.message}"
+                Log.e("ChatViewModel", "replyToMessage - Error replying to message: ${e.message}")
+            }
+        }
+    }
+
+
+    fun listenForMessages(otherUserId: String) {
+        viewModelScope.launch {
+            try {
+                val currentUserId = _currentUserId.value ?: throw Exception("User ID not found")
+                Log.d("ChatViewModel", "listenForMessages - Listening for messages in chat with otherUserId: $otherUserId")
+
+                chatId = getChatId(currentUserId, otherUserId)
+                Log.d("ChatViewModel", "listenForMessages - Generated chatId: $chatId")
+
+                _otherUser.value = userRepository.getUserById(otherUserId).firstOrNull()
+                Log.d("ChatViewModel", "listenForMessages - Other User: ${_otherUser.value}")
+
+
+                messageRepository.listenForMessages(chatId!!) { newMessages ->
+                    _messages.value = newMessages
+
+                    viewModelScope.launch {
+                        val unreadMessages = newMessages.filter { !it.isRead && it.receiverId == currentUserId }
+                        unreadMessages.forEach { message ->
+                            messageRepository.updateMessageReadStatus(chatId!!, message.id, true)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                _error.value = "Failed to listen for messages: ${e.message}"
+                Log.e("ChatViewModel", "listenForMessages - Error listening for messages: ${e.message}")
+            }
+        }
+    }
+
+
     fun sendMessage(receiverId: String, content: String) {
         viewModelScope.launch {
             try {
