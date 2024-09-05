@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Environment
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -57,7 +58,8 @@ import java.util.Locale
 fun ChatScreen(
     navController: NavHostController,
     userId: String,
-    viewModel: ChatViewModel = hiltViewModel()
+    viewModel: ChatViewModel = hiltViewModel(),
+    forwardedMessage: String? = null
 ) {
     val messages by viewModel.messages.collectAsState()
     val otherUser by viewModel.otherUser.collectAsState()
@@ -72,9 +74,21 @@ fun ChatScreen(
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
 
+    Log.d("ChatScreen", "Chat loaded for userId: $userId")
+
     LaunchedEffect(userId) {
         viewModel.listenForMessages(userId)
     }
+
+
+    LaunchedEffect(forwardedMessage) {
+        forwardedMessage?.let {
+            Log.d("ChatScreen", "Forwarded message received: $it, sending it now.")
+            viewModel.sendMessage(userId, it)
+        }
+    }
+
+
 
     val isDarkTheme = isSystemInDarkTheme()
     val backgroundColor = if (isDarkTheme) Color(0xFF121212) else Color(0xFFF5F5F5)
@@ -82,6 +96,7 @@ fun ChatScreen(
     val textColor = if (isDarkTheme) Color.White else Color.Black
     val bubbleColorOwn = if (isDarkTheme) Color(0xFFFFF6E2) else Color(0xFFDCF8C6)
     val bubbleColorOther = if (isDarkTheme) Color(0xFF252525) else Color(0xFFE4E6EB)
+
 
     Scaffold(
         topBar = {
@@ -114,6 +129,7 @@ fun ChatScreen(
                     var lastMessageTimestamp: Long? = null
 
                     items(messages) { message ->
+                        Log.d("ChatScreen", "Rendering message with ID: ${message.id}, content: ${message.content}")
                         val messageTimestamp = message.timestamp.time
                         val messageDayTime = SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault()).format(messageTimestamp)
 
@@ -187,14 +203,13 @@ fun ChatScreen(
                             DropdownMenuItem(
                                 text = { Text("İlet") },
                                 onClick = {
-                                    if (selectedMessage != null) {
-                                        if (selectedMessage!!.content.startsWith("http") && selectedMessage!!.content.contains("firebase")) {
-                                            navController.navigate("new_message_screen/${selectedMessage!!.content}")
-                                        } else {
-                                            viewModel.forwardMessage(userId, selectedMessage!!)
+                                    selectedMessage?.let { message ->
+                                        val encodedContent = Uri.encode(message.content) // Resim ya da metin içeriği encode ediliyor
+                                        navController.navigate("new_message_screen/$encodedContent") {
+                                            popUpTo("new_message_screen") { inclusive = true }
                                         }
-                                        isMenuVisible = false
                                     }
+                                    isMenuVisible = false
                                 }
                             )
                             DropdownMenuItem(
@@ -393,6 +408,7 @@ fun ChatBubble(
     messages: List<Message>,
     modifier: Modifier = Modifier
 ) {
+    // Balonun şekli istek üzerine belirlenecek
     val bubbleShape = if (isOwnMessage) {
         if (isFirstMessage) {
             RoundedCornerShape(
@@ -438,6 +454,7 @@ fun ChatBubble(
             )
             .heightIn(min = 48.dp)
     ) {
+        // Eğer mesaj bir yanıtlama içeriyorsa
         message.replyToMessageId?.let { replyToMessageId ->
             val repliedMessage = messages.find { it.id == replyToMessageId }
             repliedMessage?.let {
@@ -457,6 +474,7 @@ fun ChatBubble(
             Row(
                 horizontalArrangement = if (isOwnMessage) Arrangement.End else Arrangement.Start
             ) {
+                // Profil resmi gösterimi
                 if (!isOwnMessage) {
                     Spacer(modifier = Modifier.width(if (showAvatar) 0.dp else 40.dp))
                     if (showAvatar) {
@@ -465,6 +483,7 @@ fun ChatBubble(
                     }
                 }
 
+                // Mesaj içeriği
                 Box(
                     modifier = Modifier
                         .background(
@@ -473,8 +492,8 @@ fun ChatBubble(
                         )
                         .padding(horizontal = 12.dp, vertical = 10.dp)
                 ) {
+                    // Eğer mesaj içeriği bir resim URL'si ise resim göster
                     if (message.content.startsWith("http") && message.content.contains("firebase")) {
-                        // Eğer mesajın içeriği bir resim URL'si ise, AsyncImage ile görüntüleyin
                         AsyncImage(
                             model = message.content,
                             contentDescription = "Image Message",
@@ -498,6 +517,7 @@ fun ChatBubble(
                     }
                 }
 
+                // Kendi mesajınızın profil resmi
                 if (isOwnMessage) {
                     Spacer(modifier = Modifier.width(if (showAvatar) 8.dp else 40.dp))
                     if (showAvatar) {
@@ -505,10 +525,10 @@ fun ChatBubble(
                     }
                 }
             }
-
         }
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -530,9 +550,9 @@ fun ReplyBubble(
         horizontalArrangement = if (isOwnMessage) Arrangement.End else Arrangement.Start
     ) {
         if (!isOwnMessage) {
-            Spacer(modifier = Modifier.width(40.dp))
+            Spacer(modifier = Modifier.width(0.dp))
             CircleAvatar(size = 32.dp, imageUrl = avatarUrl)
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(3.dp))
         }
 
         Column(

@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Environment
+import android.util.Log
 import android.widget.Toast
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.ViewModel
@@ -182,19 +183,25 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val currentUserId = _currentUserId.value ?: return@launch
+                Log.d("SendMessage", "Sending message from $currentUserId to $receiverId with content: $content")
+
                 val message = Message(
                     senderId = currentUserId,
                     receiverId = receiverId,
                     content = content,
                     timestamp = java.util.Date()
                 )
+
                 messageRepository.sendMessage(currentUserId, receiverId, message)
+                Log.d("SendMessage", "Message successfully sent to $receiverId")
                 loadMessages(receiverId)
             } catch (e: Exception) {
+                Log.e("SendMessage", "Failed to send message: ${e.message}")
                 _error.value = "Failed to send message: ${e.message}"
             }
         }
     }
+
 
     fun loadMessages(otherUserId: String) {
         viewModelScope.launch {

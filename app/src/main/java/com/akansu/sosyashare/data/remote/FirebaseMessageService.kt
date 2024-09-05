@@ -36,17 +36,24 @@ class FirebaseMessageService @Inject constructor(
         }
     }
 
-    suspend fun sendImageMessage(senderId: String, receiverId: String, imageUri: Uri): String {
-        val imageUrl = uploadImageToStorage(imageUri)
+    suspend fun forwardMessage(senderId: String, receiverId: String, originalMessage: MessageEntity) {
+        val forwardedMessage = originalMessage.copy(
+            id = "", // Firestore otomatik ID oluşturacak
+            senderId = senderId,
+            receiverId = receiverId,
+            content = "${originalMessage.content} (İletildi)", // İletildiğini belirten ibare eklenebilir
+            timestamp = Date()
+        )
+        sendMessage(senderId, receiverId, forwardedMessage)
+    }
 
-        // Mesajı Firestore’a kaydedelim
-        val chatId = getChatId(senderId, receiverId)
+    suspend fun sendImageMessage(senderId: String, receiverId: String, imageUri: Uri): String {
+        val imageUrl = uploadImageToStorage(imageUri) // Resim Firebase Storage'a yüklendi
         val message = MessageEntity(
             senderId = senderId,
             receiverId = receiverId,
-            content = imageUrl, // Resim URL'sini içerik olarak kaydediyoruz
-            timestamp = Date(),
-            chatId = chatId
+            content = imageUrl,
+            timestamp = Date()
         )
         sendMessage(senderId, receiverId, message)
         return imageUrl
@@ -57,17 +64,6 @@ class FirebaseMessageService @Inject constructor(
         val ref = storage.reference.child(uniqueFileName)
         ref.putFile(imageUri).await()
         return ref.downloadUrl.await().toString()
-    }
-
-    suspend fun forwardMessage(senderId: String, receiverId: String, originalMessage: MessageEntity) {
-        val forwardedMessage = originalMessage.copy(
-            id = "",
-            senderId = senderId,
-            receiverId = receiverId,
-            content = "${originalMessage.content} (İletildi)",
-            timestamp = Date()
-        )
-        sendMessage(senderId, receiverId, forwardedMessage)
     }
 
     suspend fun replyToMessage(senderId: String, receiverId: String, originalMessage: MessageEntity, replyContent: String) {
@@ -115,22 +111,26 @@ class FirebaseMessageService @Inject constructor(
         val chatId = getChatId(senderId, receiverId)
         Log.d("FirebaseMessageService", "sendMessage - Generated chatId: $chatId")
 
-        val chatRef = firestore.collection("chats").document(chatId)
+        try {
+            val chatRef = firestore.collection("chats").document(chatId)
+            val documentRef = chatRef.collection("messages").add(message).await()
 
-        val documentRef = chatRef.collection("messages").add(message).await()
+            val messageWithId = message.copy(id = documentRef.id)
+            Log.d("FirebaseMessageService", "sendMessage - Message with ID after Firestore add: $messageWithId")
 
-        val messageWithId = message.copy(id = documentRef.id)
-        Log.d("FirebaseMessageService", "sendMessage - Message with ID after Firestore add: $messageWithId")
+            chatRef.collection("messages").document(documentRef.id).set(messageWithId).await()
 
-        chatRef.collection("messages").document(documentRef.id).set(messageWithId).await()
-
-        chatRef.set(mapOf(
-            "lastMessage" to messageWithId.content,
-            "updatedAt" to messageWithId.timestamp,
-            "participants" to listOf(senderId, receiverId)
-        )).await()
-        Log.d("FirebaseMessageService", "sendMessage - Successfully saved message in Firestore with participants: ${listOf(senderId, receiverId)}")
+            chatRef.set(mapOf(
+                "lastMessage" to messageWithId.content,
+                "updatedAt" to messageWithId.timestamp,
+                "participants" to listOf(senderId, receiverId)
+            )).await()
+            Log.d("FirebaseMessageService", "sendMessage - Successfully saved message in Firestore with participants: ${listOf(senderId, receiverId)}")
+        } catch (e: Exception) {
+            Log.e("FirebaseMessageService", "Failed to send message: ${e.message}")
+        }
     }
+
 
     suspend fun getMessagesByChatId(chatId: String): List<MessageEntity> {
         Log.d("FirebaseMessageService", "getMessagesByChatId - Fetching messages for chatId: $chatId")

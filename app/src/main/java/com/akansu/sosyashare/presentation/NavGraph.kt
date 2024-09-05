@@ -204,11 +204,34 @@ fun NavGraph(navController: NavHostController, authViewModel: AuthViewModel, use
         }
 
         composable(
+            route = "new_message",
+        ) {
+            NewMessageScreen(navController = navController)
+        }
+
+        composable(
             route = "new_message_screen/{messageContent}",
             arguments = listOf(navArgument("messageContent") { type = NavType.StringType })
         ) { backStackEntry ->
             val messageContent = backStackEntry.arguments?.getString("messageContent") ?: ""
             NewMessageScreen(navController = navController, messageContent = messageContent)
         }
+
+        composable(
+            route = "chat/{userId}?forwardedMessage={forwardedMessage}",
+            arguments = listOf(
+                navArgument("userId") { type = NavType.StringType },
+                navArgument("forwardedMessage") {
+                    type = NavType.StringType
+                    nullable = true
+                }
+            )
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: return@composable
+            val forwardedMessage = backStackEntry.arguments?.getString("forwardedMessage")
+            ChatScreen(navController = navController, userId = userId, forwardedMessage = forwardedMessage)
+        }
+
+
     }
 }

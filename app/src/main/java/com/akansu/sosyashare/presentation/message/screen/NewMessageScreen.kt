@@ -1,7 +1,9 @@
 package com.akansu.sosyashare.presentation.message.screen
 
 import android.annotation.SuppressLint
+import android.net.Uri
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -21,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -38,11 +41,13 @@ import com.akansu.sosyashare.util.poppinsFontFamily
 fun NewMessageScreen(
     navController: NavHostController,
     viewModel: NewMessageViewModel = hiltViewModel(),
-    messageContent: String? = null // Bu parametre forward edilen içerik için
+    messageContent: String? = null // forward edilen içerik
 ) {
     var searchQuery by remember { mutableStateOf(TextFieldValue("")) }
     val searchResults by viewModel.searchResults.collectAsState(initial = emptyList())
     val isDarkTheme = isSystemInDarkTheme()
+    val errorState by viewModel.error.collectAsState()  // Error handling
+    val context = LocalContext.current
 
     val backgroundColor = if (isDarkTheme) MaterialTheme.colorScheme.background else Color.White
     val textColor = if (isDarkTheme) Color.White else MaterialTheme.colorScheme.onBackground
@@ -94,22 +99,28 @@ fun NewMessageScreen(
 
             LazyColumn {
                 items(searchResults) { user ->
-                    UserItem(user = user, textColor = textColor) {
-                        if (messageContent != null && messageContent.startsWith("http")) {
-                            viewModel.forwardImageMessage(user.id, messageContent)
-                        } else if (messageContent != null) {
-                            viewModel.forwardMessage(user.id, messageContent)
-                        } else {
-                            navController.navigate("chat/${user.id}")
+                    UserItem(
+                        user = user,
+                        textColor = textColor,
+                        onClick = {
+                            // Eğer forward edilen bir mesaj varsa onu ChatScreen'e ilet
+                            messageContent?.let { content ->
+                                navController.navigate("chat/${user.id}?forwardedMessage=${Uri.encode(content)}") {
+                                    popUpTo("new_message_screen") { inclusive = true }
+                                }
+                            } ?: run {
+                                // Eğer forward edilen mesaj yoksa direkt chat ekranına git
+                                navController.navigate("chat/${user.id}") {
+                                    popUpTo("new_message_screen") { inclusive = true }
+                                }
+                            }
                         }
-                    }
+                    )
                 }
             }
         }
     }
 }
-
-
 
 @Composable
 fun SearchBar(
@@ -154,7 +165,6 @@ fun SearchBar(
     }
 }
 
-
 @Composable
 fun UserItem(user: User, textColor: Color, onClick: () -> Unit) {
     Row(
@@ -182,4 +192,3 @@ fun UserItem(user: User, textColor: Color, onClick: () -> Unit) {
         )
     }
 }
-

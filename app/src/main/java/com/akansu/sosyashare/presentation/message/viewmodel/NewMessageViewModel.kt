@@ -1,8 +1,10 @@
 package com.akansu.sosyashare.presentation.message.viewmodel
 
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.NavHostController
 import com.akansu.sosyashare.domain.model.Message
 import com.akansu.sosyashare.domain.model.User
 import com.akansu.sosyashare.domain.repository.MessageRepository
@@ -54,13 +56,25 @@ class NewMessageViewModel @Inject constructor(
         }
     }
 
-    fun forwardImageMessage(receiverId: String, imageUrl: String) {
+    fun forwardMessageOrImage(receiverId: String, content: String, onMessageSent: (Boolean) -> Unit) {
         viewModelScope.launch {
             try {
                 val senderId = _currentUserId.value ?: return@launch
-                messageRepository.sendImageMessage(senderId, receiverId, Uri.parse(imageUrl))
+                if (content.startsWith("http")) {
+                    messageRepository.sendImageMessage(senderId, receiverId, Uri.parse(content))
+                } else {
+                    val message = Message(
+                        senderId = senderId,
+                        receiverId = receiverId,
+                        content = content,
+                        timestamp = Date()
+                    )
+                    messageRepository.sendMessage(senderId, receiverId, message)
+                }
+                onMessageSent(true)
             } catch (e: Exception) {
-                _error.value = "Failed to forward image message: ${e.message}"
+                _error.value = "Failed to forward message: ${e.message}"
+                onMessageSent(false)
             }
         }
     }
@@ -88,9 +102,7 @@ class NewMessageViewModel @Inject constructor(
             _searchResults.value = emptyList()
             return
         }
-
         searchJob?.cancel()
-
         searchJob = viewModelScope.launch {
             delay(200)
             _searchResults.value = userRepository.searchUsers(query)

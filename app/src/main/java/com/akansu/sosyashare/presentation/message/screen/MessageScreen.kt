@@ -101,7 +101,9 @@ fun MessageScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { navController.navigate("new_message_screen") }) {
+                    IconButton(onClick = {
+                        navController.navigate("new_message")
+                    }) {
                         Icon(
                             painter = painterResource(id = R.drawable.square_pencil),
                             contentDescription = "New Message",
@@ -109,6 +111,7 @@ fun MessageScreen(
                             modifier = Modifier.size(24.dp)
                         )
                     }
+
                 },
                 colors = TopAppBarDefaults.mediumTopAppBarColors(
                     containerColor = Color.Transparent
