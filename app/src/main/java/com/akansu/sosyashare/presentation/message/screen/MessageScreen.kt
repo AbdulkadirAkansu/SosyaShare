@@ -54,7 +54,7 @@ fun MessageScreen(
     val error by viewModel.error.collectAsState()
     val currentUsername by viewModel.currentUsername.collectAsState()
     val currentUserProfilePictureUrl by viewModel.currentUserProfilePictureUrl.collectAsState()
-    val currentUser = currentUsername ?: "SosyaShare"
+    val currentUser = currentUsername ?: "Unknown"
 
     var searchQuery by remember { mutableStateOf("") }
 
