@@ -115,6 +115,12 @@ dependencies {
     implementation ("com.google.accompanist:accompanist-systemuicontroller:0.26.5-rc")
 
     implementation ("androidx.core:core-splashscreen:1.0.1")
+
+    implementation ("androidx.media3:media3-exoplayer:1.4.1")
+    implementation ("androidx.media3:media3-ui:1.4.1")
+
+    implementation("io.coil-kt:coil-gif:2.6.0")
+    implementation("com.airbnb.android:lottie-compose:5.2.0")
     
 
 }

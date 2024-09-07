@@ -49,7 +49,6 @@ fun NavGraph(navController: NavHostController, authViewModel: AuthViewModel, use
             LoginScreen(navController = navController)
         }
         composable("saved_posts") {
-            Log.d("NavGraph", "Navigated to SavedPostsScreen")
             SavedPostsScreen(navController = navController)
         }
         composable("trend") {
