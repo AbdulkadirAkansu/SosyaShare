@@ -93,6 +93,27 @@ class MessageViewModel @Inject constructor(
         }
     }
 
+    fun deleteMessage(chatId: String, messageId: String) {
+        viewModelScope.launch {
+            try {
+                val userId = _currentUserId.value ?: return@launch
+                messageRepository.deleteMessage(chatId, messageId, userId)
+                _recentMessages.value = _recentMessages.value.filter { it.id != messageId }
+            } catch (e: Exception) {
+                _error.value = "Failed to delete message: ${e.message}"
+            }
+        }
+    }
+
+    fun getChatId(user1Id: String, user2Id: String): String {
+        return if (user1Id < user2Id) {
+            "$user1Id-$user2Id"
+        } else {
+            "$user2Id-$user1Id"
+        }
+    }
+
+
     fun loadRecentChats() {
         viewModelScope.launch {
             try {

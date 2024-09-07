@@ -180,7 +180,6 @@ fun ChatScaffold(
     viewModel: ChatViewModel = hiltViewModel()  // viewModel burada tanımlanıyor
 ) {
     val colors = getChatColors(isDarkTheme = isSystemInDarkTheme())
-    var menuPosition by remember { mutableStateOf(IntOffset(0, 0)) }
 
     Scaffold(
         topBar = {
@@ -188,7 +187,12 @@ fun ChatScaffold(
                 onBackClick = onBackClick,
                 userProfileUrl = otherUser?.profilePictureUrl,
                 username = otherUser?.username,
-                textColor = colors.textColor
+                textColor = colors.textColor,
+                onDeleteChat = {
+                    Log.d("ChatScaffold", "Delete chat clicked. Deleting all messages.")
+                    viewModel.deleteAllMessages()  // Mesajları sil
+                    navController.popBackStack()   // Geriye git
+                }
             )
         },
         containerColor = colors.backgroundColor
@@ -452,8 +456,11 @@ fun ChatTopBar(
     onBackClick: () -> Unit,
     userProfileUrl: String?,
     username: String?,
-    textColor: Color
+    textColor: Color,
+    onDeleteChat: () -> Unit // Sohbeti silme fonksiyonunu üst bileşenden alıyoruz
 ) {
+    var expanded by remember { mutableStateOf(false) } // Menü genişlemesi durumu
+
     TopAppBar(
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -474,13 +481,28 @@ fun ChatTopBar(
             }
         },
         actions = {
-            IconButton(onClick = { /* TODO: Handle more options */ }) {
-                Icon(Icons.Rounded.MoreVert, contentDescription = "Gallery", tint = textColor)
+            IconButton(onClick = { expanded = true }) {
+                Icon(Icons.Rounded.MoreVert, contentDescription = "More Options", tint = textColor)
+            }
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                DropdownMenuItem(
+                    onClick = {
+                        expanded = false
+                        onDeleteChat() // Sohbeti silme fonksiyonunu çağır
+                        // Burada geri gitme işlemini kaldırıyoruz.
+                        // Eskiden: navController.popBackStack()
+                    },
+                    text = { Text("Tüm Sohbeti Sil", color = textColor) }
+                )
             }
         },
         colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Color.Transparent)
     )
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

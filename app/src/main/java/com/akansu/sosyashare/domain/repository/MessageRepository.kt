@@ -13,4 +13,5 @@ interface MessageRepository {
     suspend fun forwardMessage(senderId: String, receiverId: String, originalMessage: Message)
     suspend fun replyToMessage(senderId: String, receiverId: String, originalMessage: Message, replyContent: String)
     suspend fun sendImageMessage(senderId: String, receiverId: String, imageUri: Uri): String
+    suspend fun deleteAllMessages(chatId: String)
 }

@@ -42,6 +42,7 @@ import com.akansu.sosyashare.presentation.home.viewmodel.HomeViewModel
 import com.akansu.sosyashare.presentation.postdetail.viewmodel.PostDetailViewModel
 import com.akansu.sosyashare.util.poppinsFontFamily
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 @OptIn(ExperimentalMaterial3Api::class)
@@ -161,14 +162,12 @@ fun PostContent(
     var liked by remember { mutableStateOf(isLiked) }
     var likes by remember { mutableIntStateOf(post.likeCount) }
     var saved by remember { mutableStateOf(isSaved) }
-    val scale by animateFloatAsState(if (liked) 1.2f else 1f, tween(300))
-    var showFullScreenImage by remember { mutableStateOf(false) }
+    var showHeartAnimation by remember { mutableStateOf(false) }
+    val scale = remember { androidx.compose.animation.core.Animatable(0f) }
+    val coroutineScope = rememberCoroutineScope()
 
-    LaunchedEffect(isLiked, post.likeCount, isSaved) {
-        liked = isLiked
-        likes = post.likeCount
-        saved = isSaved
-    }
+    // Çift tıklama algılama
+    var lastTapTimestamp by remember { mutableStateOf(0L) }
 
     val formattedDate = remember(createdAt) {
         val sdf = SimpleDateFormat("dd MMMM yyyy", Locale.ENGLISH)
@@ -194,7 +193,8 @@ fun PostContent(
                 modifier = Modifier
                     .size(50.dp)
                     .clip(CircleShape)
-                    .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                    .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                    .clickable { navController.navigate("profile/$currentUserId") },
                 contentScale = ContentScale.Crop
             )
             Spacer(modifier = Modifier.width(12.dp))
@@ -212,13 +212,48 @@ fun PostContent(
                 )
             }
         }
+
+        // Post image with double-tap to like
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(400.dp)
                 .clip(RoundedCornerShape(16.dp))
                 .background(MaterialTheme.colorScheme.surface)
-                .clickable { showFullScreenImage = true }
+                .clickable {
+                    val currentTime = System.currentTimeMillis()
+                    if (currentTime - lastTapTimestamp < 300) {
+                        // Çift tıklama algılandı
+                        if (!liked) {
+                            likes += 1
+                            liked = true
+                            onLike()
+                        } else {
+                            likes -= 1
+                            liked = false
+                            onUnlike()
+                        }
+
+                        // Kalp animasyonu tetikleniyor
+                        showHeartAnimation = true
+
+                        coroutineScope.launch {
+                            scale.snapTo(0.5f)
+                            scale.animateTo(
+                                targetValue = 1.5f,
+                                animationSpec = androidx.compose.animation.core.tween(
+                                    durationMillis = 400
+                                )
+                            )
+
+                            // Animasyonun bir süre sonra kaybolması
+                            kotlinx.coroutines.delay(600)
+                            showHeartAnimation = false
+                        }
+                    }
+                    lastTapTimestamp = currentTime
+                },
+            contentAlignment = Alignment.Center
         ) {
             AsyncImage(
                 model = post.imageUrl,
@@ -226,13 +261,19 @@ fun PostContent(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
-        }
 
-        if (showFullScreenImage && post.imageUrl != null) {
-            FullScreenImage(
-                imageUrl = post.imageUrl,
-                onDismiss = { showFullScreenImage = false }
-            )
+            // Çift tıklama sonucu büyük kalp animasyonu
+            if (showHeartAnimation) {
+                Icon(
+                    painter = painterResource(id = R.drawable.red_heart_icon),
+                    contentDescription = "Liked",
+                    tint = Color.Red,
+                    modifier = Modifier
+                        .size(100.dp)
+                        .scale(scale.value)
+                        .then(Modifier.align(Alignment.Center))
+                )
+            }
         }
 
         // Post content (description)
@@ -250,6 +291,7 @@ fun PostContent(
                 .padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
+            // Like butonu
             IconButton(onClick = {
                 if (!liked) {
                     liked = true
@@ -264,7 +306,9 @@ fun PostContent(
                 Icon(
                     imageVector = if (liked) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                     contentDescription = "Like",
-                    modifier = Modifier.size(28.dp).scale(scale),
+                    modifier = Modifier
+                        .size(28.dp)
+                        .scale(if (liked) 1.5f else 1f), // İkisi de var, beğeni simgesi ve animasyon
                     tint = if (liked) Color.Red else Color.Gray
                 )
             }
@@ -282,6 +326,7 @@ fun PostContent(
 
             Spacer(modifier = Modifier.weight(1f))
 
+            // Save butonu
             if (showSaveIcon) {
                 IconButton(onClick = {
                     if (saved) {

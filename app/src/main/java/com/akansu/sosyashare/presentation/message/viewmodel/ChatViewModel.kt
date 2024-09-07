@@ -17,6 +17,7 @@ import com.akansu.sosyashare.domain.repository.MessageRepository
 import com.akansu.sosyashare.domain.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.firstOrNull
@@ -49,12 +50,42 @@ class ChatViewModel @Inject constructor(
 
     private var chatId: String? = null
 
+
     init {
         viewModelScope.launch {
             _currentUserId.value = userRepository.getCurrentUserId()
             _currentUser.value = _currentUserId.value?.let { userRepository.getUserById(it).firstOrNull() }
         }
     }
+
+    fun getChatId(): String? {
+        return chatId
+    }
+
+    fun deleteAllMessages() {
+        viewModelScope.launch {
+            val currentChatId = chatId
+            Log.d("ChatViewModel", "Attempting to delete all messages for chatId: $currentChatId")
+
+            if (currentChatId == null) {
+                Log.e("ChatViewModel", "chatId is null. Cannot delete messages.")
+                _error.value = "Failed to delete messages: chatId is null"
+                return@launch
+            }
+
+            try {
+                withContext(NonCancellable) {
+                    messageRepository.deleteAllMessages(currentChatId)
+                    Log.d("ChatViewModel", "Successfully deleted all messages for chatId: $currentChatId")
+                    _messages.value = emptyList()
+                }
+            } catch (e: Exception) {
+                Log.e("ChatViewModel", "Error deleting messages for chatId: $currentChatId", e)
+                _error.value = "Failed to delete messages: ${e.message}"
+            }
+        }
+    }
+
 
     fun forwardImageMessage(receiverId: String, originalMessage: Message) {
         viewModelScope.launch {

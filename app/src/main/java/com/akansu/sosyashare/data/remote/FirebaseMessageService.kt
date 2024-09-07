@@ -36,6 +36,29 @@ class FirebaseMessageService @Inject constructor(
         }
     }
 
+    suspend fun deleteAllMessages(chatId: String) {
+        Log.d("FirebaseMessageService", "Starting to delete messages for chatId: $chatId")
+
+        val messagesRef = firestore.collection("chats").document(chatId).collection("messages")
+
+        try {
+            val messagesSnapshot = messagesRef.get().await()
+            Log.d("FirebaseMessageService", "Fetched ${messagesSnapshot.size()} messages to delete for chatId: $chatId")
+
+            // Mesajları sil
+            for (document in messagesSnapshot.documents) {
+                document.reference.delete().await()
+                Log.d("FirebaseMessageService", "Deleted message with ID: ${document.id}")
+            }
+
+            Log.d("FirebaseMessageService", "Successfully deleted all messages for chatId: $chatId")
+        } catch (e: Exception) {
+            Log.e("FirebaseMessageService", "Error deleting messages for chatId: $chatId", e)
+            throw e
+        }
+    }
+
+
     suspend fun forwardMessage(senderId: String, receiverId: String, originalMessage: MessageEntity) {
         val forwardedMessage = originalMessage.copy(
             id = "", // Firestore otomatik ID oluşturacak
@@ -106,17 +129,14 @@ class FirebaseMessageService @Inject constructor(
     }
 
     suspend fun sendMessage(senderId: String, receiverId: String, message: MessageEntity) {
-        Log.d("FirebaseMessageService", "sendMessage - senderId: $senderId, receiverId: $receiverId, message: $message")
 
         val chatId = getChatId(senderId, receiverId)
-        Log.d("FirebaseMessageService", "sendMessage - Generated chatId: $chatId")
-
         try {
             val chatRef = firestore.collection("chats").document(chatId)
             val documentRef = chatRef.collection("messages").add(message).await()
 
             val messageWithId = message.copy(id = documentRef.id)
-            Log.d("FirebaseMessageService", "sendMessage - Message with ID after Firestore add: $messageWithId")
+
 
             chatRef.collection("messages").document(documentRef.id).set(messageWithId).await()
 
@@ -125,7 +145,7 @@ class FirebaseMessageService @Inject constructor(
                 "updatedAt" to messageWithId.timestamp,
                 "participants" to listOf(senderId, receiverId)
             )).await()
-            Log.d("FirebaseMessageService", "sendMessage - Successfully saved message in Firestore with participants: ${listOf(senderId, receiverId)}")
+
         } catch (e: Exception) {
             Log.e("FirebaseMessageService", "Failed to send message: ${e.message}")
         }
@@ -133,7 +153,6 @@ class FirebaseMessageService @Inject constructor(
 
 
     suspend fun getMessagesByChatId(chatId: String): List<MessageEntity> {
-        Log.d("FirebaseMessageService", "getMessagesByChatId - Fetching messages for chatId: $chatId")
 
         val messagesSnapshot = firestore.collection("chats")
             .document(chatId)
@@ -144,11 +163,9 @@ class FirebaseMessageService @Inject constructor(
 
         val messages = messagesSnapshot.documents.map { document ->
             val message = document.toObject(MessageEntity::class.java)
-            Log.d("FirebaseMessageService", "getMessagesByChatId - Fetched message: $message")
             message?.copy(id = document.id)
         }.filterNotNull()
 
-        Log.d("FirebaseMessageService", "getMessagesByChatId - All fetched messages: $messages")
         return messages
     }
 

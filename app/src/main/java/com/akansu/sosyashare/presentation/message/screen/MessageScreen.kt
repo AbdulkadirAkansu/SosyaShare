@@ -6,9 +6,10 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -17,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -57,6 +59,7 @@ fun MessageScreen(
     val currentUser = currentUsername ?: "Unknown"
 
     var searchQuery by remember { mutableStateOf("") }
+    val selectedMessages = remember { mutableStateListOf<Message>() } // Seçilen mesajlar listesi
 
     LaunchedEffect(Unit) {
         viewModel.loadRecentChats()
@@ -101,17 +104,42 @@ fun MessageScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = {
-                        navController.navigate("new_message")
-                    }) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.square_pencil),
-                            contentDescription = "New Message",
-                            tint = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
+                    if (selectedMessages.isNotEmpty()) {
+                        IconButton(onClick = {
+                            selectedMessages.forEach { message ->
+                                val chatId = viewModel.getChatId(message.senderId, message.receiverId)
+                                viewModel.deleteMessage(chatId, message.id)
+                            }
+                            selectedMessages.clear() // Tüm seçimi temizle
+                        }) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.delete_icon),
+                                contentDescription = "Delete",
+                                tint = MaterialTheme.colorScheme.onBackground
+                            )
+                        }
 
+                        IconButton(onClick = {
+                            selectedMessages.clear() // İptal et
+                        }) {
+                            Icon(
+                                Icons.Rounded.Close,
+                                contentDescription = "Cancel",
+                                tint = MaterialTheme.colorScheme.onBackground
+                            )
+                        }
+                    } else {
+                        IconButton(onClick = {
+                            navController.navigate("new_message")
+                        }) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.square_pencil),
+                                contentDescription = "New Message",
+                                tint = MaterialTheme.colorScheme.onBackground,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
                 },
                 colors = TopAppBarDefaults.mediumTopAppBarColors(
                     containerColor = Color.Transparent
@@ -189,10 +217,17 @@ fun MessageScreen(
                             MessageItem(
                                 message = message,
                                 onItemClick = {
-                                    val otherUserId = if (message.senderId == viewModel.currentUserId.value) message.receiverId else message.senderId
-                                    navController.navigate("chat/$otherUserId")
+                                    if (selectedMessages.isEmpty()) {
+                                        val otherUserId = if (message.senderId == viewModel.currentUserId.value) message.receiverId else message.senderId
+                                        navController.navigate("chat/$otherUserId")
+                                    } else {
+                                        toggleSelection(message, selectedMessages)
+                                    }
                                 },
-                                otherUserId = if (message.senderId == viewModel.currentUserId.value) message.receiverId else message.senderId,
+                                onLongPress = {
+                                    toggleSelection(message, selectedMessages)
+                                },
+                                isSelected = selectedMessages.contains(message),
                                 messageViewModel = viewModel,
                                 textColor = MaterialTheme.colorScheme.onBackground,
                                 accentColor = MaterialTheme.colorScheme.primary
@@ -205,28 +240,33 @@ fun MessageScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MessageItem(
     message: Message,
     onItemClick: () -> Unit,
-    otherUserId: String,
+    onLongPress: () -> Unit,
+    isSelected: Boolean,
     messageViewModel: MessageViewModel,
     textColor: Color,
     accentColor: Color
 ) {
     var user by remember { mutableStateOf<User?>(null) }
 
-    LaunchedEffect(otherUserId) {
-        user = messageViewModel.getUserById(otherUserId)
+    LaunchedEffect(message.senderId) {
+        user = messageViewModel.getUserById(message.senderId)
     }
 
     val profilePictureUrl = user?.profilePictureUrl
-    val currentUserId = messageViewModel.currentUserId.collectAsState().value
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onItemClick)
+            .combinedClickable(
+                onClick = onItemClick,
+                onLongClick = onLongPress
+            )
+            .background(if (isSelected) Color.Gray.copy(alpha = 0.2f) else Color.Transparent)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -280,35 +320,24 @@ fun MessageItem(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = message.content,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontFamily = poppinsFontFamily,
-                        color = textColor.copy(alpha = 0.7f)
-                    ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f) // Mesaj metni alanı dolduracak şekilde
-                )
-
-                if (!message.isRead) {
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Box(
-                        modifier = Modifier
-                            .size(12.dp)
-                            .offset(x = (-8).dp, y = (-3).dp)
-                            .background(Color(0xFF1E88E5), CircleShape)
-                    )
-                }
-
-            }
+            Text(
+                text = message.content,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontFamily = poppinsFontFamily,
+                    color = textColor.copy(alpha = 0.7f)
+                ),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
+    }
+}
 
-        Spacer(modifier = Modifier.width(8.dp))
+fun toggleSelection(message: Message, selectedMessages: MutableList<Message>) {
+    if (selectedMessages.contains(message)) {
+        selectedMessages.remove(message)
+    } else {
+        selectedMessages.add(message)
     }
 }
 
@@ -351,7 +380,6 @@ fun SearchBar(
         }
     }
 }
-
 
 @Composable
 fun EmptyStateMessage(textColor: Color) {

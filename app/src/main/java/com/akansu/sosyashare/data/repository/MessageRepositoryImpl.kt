@@ -21,6 +21,12 @@ class MessageRepositoryImpl @Inject constructor(
         messageService.deleteMessage(chatId, messageId, currentUserId)
     }
 
+    override suspend fun deleteAllMessages(chatId: String) {
+        Log.d("MessageRepository", "Deleting all messages for chatId: $chatId")
+        messageService.deleteAllMessages(chatId)
+        Log.d("MessageRepository", "Successfully deleted all messages for chatId: $chatId")
+    }
+
     override suspend fun sendImageMessage(senderId: String, receiverId: String, imageUri: Uri): String {
         return messageService.sendImageMessage(senderId, receiverId, imageUri)
     }

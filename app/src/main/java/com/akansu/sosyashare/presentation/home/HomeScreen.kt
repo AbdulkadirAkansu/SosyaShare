@@ -15,10 +15,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -36,6 +38,7 @@ import com.akansu.sosyashare.presentation.home.components.NavigationBar
 import com.akansu.sosyashare.presentation.home.viewmodel.HomeViewModel
 import com.akansu.sosyashare.presentation.userprofile.viewmodel.UserViewModel
 import com.akansu.sosyashare.util.poppinsFontFamily
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -215,6 +218,12 @@ fun PostItem(
     var liked by remember { mutableStateOf(isLiked) }
     var likes by remember { mutableIntStateOf(likeCount) }
     var saved by remember { mutableStateOf(isSaved) }
+    var showHeartAnimation by remember { mutableStateOf(false) }  // Animasyon durumu
+    val scale = remember { androidx.compose.animation.core.Animatable(0f) }
+    val coroutineScope = rememberCoroutineScope() // Coroutine scope oluşturuyoruz
+
+    // Çift tıklama algılama
+    var lastTapTimestamp by remember { mutableStateOf(0L) }
 
     Column(
         modifier = Modifier
@@ -224,7 +233,10 @@ fun PostItem(
     ) {
         Row(
             modifier = Modifier
-                .fillMaxWidth(),
+                .fillMaxWidth()
+                .clickable {
+                    navController.navigate("profile/$postUserId")
+                },
             verticalAlignment = Alignment.CenterVertically
         ) {
             Image(
@@ -232,11 +244,18 @@ fun PostItem(
                 contentDescription = "Profile Picture",
                 modifier = Modifier
                     .size(50.dp)
-                    .clip(CircleShape),
+                    .clip(CircleShape)
+                    .clickable {
+                        navController.navigate("profile/$postUserId")
+                    },
                 contentScale = ContentScale.Crop
             )
             Spacer(modifier = Modifier.width(12.dp))
-            Column {
+            Column(
+                modifier = Modifier.clickable {
+                    navController.navigate("profile/$postUserId")
+                }
+            ) {
                 Text(
                     text = username,
                     fontFamily = poppinsFontFamily,
@@ -254,15 +273,66 @@ fun PostItem(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        Image(
-            painter = rememberAsyncImagePainter(postUrl),
-            contentDescription = "Post Image",
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(350.dp)
-                .clip(MaterialTheme.shapes.medium),
-            contentScale = ContentScale.Crop
-        )
+                .clip(MaterialTheme.shapes.medium)
+                .clickable {
+                    val currentTime = System.currentTimeMillis()
+                    if (currentTime - lastTapTimestamp < 300) {
+                        // Çift tıklama algılandı
+                        if (!liked) {
+                            likes += 1
+                            liked = true
+                            onLikeClick()
+                        } else {
+                            likes -= 1
+                            liked = false
+                            onUnlikeClick()
+                        }
+
+                        // Kalp animasyonu tetikleniyor
+                        showHeartAnimation = true
+
+                        coroutineScope.launch {
+                            scale.snapTo(0.5f)  // scale değeri 0.5'e anında geçiyor
+                            scale.animateTo(
+                                targetValue = 1.5f,
+                                animationSpec = androidx.compose.animation.core.tween(
+                                    durationMillis = 400
+                                )
+                            )
+
+                            // Animasyonun bir süre sonra kaybolması
+                            kotlinx.coroutines.delay(600)  // 600ms bekleme
+                            showHeartAnimation = false  // Kalbi gizliyoruz
+                        }
+                    }
+                    lastTapTimestamp = currentTime
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
+                painter = rememberAsyncImagePainter(postUrl),
+                contentDescription = "Post Image",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+
+            // Kalp animasyonu
+            if (showHeartAnimation) {
+                Icon(
+                    painter = painterResource(id = R.drawable.red_heart_icon),
+                    contentDescription = "Liked",
+                    tint = Color.Red,
+                    modifier = Modifier
+                        .size(100.dp)
+                        .scale(scale.value)
+                        .then(Modifier.align(Alignment.Center))
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -279,11 +349,10 @@ fun PostItem(
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
                 )
             }
-
             Spacer(modifier = Modifier.height(10.dp))
         }
 
-        // Icons Row
+        // İkonlar satırı
         Row(
             modifier = Modifier
                 .fillMaxWidth(),
