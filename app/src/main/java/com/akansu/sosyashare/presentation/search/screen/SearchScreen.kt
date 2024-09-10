@@ -46,13 +46,10 @@ fun SearchScreen(navController: NavHostController, searchViewModel: SearchViewMo
     val currentUser = searchViewModel.getCurrentUser()
 
     Scaffold(
-        bottomBar = {
+      bottomBar = {
             NavigationBar(
-                selectedItem = selectedItem,
-                onItemSelected = { selectedItem = it },
                 navController = navController,
-                profilePictureUrl = profilePictureUrl,
-                modifier = Modifier.height(65.dp)
+                 profilePictureUrl = profilePictureUrl,
             )
         },
         containerColor = MaterialTheme.colorScheme.background
@@ -60,7 +57,7 @@ fun SearchScreen(navController: NavHostController, searchViewModel: SearchViewMo
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues) // Tüm paddingleri Scaffold'dan alır ve uygular
+                .padding(paddingValues)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -101,6 +98,7 @@ fun SearchScreen(navController: NavHostController, searchViewModel: SearchViewMo
                             }
                         }
                     },
+                    singleLine = true,  // Enter tuşuna basınca alt satıra inmesini engeller
                     colors = TextFieldDefaults.textFieldColors(
                         containerColor = MaterialTheme.colorScheme.surface,
                         cursorColor = MaterialTheme.colorScheme.onBackground,
@@ -109,8 +107,8 @@ fun SearchScreen(navController: NavHostController, searchViewModel: SearchViewMo
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(20))
-                        .border(1.dp, MaterialTheme.colorScheme.onBackground, RoundedCornerShape(20))
+                        .clip(RoundedCornerShape(20))  // Border köşeleri yuvarlak
+
                         .background(MaterialTheme.colorScheme.surface)
                 )
             }
@@ -170,13 +168,16 @@ fun SearchScreen(navController: NavHostController, searchViewModel: SearchViewMo
                                 fontFamily = poppinsFontFamily,
                                 color = MaterialTheme.colorScheme.onBackground
                             )
-                            Text(
-                                text = user.email,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Normal,
-                                fontFamily = poppinsFontFamily,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-                            )
+                            if (!user.bio.isNullOrEmpty()) {
+                                Text(
+                                    text = user.bio,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Normal,
+                                    fontFamily = poppinsFontFamily,
+                                    maxLines = 1,
+                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                                )
+                            }
                         }
                     }
                 }

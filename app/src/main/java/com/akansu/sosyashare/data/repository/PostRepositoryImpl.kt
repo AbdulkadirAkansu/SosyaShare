@@ -19,6 +19,14 @@ class PostRepositoryImpl @Inject constructor(
         emit(posts.map { it.toDomainModel() })
     }
 
+    override suspend fun updateCommentCount(postId: String, newCommentCount: Int) {
+        val postEntity = postService.getPostById(postId)
+        postEntity?.let {
+            val updatedPostEntity = it.copy(commentCount = newCommentCount)
+            postService.updatePost(updatedPostEntity)
+        }
+    }
+
     override fun getPostsByUser(userId: String): Flow<List<Post>> = flow {
         val posts = postService.getPostsByUser(userId)
         emit(posts.map { it.toDomainModel() })

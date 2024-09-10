@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.akansu.sosyashare.domain.model.Comment
 import com.akansu.sosyashare.domain.model.Reply
 import com.akansu.sosyashare.domain.repository.CommentRepository
+import com.akansu.sosyashare.domain.usecase.UpdateCommentCountUseCase
 import com.akansu.sosyashare.domain.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
@@ -17,7 +18,8 @@ import javax.inject.Inject
 @HiltViewModel
 class CommentViewModel @Inject constructor(
     private val commentRepository: CommentRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val updateCommentCountUseCase: UpdateCommentCountUseCase
 ) : ViewModel() {
 
     private val _comments = MutableLiveData<List<Comment>>()
@@ -36,6 +38,7 @@ class CommentViewModel @Inject constructor(
             currentUserName = userRepository.getCurrentUserName()
         }
     }
+
 
     fun loadComments(postId: String) {
         viewModelScope.launch {
@@ -68,6 +71,7 @@ class CommentViewModel @Inject constructor(
                 likes = mutableListOf()
             )
             commentRepository.addComment(newComment)
+            updateCommentCountUseCase(postId)
             loadComments(postId)
         }
     }
@@ -75,9 +79,9 @@ class CommentViewModel @Inject constructor(
     fun deleteComment(commentId: String, postId: String) {
         viewModelScope.launch {
             try {
-                // Ana yorum ve ona bağlı tüm yanıtları tek seferde sil
                 commentRepository.deleteCommentWithReplies(commentId)
-                loadComments(postId)  // Yorumları yeniden yükle
+                updateCommentCountUseCase(postId)
+                loadComments(postId)
             } catch (e: Exception) {
                 // Hata durumunda loglama yapabilirsiniz
             }

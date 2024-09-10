@@ -64,13 +64,10 @@ fun TrendScreen(
                 )
             )
         },
-        bottomBar = {
+       bottomBar = {
             NavigationBar(
-                selectedItem = selectedItem,
-                onItemSelected = { selectedItem = it },
                 navController = navController,
-                profilePictureUrl = profilePictureUrl,
-                modifier = Modifier.height(65.dp)
+                profilePictureUrl = profilePictureUrl
             )
         },
         containerColor = MaterialTheme.colorScheme.background

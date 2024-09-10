@@ -9,5 +9,6 @@ data class PostEntity(
     val imageUrl: String? = null,
     val likeCount: Int = 0,
     val likedBy: List<String> = emptyList(),
-    val createdAt: Date = Date()
+    val createdAt: Date = Date(),
+    var commentCount: Int = 0,
 )

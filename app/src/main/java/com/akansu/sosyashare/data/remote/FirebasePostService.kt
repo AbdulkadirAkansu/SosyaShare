@@ -82,6 +82,15 @@ class FirebasePostService @Inject constructor(
         }
     }
 
+    suspend fun updatePost(post: PostEntity) {
+        try {
+            firestore.collection("posts").document(post.id).set(post).await()
+            Log.d("FirebasePostService", "Post updated: ${post.id}")
+        } catch (e: Exception) {
+            Log.e("FirebasePostService", "Error updating post: ${e.message}")
+        }
+    }
+
 
 
     suspend fun unlikePost(postId: String, likerId: String) {

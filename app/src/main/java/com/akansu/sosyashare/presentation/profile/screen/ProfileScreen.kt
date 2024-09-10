@@ -69,11 +69,8 @@ fun ProfileScreen(
         },
         bottomBar = {
             NavigationBar(
-                selectedItem = selectedItem,
-                onItemSelected = { selectedItem = it },
                 navController = navController,
                 profilePictureUrl = profilePictureUrl ?: userDetails?.profilePictureUrl,
-                modifier = Modifier.height(65.dp)
             )
         },
         containerColor = MaterialTheme.colorScheme.background

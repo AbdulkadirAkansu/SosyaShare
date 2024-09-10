@@ -67,15 +67,12 @@ fun NewMessageScreen(
                 )
             )
         },
-        bottomBar = {
+        /* bottomBar = {
             NavigationBar(
-                selectedItem = 0,
-                onItemSelected = { /* Handle item selection */ },
                 navController = navController,
-                profilePictureUrl = currentUserProfilePictureUrl,
-                modifier = Modifier.height(60.dp)
+                profilePictureUrl = currentUserProfilePictureUrl
             )
-        },
+        }, */
         containerColor = backgroundColor
     ) { paddingValues ->
         Column(

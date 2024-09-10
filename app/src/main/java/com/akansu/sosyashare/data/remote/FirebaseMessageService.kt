@@ -36,6 +36,7 @@ class FirebaseMessageService @Inject constructor(
         }
     }
 
+
     suspend fun deleteAllMessages(chatId: String) {
         Log.d("FirebaseMessageService", "Starting to delete messages for chatId: $chatId")
 

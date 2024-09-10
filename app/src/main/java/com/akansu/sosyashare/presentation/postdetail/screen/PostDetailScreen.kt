@@ -93,11 +93,8 @@ fun PostDetailScreen(
         },
         bottomBar = {
             NavigationBar(
-                selectedItem = 0,
-                onItemSelected = { /* TODO */ },
                 navController = navController,
-                profilePictureUrl = user?.profilePictureUrl,
-                modifier = Modifier.height(65.dp)
+                profilePictureUrl = user?.profilePictureUrl
             )
         },
         content = { paddingValues ->

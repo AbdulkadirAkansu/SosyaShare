@@ -147,273 +147,270 @@ fun MessageScreen(
             )
         },
         bottomBar = {
-            NavigationBar(
-                selectedItem = 0,
-                onItemSelected = { /* Handle item selection */ },
-                navController = navController,
-                profilePictureUrl = currentUserProfilePictureUrl,
-                modifier = Modifier.height(60.dp)
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(MaterialTheme.colorScheme.background)
-        ) {
-            SearchBar(
-                query = searchQuery,
-                onQueryChange = {
-                    searchQuery = it
-                    viewModel.searchChatsByUsername(it)
-                },
-                textColor = MaterialTheme.colorScheme.onBackground,
-                backgroundColor = MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
-            )
+        NavigationBar(
+          navController = navController,
+          profilePictureUrl = currentUserProfilePictureUrl
+      )
+  },
+  containerColor = MaterialTheme.colorScheme.background
+) { paddingValues ->
+  Column(
+      modifier = Modifier
+          .fillMaxSize()
+          .padding(paddingValues)
+          .background(MaterialTheme.colorScheme.background)
+  ) {
+      SearchBar(
+          query = searchQuery,
+          onQueryChange = {
+              searchQuery = it
+              viewModel.searchChatsByUsername(it)
+          },
+          textColor = MaterialTheme.colorScheme.onBackground,
+          backgroundColor = MaterialTheme.colorScheme.surfaceVariant,
+          modifier = Modifier
+              .fillMaxWidth()
+              .padding(horizontal = 12.dp, vertical = 8.dp)
+      )
 
-            val displayMessages = if (searchQuery.isEmpty()) recentMessages else searchResults
+      val displayMessages = if (searchQuery.isEmpty()) recentMessages else searchResults
 
-            AnimatedVisibility(
-                visible = true,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically()
-            ) {
-                Text(
-                    text = "Recent Chats",
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontFamily = poppinsFontFamily,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp,
-                        color = MaterialTheme.colorScheme.onBackground
-                    ),
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-            }
+      AnimatedVisibility(
+          visible = true,
+          enter = fadeIn() + expandVertically(),
+          exit = fadeOut() + shrinkVertically()
+      ) {
+          Text(
+              text = "Recent Chats",
+              style = MaterialTheme.typography.headlineSmall.copy(
+                  fontFamily = poppinsFontFamily,
+                  fontWeight = FontWeight.Bold,
+                  fontSize = 20.sp,
+                  color = MaterialTheme.colorScheme.onBackground
+              ),
+              modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+          )
+      }
 
-            if (error != null) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(
-                        text = error ?: "Unknown error",
-                        color = Color.Red,
-                        fontFamily = poppinsFontFamily
-                    )
-                }
-            } else {
-                LazyColumn(
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    if (displayMessages.isEmpty()) {
-                        item {
-                            EmptyStateMessage(textColor = MaterialTheme.colorScheme.onBackground)
-                        }
-                    } else {
-                        items(displayMessages) { message ->
-                            MessageItem(
-                                message = message,
-                                onItemClick = {
-                                    if (selectedMessages.isEmpty()) {
-                                        val otherUserId = if (message.senderId == viewModel.currentUserId.value) message.receiverId else message.senderId
-                                        navController.navigate("chat/$otherUserId")
-                                    } else {
-                                        toggleSelection(message, selectedMessages)
-                                    }
-                                },
-                                onLongPress = {
-                                    toggleSelection(message, selectedMessages)
-                                },
-                                isSelected = selectedMessages.contains(message),
-                                messageViewModel = viewModel,
-                                textColor = MaterialTheme.colorScheme.onBackground,
-                                accentColor = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
+      if (error != null) {
+          Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+              Text(
+                  text = error ?: "Unknown error",
+                  color = Color.Red,
+                  fontFamily = poppinsFontFamily
+              )
+          }
+      } else {
+          LazyColumn(
+              contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+              verticalArrangement = Arrangement.spacedBy(8.dp)
+          ) {
+              if (displayMessages.isEmpty()) {
+                  item {
+                      EmptyStateMessage(textColor = MaterialTheme.colorScheme.onBackground)
+                  }
+              } else {
+                  items(displayMessages) { message ->
+                      MessageItem(
+                          message = message,
+                          onItemClick = {
+                              if (selectedMessages.isEmpty()) {
+                                  val otherUserId = if (message.senderId == viewModel.currentUserId.value) message.receiverId else message.senderId
+                                  navController.navigate("chat/$otherUserId")
+                              } else {
+                                  toggleSelection(message, selectedMessages)
+                              }
+                          },
+                          onLongPress = {
+                              toggleSelection(message, selectedMessages)
+                          },
+                          isSelected = selectedMessages.contains(message),
+                          messageViewModel = viewModel,
+                          textColor = MaterialTheme.colorScheme.onBackground,
+                          accentColor = MaterialTheme.colorScheme.primary
+                      )
+                  }
+              }
+          }
+      }
+  }
+}
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MessageItem(
-    message: Message,
-    onItemClick: () -> Unit,
-    onLongPress: () -> Unit,
-    isSelected: Boolean,
-    messageViewModel: MessageViewModel,
-    textColor: Color,
-    accentColor: Color
+message: Message,
+onItemClick: () -> Unit,
+onLongPress: () -> Unit,
+isSelected: Boolean,
+messageViewModel: MessageViewModel,
+textColor: Color,
+accentColor: Color
 ) {
-    var user by remember { mutableStateOf<User?>(null) }
+var user by remember { mutableStateOf<User?>(null) }
 
-    LaunchedEffect(message.senderId) {
-        user = messageViewModel.getUserById(message.senderId)
-    }
+LaunchedEffect(message.senderId) {
+  user = messageViewModel.getUserById(message.senderId)
+}
 
-    val profilePictureUrl = user?.profilePictureUrl
+val profilePictureUrl = user?.profilePictureUrl
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .combinedClickable(
-                onClick = onItemClick,
-                onLongClick = onLongPress
-            )
-            .background(if (isSelected) Color.Gray.copy(alpha = 0.2f) else Color.Transparent)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(52.dp)
-                .clip(CircleShape)
-                .background(accentColor.copy(alpha = 0.1f)),
-            contentAlignment = Alignment.Center
-        ) {
-            AsyncImage(
-                model = profilePictureUrl,
-                contentDescription = null,
-                modifier = Modifier.size(48.dp).clip(CircleShape),
-                contentScale = ContentScale.Crop
-            )
-        }
+Row(
+  modifier = Modifier
+      .fillMaxWidth()
+      .combinedClickable(
+          onClick = onItemClick,
+          onLongClick = onLongPress
+      )
+      .background(if (isSelected) Color.Gray.copy(alpha = 0.2f) else Color.Transparent)
+      .padding(horizontal = 16.dp, vertical = 12.dp),
+  verticalAlignment = Alignment.CenterVertically
+) {
+  Box(
+      modifier = Modifier
+          .size(52.dp)
+          .clip(CircleShape)
+          .background(accentColor.copy(alpha = 0.1f)),
+      contentAlignment = Alignment.Center
+  ) {
+      AsyncImage(
+          model = profilePictureUrl,
+          contentDescription = null,
+          modifier = Modifier.size(48.dp).clip(CircleShape),
+          contentScale = ContentScale.Crop
+      )
+  }
 
-        Spacer(modifier = Modifier.width(12.dp))
+  Spacer(modifier = Modifier.width(12.dp))
 
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.Center
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = user?.username ?: "Unknown",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontFamily = poppinsFontFamily,
-                        fontWeight = FontWeight.SemiBold,
-                        color = textColor
-                    )
-                )
+  Column(
+      modifier = Modifier.weight(1f),
+      verticalArrangement = Arrangement.Center
+  ) {
+      Row(
+          modifier = Modifier.fillMaxWidth(),
+          verticalAlignment = Alignment.CenterVertically,
+          horizontalArrangement = Arrangement.SpaceBetween
+      ) {
+          Text(
+              text = user?.username ?: "Unknown",
+              style = MaterialTheme.typography.titleMedium.copy(
+                  fontFamily = poppinsFontFamily,
+                  fontWeight = FontWeight.SemiBold,
+                  color = textColor
+              )
+          )
 
-                val dateFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-                val timeString = dateFormat.format(message.timestamp)
+          val dateFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+          val timeString = dateFormat.format(message.timestamp)
 
-                Text(
-                    text = timeString,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontFamily = poppinsFontFamily,
-                        color = textColor.copy(alpha = 0.5f),
-                        fontSize = 12.sp
-                    )
-                )
-            }
+          Text(
+              text = timeString,
+              style = MaterialTheme.typography.labelSmall.copy(
+                  fontFamily = poppinsFontFamily,
+                  color = textColor.copy(alpha = 0.5f),
+                  fontSize = 12.sp
+              )
+          )
+      }
 
-            Spacer(modifier = Modifier.height(4.dp))
+      Spacer(modifier = Modifier.height(4.dp))
 
-            Text(
-                text = message.content,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontFamily = poppinsFontFamily,
-                    color = textColor.copy(alpha = 0.7f)
-                ),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-    }
+      Text(
+          text = message.content,
+          style = MaterialTheme.typography.bodyMedium.copy(
+              fontFamily = poppinsFontFamily,
+              color = textColor.copy(alpha = 0.7f)
+          ),
+          maxLines = 1,
+          overflow = TextOverflow.Ellipsis
+      )
+  }
+}
 }
 
 fun toggleSelection(message: Message, selectedMessages: MutableList<Message>) {
-    if (selectedMessages.contains(message)) {
-        selectedMessages.remove(message)
-    } else {
-        selectedMessages.add(message)
-    }
+if (selectedMessages.contains(message)) {
+  selectedMessages.remove(message)
+} else {
+  selectedMessages.add(message)
+}
 }
 
 
 @Composable
 fun SearchBar(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    textColor: Color,
-    backgroundColor: Color,
-    modifier: Modifier = Modifier
+query: String,
+onQueryChange: (String) -> Unit,
+textColor: Color,
+backgroundColor: Color,
+modifier: Modifier = Modifier
 ) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 10.dp)
-            .clip(RoundedCornerShape(30))
-            .background(backgroundColor)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        ) {
-            Icon(
-                Icons.Rounded.Search,
-                contentDescription = "Search",
-                tint = textColor.copy(alpha = 0.5f)
-            )
-            Spacer(modifier = Modifier.width(5.dp))
-            BasicTextField(
-                value = query,
-                onValueChange = onQueryChange,
-                textStyle = MaterialTheme.typography.bodyLarge.copy(color = textColor),
-                modifier = Modifier
-                    .weight(1f)
-                    .background(Color.Transparent)
-            )
-        }
-    }
+Box(
+  modifier = modifier
+      .fillMaxWidth()
+      .padding(horizontal = 10.dp)
+      .clip(RoundedCornerShape(30))
+      .background(backgroundColor)
+) {
+  Row(
+      verticalAlignment = Alignment.CenterVertically,
+      modifier = Modifier
+          .fillMaxWidth()
+          .padding(horizontal = 16.dp, vertical = 8.dp)
+  ) {
+      Icon(
+          Icons.Rounded.Search,
+          contentDescription = "Search",
+          tint = textColor.copy(alpha = 0.5f)
+      )
+      Spacer(modifier = Modifier.width(5.dp))
+      BasicTextField(
+          value = query,
+          onValueChange = onQueryChange,
+          textStyle = MaterialTheme.typography.bodyLarge.copy(color = textColor),
+          modifier = Modifier
+              .weight(1f)
+              .background(Color.Transparent)
+      )
+  }
+}
 }
 
 @Composable
 fun EmptyStateMessage(textColor: Color) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(
-            painter = painterResource(id = R.drawable.ic_check),
-            contentDescription = "No messages",
-            tint = textColor.copy(alpha = 0.5f),
-            modifier = Modifier.size(56.dp)
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = "No messages yet",
-            style = MaterialTheme.typography.titleMedium.copy(
-                fontFamily = poppinsFontFamily,
-                fontWeight = FontWeight.Medium,
-                fontSize = 16.sp,
-                color = textColor
-            )
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = "Start a conversation with your friends!",
-            style = MaterialTheme.typography.bodyMedium.copy(
-                fontFamily = poppinsFontFamily,
-                fontSize = 14.sp,
-                color = textColor.copy(alpha = 0.7f)
-            ),
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-        )
-    }
+Column(
+  modifier = Modifier
+      .fillMaxWidth()
+      .padding(24.dp),
+  horizontalAlignment = Alignment.CenterHorizontally
+) {
+  Icon(
+      painter = painterResource(id = R.drawable.ic_check),
+      contentDescription = "No messages",
+      tint = textColor.copy(alpha = 0.5f),
+      modifier = Modifier.size(56.dp)
+  )
+  Spacer(modifier = Modifier.height(12.dp))
+  Text(
+      text = "No messages yet",
+      style = MaterialTheme.typography.titleMedium.copy(
+          fontFamily = poppinsFontFamily,
+          fontWeight = FontWeight.Medium,
+          fontSize = 16.sp,
+          color = textColor
+      )
+  )
+  Spacer(modifier = Modifier.height(4.dp))
+  Text(
+      text = "Start a conversation with your friends!",
+      style = MaterialTheme.typography.bodyMedium.copy(
+          fontFamily = poppinsFontFamily,
+          fontSize = 14.sp,
+          color = textColor.copy(alpha = 0.7f)
+      ),
+      textAlign = androidx.compose.ui.text.style.TextAlign.Center
+  )
+}
 }

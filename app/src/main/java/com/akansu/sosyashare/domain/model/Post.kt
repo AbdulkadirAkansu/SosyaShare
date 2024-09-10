@@ -10,5 +10,6 @@ data class Post(
     val likeCount: Int = 0,
     val likedBy: List<String> = emptyList(),
     val isLiked: Boolean = false,
-    val createdAt: Date = Date()
+    val createdAt: Date = Date(),
+    var commentCount: Int = 0,
 )
