@@ -27,4 +27,12 @@ class FirebaseStorageService @Inject constructor() {
         ref.putFile(Uri.fromFile(file)).await()
         return ref.downloadUrl.await().toString()
     }
+
+    suspend fun uploadBackgroundImage(file: File): String {
+        val userId = auth.currentUser?.uid ?: throw Exception("No authenticated user")
+        val uniqueFileName = "${UUID.randomUUID()}_${file.name}"
+        val ref = storage.reference.child("background_images/$userId/$uniqueFileName.jpg")
+        ref.putFile(Uri.fromFile(file)).await()
+        return ref.downloadUrl.await().toString()
+    }
 }

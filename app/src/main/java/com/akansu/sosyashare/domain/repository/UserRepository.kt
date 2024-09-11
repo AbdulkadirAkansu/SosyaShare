@@ -32,4 +32,5 @@ interface UserRepository {
     suspend fun getCurrentUserName(): String?
     suspend fun getFollowers(userId: String): List<User>
     suspend fun getFollowing(userId: String): List<User>
+    suspend fun updateBackgroundImageUrl(userId: String, backgroundImageUrl: String)
 }

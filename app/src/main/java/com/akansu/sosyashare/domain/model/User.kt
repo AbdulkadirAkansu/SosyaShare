@@ -8,6 +8,7 @@ data class User(
     val username: String = "",
     val email: String = "",
     val profilePictureUrl: String? = null,
+    val backgroundImageUrl: String? = null,
     val comments: List<String> = emptyList(),
     val following: List<String> = emptyList(),
     val followers: List<String> = emptyList(),

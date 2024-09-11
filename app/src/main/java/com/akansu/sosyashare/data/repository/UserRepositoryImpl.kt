@@ -24,6 +24,10 @@ class UserRepositoryImpl @Inject constructor(
         return firebaseUserService.getCurrentUserName()
     }
 
+    override suspend fun updateBackgroundImageUrl(userId: String, backgroundImageUrl: String) {
+        firebaseUserService.updateBackgroundImageUrl(userId, backgroundImageUrl)
+    }
+
     override fun getUserById(userId: String): Flow<User?> {
         return flow {
             val userEntity = firebaseUserService.getUserDetails(userId)

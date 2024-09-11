@@ -76,6 +76,7 @@ fun NavigationBar(
     val context = LocalContext.current
 
     // Galeri launcher
+// Galeri launcher
     val openDocumentLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
             uri?.let {
@@ -83,10 +84,11 @@ fun NavigationBar(
                     it,
                     Intent.FLAG_GRANT_READ_URI_PERMISSION
                 )
-                // Seçilen resmi PostCreation'a yönlendir
-                navController.navigate("post_creation?imageUri=$it")
+                // Seçilen resmi PostCreation'a yönlendir, burada URI'yi encode ediyoruz
+                navController.navigate("post_creation?imageUri=${Uri.encode(it.toString())}")
             }
         }
+
 
     // Kamera launcher
     val cameraLauncher =

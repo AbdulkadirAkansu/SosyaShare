@@ -27,7 +27,10 @@ class UserProfileViewModel @Inject constructor(
 
     private val _profilePictureUrl = MutableStateFlow<String?>(null)
     val profilePictureUrl: StateFlow<String?> get() = _profilePictureUrl
+    private val _backgroundImageUrl = MutableStateFlow<String?>(null)
+    val backgroundImageUrl: StateFlow<String?> get() = _backgroundImageUrl
 
+    // Profil resmi yükleme işlemi
     fun uploadProfilePicture(file: File, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit) {
         viewModelScope.launch {
             try {
@@ -41,6 +44,24 @@ class UserProfileViewModel @Inject constructor(
         }
     }
 
+    fun uploadBackgroundImage(file: File, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val url = storageRepository.uploadBackgroundImage(file)
+                saveBackgroundImageUrlToDatabase(url)
+                _backgroundImageUrl.value = url
+                onSuccess(url)
+            } catch (e: Exception) {
+                onFailure(e)
+            }
+        }
+    }
+
+
+
+    fun updateBackgroundImageUrl(newUrl: String) {
+        _backgroundImageUrl.value = newUrl
+    }
 
     private fun saveProfilePictureUrlToDatabase(url: String) {
         viewModelScope.launch {
@@ -51,12 +72,25 @@ class UserProfileViewModel @Inject constructor(
         }
     }
 
+    private fun saveBackgroundImageUrlToDatabase(url: String) {
+        viewModelScope.launch {
+            val userId = userRepository.getCurrentUserId()
+            userId?.let {
+                userRepository.updateBackgroundImageUrl(it, url)
+            }
+        }
+    }
+
     fun getUserDetails(userId: String, onResult: (User?) -> Unit) {
         viewModelScope.launch {
             val user = userRepository.getUserById(userId).firstOrNull()
+            user?.let {
+                _backgroundImageUrl.value = it.backgroundImageUrl  // Ensure the background image URL is set
+            }
             onResult(user)
         }
     }
+
 
     fun followUser(currentUserId: String, followUserId: String) {
         viewModelScope.launch {

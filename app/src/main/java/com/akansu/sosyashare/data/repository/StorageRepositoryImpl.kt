@@ -18,4 +18,9 @@ class StorageRepositoryImpl @Inject constructor(
     override suspend fun uploadPostPicture(file: File): String {
         return firebaseStorageService.uploadPostPicture(file)
     }
+
+    override suspend fun uploadBackgroundImage(file: File): String {
+        return firebaseStorageService.uploadBackgroundImage(file)
+    }
+
 }
