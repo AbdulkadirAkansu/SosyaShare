@@ -121,6 +121,8 @@ dependencies {
 
     implementation("io.coil-kt:coil-gif:2.6.0")
     implementation("com.airbnb.android:lottie-compose:5.2.0")
+
+    implementation (libs.google.accompanist.systemuicontroller)
     
 
 }

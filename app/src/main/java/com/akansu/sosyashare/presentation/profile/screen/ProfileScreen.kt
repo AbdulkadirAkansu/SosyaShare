@@ -32,7 +32,7 @@ import com.akansu.sosyashare.presentation.profile.ProfileViewModel
 import com.akansu.sosyashare.presentation.userprofile.viewmodel.UserViewModel
 import com.akansu.sosyashare.util.poppinsFontFamily
 
-@OptIn(ExperimentalMaterial3Api::class)
+
 @Composable
 fun ProfileScreen(
     navController: NavHostController,

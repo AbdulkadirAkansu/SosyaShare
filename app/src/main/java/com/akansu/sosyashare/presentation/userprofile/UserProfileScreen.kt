@@ -2,6 +2,7 @@ package com.akansu.sosyashare.presentation.userprofile
 
 import android.app.Activity
 import android.net.Uri
+import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -22,17 +23,21 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
-import coil.request.ImageRequest
 import com.akansu.sosyashare.R
 import com.akansu.sosyashare.domain.model.User
 import com.akansu.sosyashare.presentation.home.components.FollowersFollowingDialog
@@ -41,8 +46,9 @@ import com.akansu.sosyashare.presentation.login.viewmodel.AuthViewModel
 import com.akansu.sosyashare.presentation.share.viewmodel.ShareViewModel
 import com.akansu.sosyashare.presentation.userprofile.viewmodel.UserProfileViewModel
 import com.akansu.sosyashare.util.FileUtils
-import com.akansu.sosyashare.util.PermissionHandler
 import com.akansu.sosyashare.util.poppinsFontFamily
+import com.google.accompanist.systemuicontroller.rememberSystemUiController
+
 
 @Composable
 fun UserProfileScreen(
@@ -55,8 +61,27 @@ fun UserProfileScreen(
     var userDetails by remember { mutableStateOf<User?>(null) }
     var showFollowersDialog by remember { mutableStateOf(false) }
     var showFollowingDialog by remember { mutableStateOf(false) }
-
     val backgroundImageUrl by profileViewModel.backgroundImageUrl.collectAsState()
+    var followers by remember { mutableStateOf<List<User>>(emptyList()) }
+    var following by remember { mutableStateOf<List<User>>(emptyList()) }
+    var profilePictureUrl by remember { mutableStateOf(userDetails?.profilePictureUrl) }
+    var bio by remember { mutableStateOf(userDetails?.bio ?: "") }
+    var followersCount by remember { mutableIntStateOf(userDetails?.followers?.size ?: 0) }
+    var followingCount by remember { mutableIntStateOf(userDetails?.following?.size ?: 0) }
+    val systemUiController = rememberSystemUiController()
+
+    // Status bar'ı şeffaf yap ve arka plan görüntüsüyle birleştir
+    val context = LocalContext.current as Activity
+    val view = LocalView.current
+
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            WindowCompat.setDecorFitsSystemWindows(context.window, false)
+        } else {
+            WindowInsetsControllerCompat(context.window, view).isAppearanceLightStatusBars = false
+        }
+        systemUiController.setSystemBarsColor(Color.Transparent, darkIcons = false)
+    }
 
     LaunchedEffect(currentUser?.uid) {
         currentUser?.uid?.let { userId ->
@@ -65,9 +90,6 @@ fun UserProfileScreen(
             }
         }
     }
-
-    var followers by remember { mutableStateOf<List<User>>(emptyList()) }
-    var following by remember { mutableStateOf<List<User>>(emptyList()) }
 
     LaunchedEffect(userDetails) {
         userDetails?.followers?.let { followerIds ->
@@ -83,13 +105,6 @@ fun UserProfileScreen(
         }
     }
 
-    var profilePictureUrl by remember { mutableStateOf(userDetails?.profilePictureUrl) }
-    var bio by remember { mutableStateOf(userDetails?.bio ?: "") }
-    var followersCount by remember { mutableStateOf(userDetails?.followers?.size ?: 0) }
-    var followingCount by remember { mutableStateOf(userDetails?.following?.size ?: 0) }
-
-
-
     LaunchedEffect(userDetails) {
         profilePictureUrl = userDetails?.profilePictureUrl
         bio = userDetails?.bio ?: ""
@@ -99,39 +114,49 @@ fun UserProfileScreen(
 
     val posts by shareViewModel.userPosts.collectAsState()
 
-    val context = LocalContext.current as Activity
-
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        uri?.let {
-            val file = FileUtils.createFileFromUri(context, it)
-            file?.let {
-                profileViewModel.uploadProfilePicture(file, onSuccess = { newUrl ->
-                    profilePictureUrl = newUrl
-                    userDetails = userDetails?.copy(profilePictureUrl = newUrl)
-                    profileViewModel.updateUserProfilePictureUrl(newUrl)
-                }, onFailure = { e ->
-                    Toast.makeText(context, "Failed to upload profile picture: ${e.message}", Toast.LENGTH_SHORT).show()
-                })
-            } ?: run {
-                Toast.makeText(context, "Failed to convert URI to File", Toast.LENGTH_SHORT).show()
+    val launcher =
+        rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+            uri?.let {
+                val file = FileUtils.createFileFromUri(context, it)
+                file?.let {
+                    profileViewModel.uploadProfilePicture(file, onSuccess = { newUrl ->
+                        profilePictureUrl = newUrl
+                        userDetails = userDetails?.copy(profilePictureUrl = newUrl)
+                        profileViewModel.updateUserProfilePictureUrl(newUrl)
+                    }, onFailure = { e ->
+                        Toast.makeText(
+                            context,
+                            "Failed to upload profile picture: ${e.message}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    })
+                } ?: run {
+                    Toast.makeText(context, "Failed to convert URI to File", Toast.LENGTH_SHORT)
+                        .show()
+                }
             }
         }
-    }
 
-    val backgroundLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        uri?.let {
-            val file = FileUtils.createFileFromUri(context, it)
-            file?.let {
-                profileViewModel.uploadBackgroundImage(file, onSuccess = { newUrl ->
-                    profileViewModel.updateBackgroundImageUrl(newUrl)
-                }, onFailure = { e ->
-                    Toast.makeText(context, "Failed to upload background image: ${e.message}", Toast.LENGTH_SHORT).show()
-                })
-            } ?: run {
-                Toast.makeText(context, "Failed to convert URI to File", Toast.LENGTH_SHORT).show()
+    val backgroundLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+            uri?.let {
+                val file = FileUtils.createFileFromUri(context, it)
+                file?.let {
+                    profileViewModel.uploadBackgroundImage(file, onSuccess = { newUrl ->
+                        profileViewModel.updateBackgroundImageUrl(newUrl)
+                    }, onFailure = { e ->
+                        Toast.makeText(
+                            context,
+                            "Failed to upload background image: ${e.message}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    })
+                } ?: run {
+                    Toast.makeText(context, "Failed to convert URI to File", Toast.LENGTH_SHORT)
+                        .show()
+                }
             }
         }
-    }
 
     if (showFollowersDialog) {
         FollowersFollowingDialog(
@@ -161,12 +186,12 @@ fun UserProfileScreen(
             )
         },
         containerColor = MaterialTheme.colorScheme.background
-    ) { paddingValues ->
+    ) { paddingValues -> // paddingValues burada kullanılıyor
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(bottom = 72.dp)
+                .padding(paddingValues) // Scaffold padding değerleri burada kullanılıyor
+                .padding(bottom = 72.dp) // Ekstra padding de eklenebilir
         ) {
             item {
                 BackgroundWithProfile(
@@ -184,6 +209,7 @@ fun UserProfileScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
+                // Profil istatistikleri
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -204,7 +230,7 @@ fun UserProfileScreen(
                     bio = bio
                 )
 
-                Spacer(modifier = Modifier.height(20.dp)) // ProfileInfo'nun altına spacer ekliyoruz.
+                Spacer(modifier = Modifier.height(20.dp))
 
                 ActionButtons(navController = navController)
 
@@ -231,18 +257,26 @@ fun UserProfileScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                PostGrid(posts = posts.mapNotNull { it.imageUrl }, userId = currentUser?.uid ?: "", navController = navController)
+                PostGrid(
+                    posts = posts.mapNotNull { it.imageUrl },
+                    userId = currentUser?.uid ?: "",
+                    navController = navController,
+                    gridHeight = 500.dp
+                )
             }
         }
     }
 }
-
 @Composable
-fun PostGrid(posts: List<String>, userId: String, navController: NavHostController) {
+fun PostGrid(posts: List<String>, userId: String, navController: NavHostController, gridHeight: Dp) {
     LazyVerticalGrid(
-        columns = GridCells.Fixed(3),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-        modifier = Modifier.height(500.dp)
+        columns = GridCells.Fixed(3),  // 3 sütunlu grid
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(gridHeight),  // Sabit yükseklik
+        contentPadding = PaddingValues(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),  // Hücreler arası boşluk
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         if (posts.isEmpty()) {
             item {
@@ -260,17 +294,13 @@ fun PostGrid(posts: List<String>, userId: String, navController: NavHostControll
                 Box(
                     modifier = Modifier
                         .aspectRatio(1f)
-                        .padding(4.dp)
-                        .clip(RoundedCornerShape(12.dp)) // Resimlere çok az radius ekleniyor.
+                        .clip(RoundedCornerShape(12.dp))
                         .clickable {
                             navController.navigate("post_detail/${userId}/${index}/false")
                         }
                 ) {
                     AsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(posts[posts.size - 1 - index])
-                            .crossfade(true)
-                            .build(),
+                        model = posts[posts.size - 1 - index],
                         contentDescription = "Post",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
@@ -303,7 +333,7 @@ fun ActionButtons(navController: NavHostController) {
             Text("Edit Profile")
         }
         Button(
-            onClick = { /* TODO: Add share functionality */ },
+            onClick = { /* TODO: Share functionality */ },
             modifier = Modifier
                 .weight(1f)
                 .clip(RoundedCornerShape(24.dp))
@@ -317,6 +347,7 @@ fun ActionButtons(navController: NavHostController) {
         }
     }
 }
+
 
 @Composable
 fun ProfileInfo(username: String, bio: String) {
@@ -358,7 +389,7 @@ fun BackgroundWithProfile(
             shape = RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(220.dp)
+                .height(240.dp)
                 .clickable { onBackgroundClick() }
         ) {
             AsyncImage(
@@ -422,23 +453,3 @@ fun StatColumn(count: String, label: String, onClick: () -> Unit) {
     }
 }
 
-
-@Composable
-fun UserStatistics(
-    postCount: Int,
-    followersCount: Int,
-    followingCount: Int,
-    onFollowersClick: () -> Unit,
-    onFollowingClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly
-    ) {
-        StatColumn(postCount.toString(), "Posts", onClick = {})
-        StatColumn(followersCount.toString(), "Followers", onClick = onFollowersClick)
-        StatColumn(followingCount.toString(), "Following", onClick = onFollowingClick)
-    }
-}

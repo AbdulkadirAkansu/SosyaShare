@@ -117,14 +117,14 @@ fun NavigationBar(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(64.dp)
+                .height(65.dp)
                 .align(Alignment.BottomCenter),  // Sabit alt pozisyon
             shape = RoundedCornerShape(30.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background)
         ) {
             Row(
                 modifier = Modifier
-                    .padding(horizontal = 24.dp, vertical = 16.dp)
+                    .padding(horizontal = 35.dp, vertical = 12.dp)
                     .fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
