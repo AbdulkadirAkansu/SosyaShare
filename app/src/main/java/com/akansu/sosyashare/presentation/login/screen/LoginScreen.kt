@@ -1,164 +1,205 @@
 package com.akansu.sosyashare.presentation.login.screen
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.* // Box, Column, Modifier ve Spacer için gerekli
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.* // ButtonDefaults, Button, Text, TextButton
+import androidx.compose.runtime.* // remember, mutableStateOf, Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.akansu.sosyashare.R
 import com.akansu.sosyashare.presentation.login.viewmodel.AuthViewModel
-import com.akansu.sosyashare.presentation.ui.ErrorMessage
-import com.akansu.sosyashare.util.poppinsFontFamily
+import kotlinx.coroutines.delay
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(navController: NavController, viewModel: AuthViewModel = hiltViewModel()) {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val backgroundColors = listOf(
+        Color(0xFFFF007F), Color(0xFF6200EA), Color(0xFF03DAC6),
+        Color(0xFFFFA726), Color(0xFF00E5FF), Color(0xFFFFEB3B)
+    )
 
-    BoxWithConstraints(
+    var currentColor by remember { mutableStateOf(backgroundColors[0]) }
+    var colorIndex by remember { mutableStateOf(0) }
+
+    // Renk animasyonu, belirli aralıklarla arka plan rengini değiştirecek
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(5000)
+            colorIndex = (colorIndex + 1) % backgroundColors.size
+            currentColor = backgroundColors[colorIndex]
+        }
+    }
+
+    Box(
         modifier = Modifier
             .fillMaxSize()
+            .background(currentColor)
     ) {
-        val screenHeight = maxHeight
-
-        Image(
-            painter = painterResource(id = R.drawable.pic5),
-            contentDescription = "Login Background",
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
-        )
+        AnimatedBackground()
 
         Column(
+            modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Top,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Spacer(modifier = Modifier.height(screenHeight * 0.05f))
+            Spacer(modifier = Modifier.weight(1f))
 
-            Image(
-                painter = painterResource(id = R.drawable.nightlogo),
-                contentDescription = "Login Logo",
-                modifier = Modifier.size(screenHeight * 0.2f)
-            )
-
-            Spacer(modifier = Modifier.height(screenHeight * 0.1f))
-
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = Color.White,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-            ) {
-                TextField(
-                    value = email,
-                    onValueChange = { email = it },
-                    label = { Text("Username, email", fontFamily = poppinsFontFamily) },
-                    colors = TextFieldDefaults.textFieldColors(
-                        focusedIndicatorColor = Color(0xFF0D47A1),
-                        unfocusedIndicatorColor = Color(0xFF0D47A1),
-                        cursorColor = Color(0xFF0D47A1)
-                    ),
-                    textStyle = LocalTextStyle.current.copy(fontFamily = poppinsFontFamily, fontSize = 14.sp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(screenHeight * 0.02f))
-
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = Color.White,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-            ) {
-                TextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    label = { Text("Password", fontFamily = poppinsFontFamily) },
-                    visualTransformation = PasswordVisualTransformation(),
-                    colors = TextFieldDefaults.textFieldColors(
-                        focusedIndicatorColor = Color(0xFF0D47A1),
-                        unfocusedIndicatorColor = Color(0xFF0D47A1),
-                        cursorColor = Color(0xFF0D47A1)
-                    ),
-                    textStyle = LocalTextStyle.current.copy(fontFamily = poppinsFontFamily, fontSize = 14.sp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(screenHeight * 0.02f))
-
-            Button(
-                onClick = {
-                    viewModel.loginUser(email, password, onSuccess = {
-                        navController.navigate("home")
-                    }, onFailure = { exception ->
-                        errorMessage = exception.message
-                    })
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0D47A1)),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text("Log in", fontSize = (screenHeight * 0.02f).value.sp, color = Color.White, fontFamily = poppinsFontFamily)
-            }
-
-            Spacer(modifier = Modifier.height(screenHeight * 0.02f))
-
-            Text(
-                text = "Forgot password?",
-                color = Color.White,
-                fontSize = (screenHeight * 0.02f).value.sp,
-                modifier = Modifier
-                    .clickable {
-                        navController.navigate("forgot_password")
-                    },
-                fontFamily = poppinsFontFamily
-            )
-
-            Spacer(modifier = Modifier.height(screenHeight * 0.02f))
-
-            ErrorMessage(errorMessage)
+            // Animasyonlu kayan yazılar
+            TypewriterText()
 
             Spacer(modifier = Modifier.weight(1f))
 
-            OutlinedButton(
-                onClick = {
-                    navController.navigate("register")
-                },
-                shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = Color.Transparent,
-                    contentColor = Color(0xFF0D47A1)
-                ),
-                border = BorderStroke(1.dp, Color(0xFF0D47A1)),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-            ) {
-                Text("Create new account", fontSize = (screenHeight * 0.02f).value.sp, color = Color(0xFF0D47A1), fontFamily = poppinsFontFamily)
-            }
-
-            Spacer(modifier = Modifier.height(screenHeight * 0.02f))
+            LoginOptionsBox(navController)
         }
+    }
+}
+
+@Composable
+fun AnimatedBackground() {
+    val circles = remember { List(50) { Pair(Math.random(), Math.random()) } }
+
+    circles.forEach { (x, y) ->
+        val animatedY by rememberInfiniteTransition().animateFloat(
+            initialValue = y.toFloat(),
+            targetValue = 1.2f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = (8000 + Math.random() * 6000).toInt(), easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            )
+        )
+
+        Box(
+            modifier = Modifier
+                .size((20..40).random().dp) // Farklı boyutlarda baloncuklar
+                .offset(x = (x * 400).dp, y = (animatedY * 1000).dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.15f))
+        )
+    }
+}
+
+@Composable
+fun TypewriterText() {
+    val messages = listOf(
+        "Paylaş ●",
+        "Keşfet ●",
+        "Bağlan ●",
+        "Takip Et ●",
+        "Beğen ●",
+        "Yorum Yap ●",
+        "Story Paylaş ●",
+        "Trendleri Keşfet ●"
+    )
+
+    var currentMessage by remember { mutableStateOf("") }
+    var messageIndex by remember { mutableStateOf(0) }
+    var currentDisplayText by remember { mutableStateOf("") }
+
+    LaunchedEffect(key1 = messageIndex) {
+        currentMessage = messages[messageIndex]
+        currentDisplayText = ""
+        for (i in currentMessage.indices) {
+            currentDisplayText = currentMessage.take(i + 1)
+            delay(150) // Harf harf yazma efekti
+        }
+        delay(2000) // Yazı yazıldıktan sonra 2 saniye bekle
+        messageIndex = (messageIndex + 1) % messages.size
+    }
+
+    Text(
+        text = currentDisplayText,
+        color = Color.White,
+        fontSize = 36.sp,
+        fontWeight = FontWeight.Bold,
+    )
+}
+
+@Composable
+fun LoginOptionsBox(navController: NavController) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxHeight(0.3f)
+            .background(
+                color = Color.Black,
+                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+            )
+            .padding(20.dp)
+    ) {
+        LoginOptions(navController)
+    }
+}
+
+@Composable
+fun LoginOptions(navController: NavController) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        SocialLoginButton(
+            text = "Google ile devam et",
+            backgroundColor = Color(0xFFE0E0E0),
+            textColor = Color.Black
+        )
+
+        SocialLoginButton(
+            text = "E-posta ile kaydol",
+            backgroundColor = Color(0xFF404040),
+            textColor = Color.White
+        )
+
+
+
+        Divider(
+            modifier = Modifier.fillMaxWidth(0.8f),
+            thickness = 1.dp,
+            color = Color.Gray
+        )
+
+
+        OutlinedButton(
+            onClick = { /* TODO: Implement login */ },
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .height(50.dp),
+            shape = RoundedCornerShape(28.dp),
+            border = BorderStroke(1.dp, Color.Gray),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+        ) {
+            Text("Oturum aç", fontSize = 16.sp)
+        }
+    }
+}
+
+@Composable
+fun SocialLoginButton(
+    text: String,
+    backgroundColor: Color,
+    textColor: Color
+) {
+    Button(
+        onClick = { /* TODO: Implement social login */ },
+        modifier = Modifier
+            .fillMaxWidth(0.9f)
+            .height(56.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = backgroundColor),
+        shape = RoundedCornerShape(28.dp)
+    ) {
+        Text(
+            text = text,
+            color = textColor,
+            fontSize = 16.sp
+        )
     }
 }

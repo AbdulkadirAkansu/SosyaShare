@@ -42,6 +42,7 @@ import com.akansu.sosyashare.presentation.home.viewmodel.HomeViewModel
 import com.akansu.sosyashare.presentation.postdetail.viewmodel.PostDetailViewModel
 import com.akansu.sosyashare.util.poppinsFontFamily
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -61,6 +62,9 @@ fun PostDetailScreen(
     val listState = rememberLazyListState()
     val currentUserId by postDetailViewModel.currentUserId.collectAsState()
     var showLikedUsers by remember { mutableStateOf(false) }
+
+    // Postları en son eklenenden başlayarak sıralıyoruz
+    val sortedPosts = posts.sortedByDescending { it.createdAt }
 
     LaunchedEffect(userId) {
         postDetailViewModel.loadUserDetails(userId)
@@ -104,12 +108,12 @@ fun PostDetailScreen(
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
-                items(posts) { post ->
+                items(sortedPosts) { post ->
                     val isSaved = savedPosts.any { it.id == post.id } // Check if post is saved
                     PostContent(
                         post = post,
-                        username = user!!.username,
-                        profilePictureUrl = user!!.profilePictureUrl,
+                        username = user?.username ?: "",
+                        profilePictureUrl = user?.profilePictureUrl,
                         createdAt = post.createdAt,
                         isLiked = post.isLiked,
                         onLike = { postDetailViewModel.likePost(post.id) },
@@ -160,10 +164,9 @@ fun PostContent(
     var likes by remember { mutableIntStateOf(post.likeCount) }
     var saved by remember { mutableStateOf(isSaved) }
     var showHeartAnimation by remember { mutableStateOf(false) }
+    var showFullImage by remember { mutableStateOf(false) }
     val scale = remember { androidx.compose.animation.core.Animatable(0f) }
     val coroutineScope = rememberCoroutineScope()
-
-    // Çift tıklama algılama
     var lastTapTimestamp by remember { mutableStateOf(0L) }
 
     val formattedDate = remember(createdAt) {
@@ -171,10 +174,14 @@ fun PostContent(
         sdf.format(createdAt)
     }
 
+    if (showFullImage) {
+        FullScreenImage(imageUrl = post.imageUrl ?: "", onDismiss = { showFullImage = false })
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp, horizontal = 16.dp)
+            .padding(16.dp)
             .background(MaterialTheme.colorScheme.background)
     ) {
         // Profile information and timestamp
@@ -220,7 +227,6 @@ fun PostContent(
                 .clickable {
                     val currentTime = System.currentTimeMillis()
                     if (currentTime - lastTapTimestamp < 300) {
-                        // Çift tıklama algılandı
                         if (!liked) {
                             likes += 1
                             liked = true
@@ -230,21 +236,12 @@ fun PostContent(
                             liked = false
                             onUnlike()
                         }
-
-                        // Kalp animasyonu tetikleniyor
                         showHeartAnimation = true
-
                         coroutineScope.launch {
-                            scale.snapTo(0.5f)
-                            scale.animateTo(
-                                targetValue = 1.5f,
-                                animationSpec = androidx.compose.animation.core.tween(
-                                    durationMillis = 400
-                                )
-                            )
-
-                            // Animasyonun bir süre sonra kaybolması
-                            kotlinx.coroutines.delay(600)
+                            scale.snapTo(0f)
+                            scale.animateTo(1.5f, tween(300))
+                            scale.animateTo(0f, tween(300))
+                            delay(600)
                             showHeartAnimation = false
                         }
                     }
@@ -259,102 +256,119 @@ fun PostContent(
                 modifier = Modifier.fillMaxSize()
             )
 
-            // Çift tıklama sonucu büyük kalp animasyonu
             if (showHeartAnimation) {
                 Icon(
                     painter = painterResource(id = R.drawable.red_heart_icon),
                     contentDescription = "Liked",
                     tint = Color.Red,
                     modifier = Modifier
-                        .size(100.dp)
+                        .size(120.dp)
                         .scale(scale.value)
-                        .then(Modifier.align(Alignment.Center))
+                        .align(Alignment.Center)
                 )
             }
+
+            // Full screen icon on top-right
+            Icon(
+                painter = painterResource(id = R.drawable.fullscreen),
+                contentDescription = "Fullscreen Icon",
+                tint = Color.White,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+                    .size(24.dp)
+                    .clickable { showFullImage = true }
+            )
         }
 
-        // Post content (description)
-        Text(
-            text = post.content,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-        )
-
-        // Likes and comment section
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            // Like butonu
-            IconButton(onClick = {
-                if (!liked) {
-                    liked = true
-                    likes += 1
-                    onLike()
-                } else {
-                    liked = false
-                    likes -= 1
-                    onUnlike()
-                }
-            }) {
-                Icon(
-                    imageVector = if (liked) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                    contentDescription = "Like",
-                    modifier = Modifier
-                        .size(28.dp)
-                        .scale(if (liked) 1.5f else 1f), // İkisi de var, beğeni simgesi ve animasyon
-                    tint = if (liked) Color.Red else Color.Gray
-                )
-            }
-
-            IconButton(onClick = {
-                navController.navigate("comments/$postId/$currentUserId")
-            }) {
-                Icon(
-                    painter = painterResource(id = R.drawable.comment),
-                    contentDescription = "Comment",
-                    modifier = Modifier.size(24.dp),
-                    tint = Color.Gray
-                )
-            }
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            // Save butonu
-            if (showSaveIcon) {
-                IconButton(onClick = {
-                    if (saved) {
-                        onUnsaveClick()
-                        saved = false
-                    } else {
-                        onSaveClick()
-                        saved = true
-                    }
-                }) {
-                    Icon(
-                        painter = painterResource(id = if (saved) R.drawable.save else R.drawable.empty_save),
-                        contentDescription = "Save Post",
-                        tint = MaterialTheme.colorScheme.onBackground,
+        // Box for icons (like, comment, save) and text (likes count, content)
+        Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Like and comment icons
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Like button and count
+                    IconButton(
+                        onClick = {
+                            if (!liked) {
+                                liked = true
+                                likes += 1
+                                onLike()
+                            } else {
+                                liked = false
+                                likes -= 1
+                                onUnlike()
+                            }
+                        },
                         modifier = Modifier.size(28.dp)
-                    )
+                    ) {
+                        Icon(
+                            painter = painterResource(id = if (liked) R.drawable.red_heart_icon else R.drawable.heart_icon),
+                            contentDescription = "Like",
+                            tint = if (liked) Color.Red else Color.Gray,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    Text(text = " $likes", color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp)
+
+                    Spacer(modifier = Modifier.width(16.dp)) // Like ve Comment ikonları arasındaki boşluk
+
+                    // Comment button and count
+                    IconButton(
+                        onClick = {
+                            navController.navigate("comments/$postId/$currentUserId")
+                        },
+                        modifier = Modifier.size(19.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.commentt),
+                            contentDescription = "Comment",
+                            tint = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    Text(text = "  ${post.commentCount}", color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp)
+                }
+
+                // Save button
+                if (showSaveIcon) {
+                    IconButton(onClick = {
+                        if (saved) {
+                            onUnsaveClick()
+                            saved = false
+                        } else {
+                            onSaveClick()
+                            saved = true
+                        }
+                    }) {
+                        Icon(
+                            painter = painterResource(id = if (saved) R.drawable.save else R.drawable.empty_save),
+                            contentDescription = "Save Post",
+                            tint = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
                 }
             }
-        }
 
-        // Likes count displayed below the buttons
-        Text(
-            text = "$likes likes",
-            fontWeight = FontWeight.Bold,
-            fontFamily = poppinsFontFamily,
-            fontSize = 14.sp,
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier
-                .clickable { onLikesClick() }
-                .padding(start = 8.dp, bottom = 4.dp)
-        )
+            // Post content or "See comments" if empty
+            val contentText = if (post.content.isNullOrEmpty()) "See comments" else post.content
+            Text(
+                text = contentText,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier
+                    .clickable {
+                        if (post.content.isNullOrEmpty()) {
+                            navController.navigate("comments/$postId/$currentUserId")
+                        }
+                    }
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            )
+        }
     }
 }
 

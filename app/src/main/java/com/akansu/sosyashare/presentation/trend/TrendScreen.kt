@@ -51,10 +51,10 @@ fun TrendScreen(
     viewModel: TrendViewModel = hiltViewModel(),
     userViewModel: UserViewModel = hiltViewModel()
 ) {
-    val posts by viewModel.trendingPosts.collectAsState()
-    val users by viewModel.trendingUsers.collectAsState()
+    val posts by viewModel.trendingPosts.collectAsState()  // Gönderi listesi
+    val users by viewModel.trendingUsers.collectAsState()  // Kullanıcı listesi
     val profilePictureUrl by userViewModel.profilePictureUrl.collectAsState()
-    var selectedPostIndex by remember { mutableStateOf<Int?>(null) }
+    var selectedPostId by remember { mutableStateOf<String?>(null) }
     val coroutineScope = rememberCoroutineScope()
 
     // Optimize resim yükleyici
@@ -86,6 +86,8 @@ fun TrendScreen(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
+
+        // Gönderi listesi ve kullanıcılar
         LazyVerticalStaggeredGrid(
             columns = StaggeredGridCells.Adaptive(minSize = 160.dp),
             modifier = Modifier
@@ -105,12 +107,12 @@ fun TrendScreen(
                         imageLoader = imageLoader,
                         onClick = {
                             coroutineScope.launch {
-                                selectedPostIndex = index
+                                selectedPostId = post.id
                                 delay(300)
                                 navController.navigate("post_detail/${post.userId}/$index/true")
                             }
                         },
-                        isSelected = index == selectedPostIndex
+                        isSelected = post.id == selectedPostId
                     )
                 }
             }

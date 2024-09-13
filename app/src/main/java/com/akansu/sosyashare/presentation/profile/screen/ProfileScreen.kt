@@ -375,16 +375,19 @@ fun StatColumn(count: String, label: String, onClick: () -> Unit) {
 
 @Composable
 fun PostGrid(posts: List<Post>, onPostClick: (Int) -> Unit) {
+    // Postları en son eklenenden başlayarak sıralıyoruz (createdAt alanına göre)
+    val sortedPosts = posts.sortedByDescending { it.createdAt }
+
     LazyVerticalGrid(
         columns = GridCells.Fixed(3),
         contentPadding = PaddingValues(8.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .height(500.dp),
+            .height(500.dp), // Grid yüksekliği ihtiyaca göre ayarlanabilir
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        if (posts.isEmpty()) {
+        if (sortedPosts.isEmpty()) {
             item {
                 Box(
                     modifier = Modifier
@@ -396,7 +399,7 @@ fun PostGrid(posts: List<Post>, onPostClick: (Int) -> Unit) {
                 }
             }
         } else {
-            items(posts.size) { index ->
+            items(sortedPosts.size) { index ->
                 Box(
                     modifier = Modifier
                         .aspectRatio(1f)
@@ -404,7 +407,7 @@ fun PostGrid(posts: List<Post>, onPostClick: (Int) -> Unit) {
                         .clickable { onPostClick(index) }
                 ) {
                     AsyncImage(
-                        model = posts[posts.size - 1 - index].imageUrl,
+                        model = sortedPosts[index].imageUrl,  // Artık sıralı postları gösteriyoruz
                         contentDescription = "Post",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
@@ -414,6 +417,7 @@ fun PostGrid(posts: List<Post>, onPostClick: (Int) -> Unit) {
         }
     }
 }
+
 
 @Composable
 fun ProfileInfo(username: String, bio: String) {

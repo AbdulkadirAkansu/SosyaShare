@@ -68,6 +68,8 @@ fun UserProfileScreen(
     var bio by remember { mutableStateOf(userDetails?.bio ?: "") }
     var followersCount by remember { mutableIntStateOf(userDetails?.followers?.size ?: 0) }
     var followingCount by remember { mutableIntStateOf(userDetails?.following?.size ?: 0) }
+    val posts by shareViewModel.userPosts.collectAsState() // Postlar LiveData'dan veya Flow'dan alınıyor
+    var sortedPosts = remember(posts) { posts.sortedByDescending { it.createdAt } }
     val systemUiController = rememberSystemUiController()
     val context = LocalContext.current as Activity
     val view = LocalView.current
@@ -115,8 +117,6 @@ fun UserProfileScreen(
         followersCount = userDetails?.followers?.size ?: 0
         followingCount = userDetails?.following?.size ?: 0
     }
-
-    val posts by shareViewModel.userPosts.collectAsState()
 
     val launcher =
         rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
@@ -261,10 +261,10 @@ fun UserProfileScreen(
 
                 // Grid height'i kontrol ederek boş alanı kaplama
                 PostGrid(
-                    posts = posts.mapNotNull { it.imageUrl },
+                    posts = sortedPosts.mapNotNull { it.imageUrl },
                     userId = currentUser?.uid ?: "",
                     navController = navController,
-                    gridHeight = 500.dp // İstediğiniz yüksekliği buradan ayarlayabilirsiniz
+                    gridHeight = 500.dp // Grid yüksekliğini ayarlayın
                 )
             }
         }
@@ -305,7 +305,7 @@ fun PostGrid(posts: List<String>, userId: String, navController: NavHostControll
                         }
                 ) {
                     AsyncImage(
-                        model = posts[posts.size -1 -index],
+                        model = posts[index],  // Ters sırayla göstermeye gerek yok çünkü sortedByDescending yapıldı
                         contentDescription = "Post",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
