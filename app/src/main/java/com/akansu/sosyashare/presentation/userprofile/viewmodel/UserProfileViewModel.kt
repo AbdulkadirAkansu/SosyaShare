@@ -25,13 +25,31 @@ class UserProfileViewModel @Inject constructor(
     private val _isFollowing = MutableStateFlow(false)
     val isFollowing: StateFlow<Boolean> get() = _isFollowing
 
+    private val _user = MutableStateFlow<User?>(null)
+    val user: StateFlow<User?> get() = _user
+
     private val _profilePictureUrl = MutableStateFlow<String?>(null)
     val profilePictureUrl: StateFlow<String?> get() = _profilePictureUrl
+
     private val _backgroundImageUrl = MutableStateFlow<String?>(null)
     val backgroundImageUrl: StateFlow<String?> get() = _backgroundImageUrl
 
+    fun loadCurrentUser(userId: String) {
+        viewModelScope.launch {
+            val user = userRepository.getUserById(userId).firstOrNull()
+            _user.value = user
+            _profilePictureUrl.value = user?.profilePictureUrl
+            _backgroundImageUrl.value = user?.backgroundImageUrl
+        }
+    }
+
+
     // Profil resmi yükleme işlemi
-    fun uploadProfilePicture(file: File, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit) {
+    fun uploadProfilePicture(
+        file: File,
+        onSuccess: (String) -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
         viewModelScope.launch {
             try {
                 val url = storageRepository.uploadProfilePicture(file)
@@ -44,7 +62,11 @@ class UserProfileViewModel @Inject constructor(
         }
     }
 
-    fun uploadBackgroundImage(file: File, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit) {
+    fun uploadBackgroundImage(
+        file: File,
+        onSuccess: (String) -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
         viewModelScope.launch {
             try {
                 val url = storageRepository.uploadBackgroundImage(file)
@@ -56,7 +78,6 @@ class UserProfileViewModel @Inject constructor(
             }
         }
     }
-
 
 
     fun updateBackgroundImageUrl(newUrl: String) {
@@ -85,7 +106,8 @@ class UserProfileViewModel @Inject constructor(
         viewModelScope.launch {
             val user = userRepository.getUserById(userId).firstOrNull()
             user?.let {
-                _backgroundImageUrl.value = it.backgroundImageUrl  // Ensure the background image URL is set
+                _backgroundImageUrl.value =
+                    it.backgroundImageUrl  // Ensure the background image URL is set
             }
             onResult(user)
         }

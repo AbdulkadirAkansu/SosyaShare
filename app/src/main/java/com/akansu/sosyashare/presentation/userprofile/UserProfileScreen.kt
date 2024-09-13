@@ -69,8 +69,6 @@ fun UserProfileScreen(
     var followersCount by remember { mutableIntStateOf(userDetails?.followers?.size ?: 0) }
     var followingCount by remember { mutableIntStateOf(userDetails?.following?.size ?: 0) }
     val systemUiController = rememberSystemUiController()
-
-    // Status bar'ı şeffaf yap ve arka plan görüntüsüyle birleştir
     val context = LocalContext.current as Activity
     val view = LocalView.current
 
@@ -88,6 +86,12 @@ fun UserProfileScreen(
             profileViewModel.getUserDetails(userId) {
                 userDetails = it
             }
+        }
+    }
+
+    LaunchedEffect(currentUser?.uid) {
+        currentUser?.uid?.let { userId ->
+            profileViewModel.loadCurrentUser(userId)
         }
     }
 
@@ -186,12 +190,11 @@ fun UserProfileScreen(
             )
         },
         containerColor = MaterialTheme.colorScheme.background
-    ) { paddingValues -> // paddingValues burada kullanılıyor
+    ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues) // Scaffold padding değerleri burada kullanılıyor
-                .padding(bottom = 72.dp) // Ekstra padding de eklenebilir
+                .padding(bottom = paddingValues.calculateBottomPadding() + 72.dp)
         ) {
             item {
                 BackgroundWithProfile(
@@ -236,7 +239,6 @@ fun UserProfileScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // "Posts" başlığı ve en sağında postCount
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -257,25 +259,28 @@ fun UserProfileScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
+                // Grid height'i kontrol ederek boş alanı kaplama
                 PostGrid(
                     posts = posts.mapNotNull { it.imageUrl },
                     userId = currentUser?.uid ?: "",
                     navController = navController,
-                    gridHeight = 500.dp
+                    gridHeight = 500.dp // İstediğiniz yüksekliği buradan ayarlayabilirsiniz
                 )
             }
         }
     }
 }
+
+
 @Composable
 fun PostGrid(posts: List<String>, userId: String, navController: NavHostController, gridHeight: Dp) {
     LazyVerticalGrid(
-        columns = GridCells.Fixed(3),  // 3 sütunlu grid
+        columns = GridCells.Fixed(3),
         modifier = Modifier
             .fillMaxWidth()
-            .height(gridHeight),  // Sabit yükseklik
+            .height(gridHeight),
         contentPadding = PaddingValues(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),  // Hücreler arası boşluk
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         if (posts.isEmpty()) {
@@ -300,7 +305,7 @@ fun PostGrid(posts: List<String>, userId: String, navController: NavHostControll
                         }
                 ) {
                     AsyncImage(
-                        model = posts[posts.size - 1 - index],
+                        model = posts[posts.size -1 -index],
                         contentDescription = "Post",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
@@ -330,7 +335,12 @@ fun ActionButtons(navController: NavHostController) {
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer
             )
         ) {
-            Text("Edit Profile")
+            Text(
+                "Edit Profile",
+                fontFamily = poppinsFontFamily,
+                fontWeight = FontWeight.Medium,
+                fontSize = 16.sp // İstediğiniz boyutta ayarlayabilirsiniz
+            )
         }
         Button(
             onClick = { /* TODO: Share functionality */ },
@@ -343,7 +353,12 @@ fun ActionButtons(navController: NavHostController) {
                 contentColor = MaterialTheme.colorScheme.onTertiaryContainer
             )
         ) {
-            Text("Share Profile")
+            Text(
+                "Share Profile",
+                fontFamily = poppinsFontFamily,
+                fontWeight = FontWeight.Medium,
+                fontSize = 16.sp
+            )
         }
     }
 }
@@ -360,14 +375,15 @@ fun ProfileInfo(username: String, bio: String) {
         Text(
             text = username,
             fontWeight = FontWeight.Bold,
-            fontSize = 22.sp,
             fontFamily = poppinsFontFamily,
+            fontSize = 22.sp,
             color = MaterialTheme.colorScheme.onBackground
         )
         Text(
             text = bio,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontFamily = poppinsFontFamily,
+            fontWeight = FontWeight.Normal,
             maxLines = 3,
             overflow = TextOverflow.Ellipsis
         )
@@ -383,7 +399,10 @@ fun BackgroundWithProfile(
     onBackClick: () -> Unit,
     onSettingsClick: () -> Unit
 ) {
-    Box {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+    ) {
         // Arka plan resmi
         Card(
             shape = RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp),
@@ -445,11 +464,16 @@ fun StatColumn(count: String, label: String, onClick: () -> Unit) {
         Text(
             count,
             fontWeight = FontWeight.Bold,
-            fontSize = 18.sp,
             fontFamily = poppinsFontFamily,
+            fontSize = 18.sp,
             color = MaterialTheme.colorScheme.onBackground
         )
-        Text(label, fontFamily = poppinsFontFamily, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f))
+        Text(
+            label,
+            fontFamily = poppinsFontFamily,
+            fontWeight = FontWeight.Normal,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+        )
     }
 }
 

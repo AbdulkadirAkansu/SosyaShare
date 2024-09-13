@@ -14,6 +14,7 @@ import com.akansu.sosyashare.domain.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -48,6 +49,9 @@ class ProfileViewModel @Inject constructor(
     private val _following = MutableStateFlow<List<User>>(emptyList())
     val following: StateFlow<List<User>> = _following
 
+    private val _backgroundImageUrl = MutableStateFlow<String?>(null)
+    val backgroundImageUrl: StateFlow<String?> = _backgroundImageUrl
+
     init {
         loadCurrentUser()
     }
@@ -71,6 +75,10 @@ class ProfileViewModel @Inject constructor(
                 val isPrivate = userPrivacyService.fetchIsPrivateDirectly(userId)
                 _isPrivateAccount.value = isPrivate
                 Log.d("ProfileViewModel", "isPrivateAccount for $userId is $isPrivate")
+                val user = userRepository.getUserById(userId).firstOrNull()
+                _userDetails.value = user
+
+                _backgroundImageUrl.value = user?.backgroundImageUrl
 
                 _isFollowing.value = userRepository.checkIfFollowing(currentUserId, userId)
                 Log.d("ProfileViewModel", "isFollowing for $userId by $currentUserId is ${_isFollowing.value}")
@@ -162,6 +170,17 @@ class ProfileViewModel @Inject constructor(
             }
         }
     }
+
+    suspend fun fetchUserDetailsByIds(userIds: List<String>): List<User> {
+        return userIds.mapNotNull { userId ->
+            userRepository.getUserById(userId).firstOrNull()
+        }
+    }
+
+    suspend fun getUserById(userId: String): User? {
+        return userRepository.getUserById(userId).firstOrNull()
+    }
+
 
     fun unblockUser(currentUserId: String, blockedUserId: String) {
         viewModelScope.launch {

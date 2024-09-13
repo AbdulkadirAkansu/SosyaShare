@@ -76,7 +76,6 @@ fun NavigationBar(
     val context = LocalContext.current
 
     // Galeri launcher
-// Galeri launcher
     val openDocumentLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
             uri?.let {
@@ -84,17 +83,14 @@ fun NavigationBar(
                     it,
                     Intent.FLAG_GRANT_READ_URI_PERMISSION
                 )
-                // Seçilen resmi PostCreation'a yönlendir, burada URI'yi encode ediyoruz
                 navController.navigate("post_creation?imageUri=${Uri.encode(it.toString())}")
             }
         }
-
 
     // Kamera launcher
     val cameraLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
             if (success) {
-                // Çekilen fotoğrafı PostCreation'a yönlendir
                 navController.navigate("post_creation?imageUri=$selectedImageUri")
             }
         }
@@ -107,24 +103,24 @@ fun NavigationBar(
         return FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
     }
 
+    // Navigation Bar'ın düzenlemesi
     Box(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp) // Yanlardan padding verdik
-            .padding(bottom = 16.dp) // Alt tarafa da padding verdik
-            .offset(y = 15.dp)
+            .padding(bottom = 8.dp) // Alt tarafa daha küçük padding verdik
     ) {
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(65.dp)
+                .height(56.dp) // Card yüksekliği 65 dp'den 56 dp'ye indirildi
                 .align(Alignment.BottomCenter),  // Sabit alt pozisyon
             shape = RoundedCornerShape(30.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background)
         ) {
             Row(
                 modifier = Modifier
-                    .padding(horizontal = 35.dp, vertical = 12.dp)
+                    .padding(horizontal = 24.dp, vertical = 8.dp) // Daha dar padding kullanıldı
                     .fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
@@ -139,18 +135,18 @@ fun NavigationBar(
                     icon = R.drawable.search,
                     contentDescription = "Search",
                     onClick = { navController.navigate("search") },
-                    iconSize = 33.dp,  // Search ikonu biraz daha büyük
-                    modifier = Modifier.padding(start = 15.dp) // Search ikonunu sağa kaydırıyoruz
+                    iconSize = 30.dp,  // Search ikonu 33 dp'den 30 dp'ye indirildi
+                    modifier = Modifier.padding(start = 12.dp)
                 )
 
                 IconButton(
                     onClick = { isMenuExtended.value = !isMenuExtended.value },
-                    modifier = Modifier.size(56.dp)
+                    modifier = Modifier.size(50.dp) // Orta buton boyutu küçültüldü
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.more),
                         contentDescription = "More",
-                        modifier = Modifier.size(28.dp),
+                        modifier = Modifier.size(26.dp),
                     )
                 }
 
@@ -158,7 +154,7 @@ fun NavigationBar(
                     icon = R.drawable.trend,
                     contentDescription = "Trend",
                     onClick = { navController.navigate("trend") },
-                    modifier = Modifier.padding(end = 15.dp) // Trend ikonunu sola kaydırıyoruz
+                    modifier = Modifier.padding(end = 12.dp)
                 )
 
                 Image(
@@ -196,6 +192,7 @@ fun NavigationBar(
         }
     }
 }
+
 
 @Composable
 fun ModernFabGroup(

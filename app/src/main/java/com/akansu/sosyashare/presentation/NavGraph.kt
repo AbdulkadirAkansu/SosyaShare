@@ -80,7 +80,7 @@ fun NavGraph(navController: NavHostController, authViewModel: AuthViewModel, use
             arguments = listOf(navArgument("userId") { type = NavType.StringType })
         ) { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId")
-            ProfileScreen(navController = navController, userId = userId)
+            ProfileScreen(navController = navController, userId = userId, userViewModel = hiltViewModel())
         }
         composable(
             route = "userprofile",

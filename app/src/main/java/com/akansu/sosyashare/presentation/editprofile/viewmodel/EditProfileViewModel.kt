@@ -7,6 +7,7 @@ import com.akansu.sosyashare.domain.model.Post
 import com.akansu.sosyashare.domain.model.User
 import com.akansu.sosyashare.domain.repository.AuthRepository
 import com.akansu.sosyashare.domain.repository.PostRepository
+import com.akansu.sosyashare.domain.repository.StorageRepository
 import com.akansu.sosyashare.domain.repository.UserRepository
 import com.google.firebase.storage.FirebaseStorage
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import java.io.File
 import java.util.*
 import javax.inject.Inject
 
@@ -22,7 +24,8 @@ import javax.inject.Inject
 class EditProfileViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val userRepository: UserRepository,
-    private val postRepository: PostRepository
+    private val postRepository: PostRepository,
+    private val storageRepository: StorageRepository
 ) : ViewModel() {
 
     private val _user = MutableStateFlow<User?>(null)
@@ -48,6 +51,9 @@ class EditProfileViewModel @Inject constructor(
 
     private val _canChangeUsername = MutableStateFlow(true)
     val canChangeUsername: StateFlow<Boolean> get() = _canChangeUsername
+
+    private val _backgroundImageUrl = MutableStateFlow<String?>(null)
+    val backgroundImageUrl: StateFlow<String?> get() = _backgroundImageUrl
 
     private var initialUsername = ""
     private var initialBio = ""
@@ -82,15 +88,64 @@ class EditProfileViewModel @Inject constructor(
         return lastChange == null || Date().time - lastChange.time > 7 * 24 * 60 * 60 * 1000L
     }
 
-    fun updateProfilePicture(uri: Uri) {
+    fun uploadProfilePicture(
+        file: File,
+        onSuccess: (String) -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
         viewModelScope.launch {
             try {
-                val url = userRepository.uploadProfilePicture(uri)
+                val url = storageRepository.uploadProfilePicture(file)
                 _profilePictureUrl.value = url
-                _user.value = _user.value?.copy(profilePictureUrl = url)
-                _successMessage.value = "Profil resmi başarıyla güncellendi."
+                saveProfilePictureUrlToDatabase(url)
+                onSuccess(url)
             } catch (e: Exception) {
-                _errorMessage.value = "Profil resmi güncellenemedi: ${e.message}"
+                onFailure(e)
+            }
+        }
+    }
+
+    fun uploadBackgroundImage(
+        file: File,
+        onSuccess: (String) -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                val url = storageRepository.uploadBackgroundImage(file)
+                _backgroundImageUrl.value = url
+                saveBackgroundImageUrlToDatabase(url)
+                onSuccess(url)
+            } catch (e: Exception) {
+                onFailure(e)
+            }
+        }
+    }
+
+    fun updateProfilePictureUrl(newUrl: String) {
+        _profilePictureUrl.value = newUrl
+        saveProfilePictureUrlToDatabase(newUrl)
+    }
+
+    fun updateBackgroundImageUrl(newUrl: String) {
+        _backgroundImageUrl.value = newUrl
+        saveBackgroundImageUrlToDatabase(newUrl)
+    }
+
+    private fun saveProfilePictureUrlToDatabase(url: String) {
+        viewModelScope.launch {
+            val userId = userRepository.getCurrentUserId()
+            userId?.let {
+                userRepository.updateUserProfilePicture(it, url)
+            }
+        }
+    }
+
+    private fun saveBackgroundImageUrlToDatabase(url: String) {
+        viewModelScope.launch {
+            val userId = userRepository.getCurrentUserId()
+            userId?.let {
+                userRepository.updateBackgroundImageUrl(it, url)
             }
         }
     }
@@ -167,5 +222,5 @@ class EditProfileViewModel @Inject constructor(
             }
         }
     }
- }
+}
 
