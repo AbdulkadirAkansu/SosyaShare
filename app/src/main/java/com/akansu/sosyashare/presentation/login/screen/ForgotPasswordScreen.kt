@@ -1,17 +1,23 @@
 package com.akansu.sosyashare.presentation.login.screen
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -29,68 +35,70 @@ fun ForgotPasswordScreen(navController: NavController, viewModel: AuthViewModel 
     var successMessage by remember { mutableStateOf<String?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    BoxWithConstraints(
-        modifier = Modifier
-            .fillMaxSize()
-    ) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val screenHeight = maxHeight
 
-        Image(
-            painter = painterResource(id = R.drawable.pic7),
-            contentDescription = "Forgot Password Background",
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
+        // Background gradient
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(Color(0xFF1A237E), Color(0xFF3949AB))
+                    )
+                )
         )
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Top,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(24.dp)
         ) {
-            Spacer(modifier = Modifier.height(screenHeight * 0.05f))
+            Spacer(modifier = Modifier.height(screenHeight * 0.1f))
 
             Text(
                 text = "Forgot Password",
-                fontSize = (screenHeight * 0.05f).value.sp,
+                fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
                 fontFamily = poppinsFontFamily
             )
 
-            Spacer(modifier = Modifier.height(screenHeight * 0.01f))
-
             Text(
                 text = "Enter your email to reset your password",
-                fontSize = (screenHeight * 0.025f).value.sp,
-                color = Color.White,
-                fontFamily = poppinsFontFamily
+                fontSize = 16.sp,
+                color = Color.White.copy(alpha = 0.8f),
+                fontFamily = poppinsFontFamily,
+                textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(screenHeight * 0.07f))
+            Spacer(modifier = Modifier.height(32.dp))
 
-            Surface(
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = { Text("Email", color = Color.White.copy(alpha = 0.8f)) },
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    focusedBorderColor = Color.White,
+                    unfocusedBorderColor = Color.White.copy(alpha = 0.6f),
+                    focusedLabelColor = Color.White,
+                    unfocusedLabelColor = Color.White.copy(alpha = 0.6f),
+                ),
+                modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
-                color = Color.White,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-            ) {
-                TextField(
-                    value = email,
-                    onValueChange = { email = it },
-                    label = { Text("Email", fontFamily = poppinsFontFamily) },
-                    colors = TextFieldDefaults.textFieldColors(
-                        focusedIndicatorColor = Color(0xFF0D47A1),
-                        unfocusedIndicatorColor = Color(0xFF0D47A1),
-                        cursorColor = Color(0xFF0D47A1)
-                    ),
-                    textStyle = LocalTextStyle.current.copy(fontFamily = poppinsFontFamily, fontSize = (screenHeight * 0.018f).value.sp)
-                )
-            }
+                textStyle = LocalTextStyle.current.copy(fontFamily = poppinsFontFamily),
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Email,
+                        contentDescription = "Email Icon",
+                        tint = Color.White
+                    )
+                }
+            )
 
-            Spacer(modifier = Modifier.height(screenHeight * 0.03f))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Button(
                 onClick = {
@@ -100,40 +108,51 @@ fun ForgotPasswordScreen(navController: NavController, viewModel: AuthViewModel 
                         errorMessage = exception.message
                     })
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0D47A1)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.White),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+                    .height(56.dp),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Reset Password", fontSize = (screenHeight * 0.025f).value.sp, color = Color.White, fontFamily = poppinsFontFamily)
+                Text(
+                    "Reset Password",
+                    fontSize = 18.sp,
+                    color = Color(0xFF3949AB),
+                    fontFamily = poppinsFontFamily,
+                    fontWeight = FontWeight.Bold
+                )
             }
 
-            Spacer(modifier = Modifier.height(screenHeight * 0.02f))
-
-            SuccessMessage(successMessage)
-            ErrorMessage(errorMessage)
+            AnimatedVisibility(visible = successMessage != null || errorMessage != null) {
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (successMessage != null) Color(0xFF4CAF50) else Color(0xFFE57373)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = successMessage ?: errorMessage ?: "",
+                        color = Color.White,
+                        modifier = Modifier.padding(16.dp),
+                        fontFamily = poppinsFontFamily
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.weight(1f))
 
-            OutlinedButton(
-                onClick = {
-                    navController.navigate("login")
-                },
-                shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = Color.Transparent,
-                    contentColor = Color(0xFF0D47A1)
-                ),
-                border = BorderStroke(1.dp, Color(0xFF0D47A1)),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
+            TextButton(
+                onClick = { navController.navigate("login") },
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Back to Login", fontSize = (screenHeight * 0.025f).value.sp, color = Color(0xFF0D47A1), fontFamily = poppinsFontFamily)
+                Text(
+                    "Back to Login",
+                    fontSize = 16.sp,
+                    color = Color.White,
+                    fontFamily = poppinsFontFamily
+                )
             }
-
-            Spacer(modifier = Modifier.height(screenHeight * 0.03f))
         }
     }
 }

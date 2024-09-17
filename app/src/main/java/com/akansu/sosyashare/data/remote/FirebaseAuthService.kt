@@ -16,6 +16,8 @@ class FirebaseAuthService @Inject constructor(
     suspend fun registerUser(email: String, password: String, username: String): UserEntity {
         val authResult = auth.createUserWithEmailAndPassword(email, password).await()
         val userId = authResult.user?.uid ?: throw Exception("User ID is null")
+
+        // Create the user document in Firestore
         val userMap = mapOf(
             "username" to username,
             "email" to email,
@@ -24,8 +26,18 @@ class FirebaseAuthService @Inject constructor(
             "followers" to emptyList<String>()
         )
         firestore.collection("users").document(userId).set(userMap).await()
-        return UserEntity(id = userId, username = username, email = email)
+
+        // Create the user_privacy document for the new user
+        val privacyMap = mapOf(
+            "userId" to userId,
+            "isPrivate" to false,
+            "allowedFollowers" to emptyList<String>()
+        )
+        firestore.collection("user_privacy").document(userId).set(privacyMap).await()
+
+        return UserEntity(id = userId, username = username, email = email, profilePictureUrl = null)
     }
+
 
     suspend fun getUserDetails(userId: String): UserEntity? {
         val document = firestore.collection("users").document(userId).get().await()

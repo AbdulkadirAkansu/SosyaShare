@@ -48,6 +48,9 @@ fun NavGraph(navController: NavHostController, authViewModel: AuthViewModel, use
         composable("login") {
             LoginScreen(navController = navController)
         }
+        composable("sign_in") {
+            SingInScreen(navController = navController)
+        }
         composable("saved_posts") {
             SavedPostsScreen(navController = navController)
         }

@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
@@ -30,6 +31,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -55,7 +57,7 @@ fun SplashScreen(navController: NavController, authViewModel: AuthViewModel? = n
     LaunchedEffect(Unit) {
         delay(500)
         showContent = true
-        delay(120000)
+        delay(150000)
         val startDestination = if (authViewModel?.isUserLoggedIn() == true) "home" else "login"
         navController.navigate(startDestination) {
             popUpTo("splash") { inclusive = true }
@@ -63,139 +65,177 @@ fun SplashScreen(navController: NavController, authViewModel: AuthViewModel? = n
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Video arka planı ve karartma efekti
+        // Video background
         VideoBackgroundPlayerWithSurfaceView(videoUri = videoUri)
+
+        // Darken the video slightly for better readability
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.7f)) // Yarı saydam karartma efekti
+                .background(Color.Black.copy(alpha = 0.6f))
         )
 
-        // UI Bileşenleri yukarıya kaydırıldı
+        // Enhanced bubble animation
+        BubbleAnimation()
+
         AnimatedVisibility(
             visible = showContent,
-            enter = fadeIn() + expandVertically(expandFrom = Alignment.CenterVertically)
+            enter = fadeIn(animationSpec = tween(1000)) + expandVertically(expandFrom = Alignment.Top)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp)
-                    .padding(top = 80.dp), // Hafif yukarı kaydırma
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Top // En üste kaydırıldı
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Logoyu gösterecek bölüm
-                PulsatingLogo()
-                Spacer(modifier = Modifier.height(40.dp))
+                // Logo stays at the top, no change in its position
+                OptimizedLogo(modifier = Modifier.padding(top = 104.dp))
 
-                // Ana başlık (Daha profesyonel metin stili)
-                AnimatedText(
-                    "Capture, Share & Connect",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 30.sp, // Metin boyutları daha modern
-                        color = Color.White,
-                        fontFamily = poppinsFontFamily,
-                        letterSpacing = 1.2.sp // Biraz daha geniş aralık
-                    ),
-                    textAlign = TextAlign.Center
-                )
+                // Text content, shifted upwards
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Top, // Yazıları yukarıya hizalar
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(top = 150.dp) // Yazıları daha yukarı almak için padding ekledim
+                ) {
+                    // Main title
+                    AnimatedText(
+                        "Capture, Share & Connect",
+                        style = MaterialTheme.typography.headlineLarge.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 36.sp,
+                            color = Color.White,
+                            letterSpacing = 1.5.sp
+                        ),
+                        textAlign = TextAlign.Center
+                    )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(8.dp)) // Daha küçük boşluk
 
-                // Alt başlık (Daha net bir açıklama)
-                AnimatedSubtitle(
-                    "Join a global community. Discover stories, create moments, and engage with people everywhere.",
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 18.sp, // Daha uyumlu boyut
-                        color = Color.White.copy(alpha = 0.85f),
-                        fontFamily = poppinsFontFamily,
-                        lineHeight = 24.sp // Daha net bir okuma deneyimi
-                    ),
-                    textAlign = TextAlign.Center
+                    // Subtitle
+                    AnimatedSubtitle(
+                        "Join a global community. Discover stories, create moments, and engage with people everywhere.",
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 18.sp,
+                            color = Color.White.copy(alpha = 0.85f),
+                            lineHeight = 24.sp
+                        ),
+                        textAlign = TextAlign.Center
+                    )
+                }
+
+                // Button stays at the bottom
+                AnimatedStartButton(
+                    text = "Get Started",
+                    onClick = {
+                        val destination = if (authViewModel?.isUserLoggedIn() == true) "home" else "login"
+                        navController.navigate(destination) {
+                            popUpTo("splash") { inclusive = true }
+                        }
+                    },
+                    modifier = Modifier.padding(bottom = 32.dp)
                 )
             }
-        }
-
-        // Başlangıç butonu (buton boyutları ve animasyonu modernize edildi)
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            contentAlignment = Alignment.BottomCenter
-        ) {
-            AnimatedStartButton(
-                text = "Get Started",
-                onClick = {
-                    val destination = if (authViewModel?.isUserLoggedIn() == true) "home" else "login"
-                    navController.navigate(destination) {
-                        popUpTo("splash") { inclusive = true }
-                    }
-                },
-                modifier = Modifier.padding(bottom = 32.dp)
-            )
         }
     }
 }
 
 @Composable
-fun PulsatingLogo() {
-    val infiniteTransition = rememberInfiniteTransition()
-
-    // Ölçek animasyonu (Logo büyüyüp küçülür)
-    val scale by infiniteTransition.animateFloat(
-        initialValue = 0.9f,
+fun OptimizedLogo(modifier: Modifier = Modifier) {
+    val scaleAnimation = rememberInfiniteTransition().animateFloat(
+        initialValue = 1f,
         targetValue = 1.1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = LinearOutSlowInEasing),
+            animation = tween(1500, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         )
     )
 
-    // Parlaklık animasyonu (Logo etrafında hafif parıltı)
-    val glowAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.5f,
-        targetValue = 1f,
+    val rotationAnimation = rememberInfiniteTransition().animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
         animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
+            animation = tween(6000, easing = LinearEasing)
         )
     )
 
     Box(
         contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .size(140.dp)  // Boyut sabit bırakıldı, ölçekle ayarlandı
-            .scale(scale)
-            .background(
-                color = Color.White.copy(alpha = 0.1f),  // Hafif bir arka plan
-                shape = RoundedCornerShape(70.dp)
-            )
-            .graphicsLayer {
-                shadowElevation = 6f  // Hafif gölge efekti
-                shape = RoundedCornerShape(70.dp)
-                clip = true
-            }
+        modifier = modifier
+            .size(150.dp)
+            .scale(scaleAnimation.value)
     ) {
-        // Parıltı efekti (çok hafif bir parlama)
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            drawCircle(
-                color = Color.White.copy(alpha = glowAlpha * 0.2f),
-                radius = size.minDimension / 2.5f,
-                center = center
-            )
+        Canvas(modifier = Modifier.size(150.dp)) {
+            rotate(rotationAnimation.value) {
+                drawCircle(
+                    brush = Brush.sweepGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.7f),
+                            Color.White.copy(alpha = 0.3f),
+                            Color.Transparent
+                        )
+                    ),
+                    radius = size.minDimension / 2,
+                    style = Stroke(width = 8.dp.toPx())
+                )
+            }
         }
-
-        // "S" harfi için sade stil
         Text(
             "S",
             color = Color.White,
-            fontSize = 64.sp, // Boyut sabit
+            fontSize = 80.sp,
             fontWeight = FontWeight.Bold,
-            fontFamily = poppinsFontFamily,
             modifier = Modifier.align(Alignment.Center)
         )
+    }
+}
+
+@Composable
+fun BubbleAnimation() {
+    val bubbleCount = 40
+    val bubbles = remember {
+        List(bubbleCount) {
+            EnhancedBubble(
+                x = Animatable(Random.nextFloat()),
+                y = Animatable(Random.nextFloat()),
+                size = Random.nextInt(10, 40).dp, // Boyutları biraz daha büyük tuttum
+                speed = Random.nextFloat() * 0.015f + 0.005f, // Daha yumuşak ve yavaş hızlar
+                color = Color.White.copy(alpha = Random.nextFloat() * 0.4f + 0.2f) // Sadece beyaz tonları ve saydamlık
+            )
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        bubbles.forEach { bubble ->
+            launch {
+                while (true) {
+                    bubble.y.animateTo(
+                        targetValue = -0.2f,
+                        animationSpec = tween(
+                            durationMillis = (10000..20000).random(),
+                            easing = LinearEasing
+                        )
+                    )
+                    bubble.x.snapTo(Random.nextFloat())
+                    bubble.y.snapTo(1.2f)
+                }
+            }
+        }
+    }
+
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        bubbles.forEach { bubble ->
+            val xPos = bubble.x.value * size.width
+            val yPos = bubble.y.value * size.height
+            drawCircle(
+                color = bubble.color,
+                radius = bubble.size.toPx() / 2,
+                center = Offset(xPos, yPos),
+                style = Stroke(width = 2f) // Daha ince ve modern çerçeve efekti
+            )
+        }
     }
 }
 
@@ -204,7 +244,7 @@ fun AnimatedText(text: String, style: TextStyle, textAlign: TextAlign) {
     var visibleText by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
-        text.forEachIndexed { index, char ->
+        text.forEach { char ->
             visibleText += char
             delay(30)
         }
@@ -213,7 +253,8 @@ fun AnimatedText(text: String, style: TextStyle, textAlign: TextAlign) {
     Text(
         text = visibleText,
         style = style,
-        textAlign = textAlign
+        textAlign = textAlign,
+        modifier = Modifier.fillMaxWidth()
     )
 }
 
@@ -222,7 +263,7 @@ fun AnimatedSubtitle(text: String, style: TextStyle, textAlign: TextAlign) {
     var visibleText by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
-        text.forEachIndexed { index, char ->
+        text.forEach { char ->
             visibleText += char
             delay(20)
         }
@@ -231,17 +272,14 @@ fun AnimatedSubtitle(text: String, style: TextStyle, textAlign: TextAlign) {
     Text(
         text = visibleText,
         style = style,
-        textAlign = textAlign
+        textAlign = textAlign,
+        modifier = Modifier.fillMaxWidth(0.8f)
     )
 }
 
 @Composable
 fun AnimatedStartButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    // Infinite transition for animation
-    val infiniteTransition = rememberInfiniteTransition()
-
-    // Scale animation (button grows and shrinks slightly)
-    val scale by infiniteTransition.animateFloat(
+    val buttonScale = rememberInfiniteTransition().animateFloat(
         initialValue = 1f,
         targetValue = 1.05f,
         animationSpec = infiniteRepeatable(
@@ -250,36 +288,28 @@ fun AnimatedStartButton(text: String, onClick: () -> Unit, modifier: Modifier = 
         )
     )
 
-    // Color animation (button color shifts subtly)
-    val buttonColor by infiniteTransition.animateColor(
-        initialValue = Color.White,
-        targetValue = Color(0xFFBBDEFB),
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        )
-    )
-
-    // Animated visibility with scaling effect
-    AnimatedVisibility(
-        visible = true,
-        enter = fadeIn() + expandVertically(expandFrom = Alignment.Bottom)
+    Button(
+        onClick = onClick,
+        modifier = modifier
+            .scale(buttonScale.value)
+            .fillMaxWidth(0.7f)
+            .height(56.dp)
+            .clip(RoundedCornerShape(28.dp)),
+        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFFFFF).copy(alpha = 0.4f))
     ) {
-        Button(
-            onClick = onClick,
-            modifier = modifier
-                .scale(scale) // Apply scale effect to the button
-                .fillMaxWidth(0.6f)
-                .height(50.dp), // Daha uyumlu boyut
-            colors = ButtonDefaults.buttonColors(containerColor = buttonColor), // Color animation applied
-            shape = RoundedCornerShape(16.dp) // Daha modern köşeler
-        ) {
-            Text(
-                text = text,
-                color = Color(0xFF3949AB),
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp // Button metni daha uyumlu hale getirildi
-            )
-        }
+        Text(
+            text = text,
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            fontSize = 18.sp
+        )
     }
 }
+
+data class EnhancedBubble(
+    val x: Animatable<Float, AnimationVector1D>,
+    val y: Animatable<Float, AnimationVector1D>,
+    val size: Dp,
+    val speed: Float,
+    val color: Color
+)

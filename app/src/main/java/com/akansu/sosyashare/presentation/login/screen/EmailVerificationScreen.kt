@@ -29,12 +29,14 @@ import com.akansu.sosyashare.presentation.ui.SuccessMessage
 import com.akansu.sosyashare.util.poppinsFontFamily
 import kotlinx.coroutines.delay
 
+
 @Composable
 fun EmailVerificationScreen(navController: NavController, viewModel: AuthViewModel = hiltViewModel()) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var successMessage by remember { mutableStateOf<String?>(null) }
     var isVerified by remember { mutableStateOf(false) }
-
+    var showSnackbar by remember { mutableStateOf(false) }
+    var snackbarMessage by remember { mutableStateOf("") }
 
     val infiniteTransition = rememberInfiniteTransition()
     val scale by infiniteTransition.animateFloat(
@@ -46,7 +48,22 @@ fun EmailVerificationScreen(navController: NavController, viewModel: AuthViewMod
         )
     )
 
+    // Automatically send email verification on screen load
     LaunchedEffect(Unit) {
+        viewModel.sendEmailVerification(
+            onSuccess = {
+                successMessage = "Verification email sent. Please check your inbox."
+                snackbarMessage = successMessage ?: ""
+                showSnackbar = true
+            },
+            onFailure = { exception ->
+                errorMessage = exception.message
+                snackbarMessage = errorMessage ?: ""
+                showSnackbar = true
+            }
+        )
+
+        // Reload and check verification status every 5 seconds
         while (!isVerified) {
             viewModel.reloadUser(
                 onSuccess = {
@@ -58,6 +75,8 @@ fun EmailVerificationScreen(navController: NavController, viewModel: AuthViewMod
                 },
                 onFailure = { exception ->
                     errorMessage = exception.message
+                    snackbarMessage = errorMessage ?: ""
+                    showSnackbar = true
                 }
             )
             delay(5000)
@@ -127,14 +146,19 @@ fun EmailVerificationScreen(navController: NavController, viewModel: AuthViewMod
 
                 Spacer(modifier = Modifier.height(32.dp))
 
+                // Button to resend the verification email
                 Button(
                     onClick = {
                         viewModel.sendEmailVerification(
                             onSuccess = {
-                                successMessage = "Verification email sent. Please check your inbox."
+                                successMessage = "Verification email sent again. Please check your inbox."
+                                snackbarMessage = successMessage ?: ""
+                                showSnackbar = true
                             },
                             onFailure = { exception ->
                                 errorMessage = exception.message
+                                snackbarMessage = errorMessage ?: ""
+                                showSnackbar = true
                             }
                         )
                     },
@@ -162,10 +186,14 @@ fun EmailVerificationScreen(navController: NavController, viewModel: AuthViewMod
                                     navController.navigate("home")
                                 } else {
                                     errorMessage = "Email not verified. Please check your inbox."
+                                    snackbarMessage = errorMessage ?: ""
+                                    showSnackbar = true
                                 }
                             },
                             onFailure = { exception ->
                                 errorMessage = exception.message
+                                snackbarMessage = errorMessage ?: ""
+                                showSnackbar = true
                             }
                         )
                     },
@@ -183,13 +211,20 @@ fun EmailVerificationScreen(navController: NavController, viewModel: AuthViewMod
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
 
-                AnimatedVisibility(visible = errorMessage != null || successMessage != null) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        ErrorMessage(errorMessage)
-                        SuccessMessage(successMessage)
+        if (showSnackbar) {
+            Snackbar(
+                action = {
+                    TextButton(onClick = { showSnackbar = false }) {
+                        Text("OK", color = Color.White)
                     }
-                }
+                },
+                modifier = Modifier.padding(16.dp),
+                containerColor = Color(0xFF3949AB)
+            ) {
+                Text(text = snackbarMessage, color = Color.White)
             }
         }
     }

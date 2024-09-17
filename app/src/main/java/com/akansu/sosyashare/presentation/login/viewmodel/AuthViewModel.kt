@@ -38,6 +38,14 @@ class AuthViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             try {
+                // Önce kullanıcı adının benzersiz olup olmadığını kontrol et
+                val isUnique = authRepository.isUsernameUnique(username)
+                if (!isUnique) {
+                    onFailure(Exception("This username is already taken. Please choose a different one."))
+                    return@launch
+                }
+
+                // Kullanıcı adı benzersizse, kayıt işlemini gerçekleştir
                 authRepository.registerUser(email, password, username)
                 onSuccess()
             } catch (e: Exception) {
