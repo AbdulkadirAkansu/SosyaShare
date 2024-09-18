@@ -44,9 +44,22 @@ class MessageViewModel @Inject constructor(
     private val _recentMessagesUpdated = MutableStateFlow(false)
     val recentMessagesUpdated: StateFlow<Boolean> = _recentMessagesUpdated
 
+    private val _messages = MutableStateFlow<List<Message>>(emptyList())
+    val messages: StateFlow<List<Message>> = _messages
+
+
     init {
         loadCurrentUserIdAndUsername()
     }
+
+    fun listenForMessages(chatId: String) {
+        Log.d("MessageViewModel", "Listening for messages in chatId: $chatId")
+        messageRepository.listenForMessages(chatId) { newMessages ->
+            _messages.value = newMessages  // StateFlow'u güncelle
+            Log.d("MessageViewModel", "New messages received: $newMessages")
+        }
+    }
+
 
     private fun loadCurrentUserIdAndUsername() {
         viewModelScope.launch {
@@ -61,6 +74,7 @@ class MessageViewModel @Inject constructor(
             }
         }
     }
+
 
     fun searchChatsByUsername(username: String) {
         viewModelScope.launch {

@@ -6,6 +6,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material3.*
@@ -17,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -80,6 +82,9 @@ fun ForgotPasswordScreen(navController: NavController, viewModel: AuthViewModel 
                 value = email,
                 onValueChange = { email = it },
                 label = { Text("Email", color = Color.White.copy(alpha = 0.8f)) },
+                singleLine = true,
+                maxLines = 1,
+                keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
                 colors = TextFieldDefaults.outlinedTextFieldColors(
                     focusedBorderColor = Color.White,
                     unfocusedBorderColor = Color.White.copy(alpha = 0.6f),

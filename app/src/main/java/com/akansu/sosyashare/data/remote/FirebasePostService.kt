@@ -2,6 +2,7 @@ package com.akansu.sosyashare.data.remote
 
 import android.util.Log
 import com.akansu.sosyashare.data.model.PostEntity
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.tasks.await
@@ -11,12 +12,18 @@ class FirebasePostService @Inject constructor(
     private val firebaseStorage: FirebaseStorage
 ) {
     private val firestore = FirebaseFirestore.getInstance()
+    private val auth = FirebaseAuth.getInstance()
 
     suspend fun getUserPosts(userId: String): List<PostEntity> {
+        val currentUser = auth.currentUser
+        if (currentUser == null) {
+            throw Exception("Giriş yapmamış kullanıcı.")
+        }
         val postsRef = firestore.collection("posts").whereEqualTo("userId", userId)
         val result = postsRef.get().await()
         return result.toObjects(PostEntity::class.java)
     }
+
 
     suspend fun createPost(userId: String, post: PostEntity) {
         val postRef = firestore.collection("posts")

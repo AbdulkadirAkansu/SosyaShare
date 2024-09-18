@@ -18,7 +18,6 @@ interface UserRepository {
     suspend fun uploadProfilePicture(uri: Uri): String
     suspend fun uploadPostPicture(uri: Uri): String
     suspend fun deletePost(userId: String, postId: String, postImageUrl: String)
-    suspend fun registerUser(email: String, password: String, username: String)
     suspend fun getUserDetails(userId: String): User?
     suspend fun syncAllUsers()
     suspend fun isUsernameUnique(username: String): Boolean

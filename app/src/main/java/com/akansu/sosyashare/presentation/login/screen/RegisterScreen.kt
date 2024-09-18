@@ -5,6 +5,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -13,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -98,6 +100,8 @@ fun RegisterScreen(navController: NavController, viewModel: AuthViewModel = hilt
                         }
                     },
                     label = { Text("Username", fontFamily = poppinsFontFamily) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
                     colors = TextFieldDefaults.textFieldColors(
                         focusedIndicatorColor = Color(0xFF0D47A1),
                         unfocusedIndicatorColor = Color(0xFF0D47A1),
@@ -121,6 +125,9 @@ fun RegisterScreen(navController: NavController, viewModel: AuthViewModel = hilt
                     value = email,
                     onValueChange = { email = it },
                     label = { Text("Email", fontFamily = poppinsFontFamily) },
+                    singleLine = true,
+                    maxLines = 1,
+                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
                     colors = TextFieldDefaults.textFieldColors(
                         focusedIndicatorColor = Color(0xFF0D47A1),
                         unfocusedIndicatorColor = Color(0xFF0D47A1),
@@ -144,6 +151,9 @@ fun RegisterScreen(navController: NavController, viewModel: AuthViewModel = hilt
                     value = password,
                     onValueChange = { password = it },
                     label = { Text("Password", fontFamily = poppinsFontFamily) },
+                    singleLine = true,
+                    maxLines = 1,
+                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
                         val image = if (passwordVisible)

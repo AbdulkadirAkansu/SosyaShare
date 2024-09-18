@@ -76,9 +76,9 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun getUserDetails(userId: String, onResult: (UserEntity?) -> Unit) {
+    fun getUserDetails(onResult: (UserEntity?) -> Unit) {
         viewModelScope.launch {
-            val userDetails = authRepository.getUserDetails(userId)
+            val userDetails = authRepository.getUserDetails()
             onResult(userDetails)
         }
     }
@@ -94,6 +94,36 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    fun updateEmailVerifiedStatus(userId: String) {
+        viewModelScope.launch {
+            try {
+                authRepository.updateEmailVerifiedStatus(userId)
+            } catch (e: Exception) {
+            }
+        }
+    }
+
+
+    fun reloadUserAndCheckVerification(onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
+        viewModelScope.launch {
+            try {
+                authRepository.reloadUser()
+                val currentUser = authRepository.getCurrentUser()
+
+                if (currentUser?.isEmailVerified == true) {
+                    // Email doğrulandıysa, Firestore'da güncelle
+                    authRepository.updateEmailVerifiedStatus(currentUser.uid)
+                    onSuccess()
+                } else {
+                    throw Exception("Email not verified")
+                }
+            } catch (e: Exception) {
+                onFailure(e)
+            }
+        }
+    }
+
+
     fun loginUser(
         email: String,
         password: String,
@@ -103,10 +133,10 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 authRepository.loginUser(email, password)
-                authRepository.reloadUser()
-                authRepository.syncAllUsers() // Kullanıcı verilerini senkronize et
-                val user = authRepository.getCurrentUser()
-                if (user?.isEmailVerified == true) {
+                val currentUser = authRepository.getCurrentUser()
+
+                // Email doğrulandı mı diye kontrol et
+                if (currentUser?.isEmailVerified == true) {
                     saveLoginState(true)
                     onSuccess()
                 } else {

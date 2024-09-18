@@ -114,16 +114,16 @@ class FirebaseMessageService @Inject constructor(
     }
 
     fun listenForMessages(chatId: String, onMessagesChanged: (List<MessageEntity>) -> Unit) {
+        Log.d("FirebaseMessageService", "Listening for messages in chatId: $chatId")
         firestore.collection("chats")
             .document(chatId)
             .collection("messages")
             .orderBy("timestamp")
             .addSnapshotListener { snapshot, e ->
                 if (e != null || snapshot == null) {
-                    Log.e("FirebaseMessageService", "listenForMessages - Failed to listen for messages: ${e?.message}")
+                    Log.e("FirebaseMessageService", "Error listening for messages: ${e?.message}")
                     return@addSnapshotListener
                 }
-
                 val messages = snapshot.documents.mapNotNull { it.toObject(MessageEntity::class.java) }
                 onMessagesChanged(messages)
             }
@@ -171,8 +171,7 @@ class FirebaseMessageService @Inject constructor(
     }
 
     suspend fun getRecentChats(userId: String): List<Message> {
-        Log.d("FirebaseMessageService", "getRecentChats - Fetching recent chats for userId: $userId")
-
+        Log.d("FirebaseMessageService", "Fetching recent chats for userId: $userId")
         val chatsSnapshot = firestore.collection("chats")
             .whereArrayContains("participants", userId)
             .orderBy("updatedAt", com.google.firebase.firestore.Query.Direction.DESCENDING)
@@ -180,11 +179,11 @@ class FirebaseMessageService @Inject constructor(
             .await()
 
         val recentChats = mutableListOf<Message>()
+        Log.d("FirebaseMessageService", "Processing chats for userId: $userId")
 
         for (document in chatsSnapshot.documents) {
             val chatId = document.id
-            Log.d("FirebaseMessageService", "getRecentChats - Processing chatId: $chatId")
-
+            Log.d("FirebaseMessageService", "Processing chatId: $chatId")
             val lastMessageDoc = document.reference.collection("messages")
                 .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
                 .limit(1)
@@ -204,13 +203,13 @@ class FirebaseMessageService @Inject constructor(
                         receiverId = lastMessageData["receiverId"] as? String ?: "",
                         isRead = lastMessageData["isRead"] as? Boolean ?: false
                     )
-                    Log.d("FirebaseMessageService", "getRecentChats - Fetched message from chat: $message")
+                    Log.d("FirebaseMessageService", "Fetched message from chat: $message")
                     recentChats.add(message)
                 }
             }
         }
 
-        Log.d("FirebaseMessageService", "getRecentChats - Recent Chats: $recentChats")
+        Log.d("FirebaseMessageService", "Recent chats fetched: $recentChats")
         return recentChats
     }
 

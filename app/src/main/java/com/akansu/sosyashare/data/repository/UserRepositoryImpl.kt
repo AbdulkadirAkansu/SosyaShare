@@ -86,11 +86,6 @@ class UserRepositoryImpl @Inject constructor(
         firebaseUserService.deletePost(userId, postId, postImageUrl)
     }
 
-
-    override suspend fun registerUser(email: String, password: String, username: String) {
-        firebaseUserService.registerUser(email, password, username)
-    }
-
     override suspend fun getUserDetails(userId: String): User? {
         return firebaseUserService.getUserDetails(userId)?.toDomainModel()
     }

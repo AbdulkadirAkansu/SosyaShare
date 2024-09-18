@@ -27,7 +27,9 @@ import com.akansu.sosyashare.presentation.login.viewmodel.AuthViewModel
 import com.akansu.sosyashare.presentation.ui.ErrorMessage
 import com.akansu.sosyashare.presentation.ui.SuccessMessage
 import com.akansu.sosyashare.util.poppinsFontFamily
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 
 
 @Composable
@@ -62,24 +64,21 @@ fun EmailVerificationScreen(navController: NavController, viewModel: AuthViewMod
                 showSnackbar = true
             }
         )
-
-        // Reload and check verification status every 5 seconds
-        while (!isVerified) {
-            viewModel.reloadUser(
-                onSuccess = {
-                    val user = viewModel.getCurrentUser()
-                    if (user?.isEmailVerified == true) {
+        withContext(Dispatchers.IO) {
+            while (!isVerified) {
+                viewModel.reloadUserAndCheckVerification(
+                    onSuccess = {
                         isVerified = true
                         navController.navigate("home")
+                    },
+                    onFailure = { exception ->
+                        errorMessage = exception.message
+                        snackbarMessage = errorMessage ?: ""
+                        showSnackbar = true
                     }
-                },
-                onFailure = { exception ->
-                    errorMessage = exception.message
-                    snackbarMessage = errorMessage ?: ""
-                    showSnackbar = true
-                }
-            )
-            delay(5000)
+                )
+                delay(5000)
+            }
         }
     }
 

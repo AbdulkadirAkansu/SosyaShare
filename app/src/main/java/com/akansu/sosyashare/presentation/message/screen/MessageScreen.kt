@@ -1,6 +1,7 @@
 package com.akansu.sosyashare.presentation.message.screen
 
 import android.annotation.SuppressLint
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -41,28 +42,39 @@ import com.akansu.sosyashare.domain.model.User
 import com.akansu.sosyashare.presentation.home.components.NavigationBar
 import com.akansu.sosyashare.presentation.message.viewmodel.MessageViewModel
 import com.akansu.sosyashare.util.poppinsFontFamily
+import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Locale
+import java.util.TimeZone
 
 @SuppressLint("StateFlowValueCalledInComposition")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MessageScreen(
     navController: NavHostController,
-    viewModel: MessageViewModel = hiltViewModel()
+    viewModel: MessageViewModel = hiltViewModel(),
 ) {
     val recentMessages by viewModel.recentMessages.collectAsState()
+    LaunchedEffect(recentMessages) {
+        Log.d("MessageScreen", "Recent messages updated: $recentMessages")
+    }
     val searchResults by viewModel.searchResults.collectAsState()
     val error by viewModel.error.collectAsState()
     val currentUsername by viewModel.currentUsername.collectAsState()
     val currentUserProfilePictureUrl by viewModel.currentUserProfilePictureUrl.collectAsState()
     val currentUser = currentUsername ?: "Unknown"
+    val messages by viewModel.messages.collectAsState()
 
     var searchQuery by remember { mutableStateOf("") }
     val selectedMessages = remember { mutableStateListOf<Message>() } // Seçilen mesajlar listesi
 
+    // LaunchedEffect to load recent chats and listen for messages in a specific chat
     LaunchedEffect(Unit) {
+        Log.d("MessageScreen", "Starting to load recent chats")
         viewModel.loadRecentChats()
+
+        Log.d("MessageScreen", "Listening for messages in chatId: chatId")
+        viewModel.listenForMessages("chatId")
     }
 
     Scaffold(
@@ -107,7 +119,8 @@ fun MessageScreen(
                     if (selectedMessages.isNotEmpty()) {
                         IconButton(onClick = {
                             selectedMessages.forEach { message ->
-                                val chatId = viewModel.getChatId(message.senderId, message.receiverId)
+                                val chatId =
+                                    viewModel.getChatId(message.senderId, message.receiverId)
                                 viewModel.deleteMessage(chatId, message.id)
                             }
                             selectedMessages.clear() // Tüm seçimi temizle
@@ -173,6 +186,7 @@ fun MessageScreen(
                     .padding(horizontal = 12.dp, vertical = 8.dp)
             )
 
+            // Display messages based on search query
             val displayMessages = if (searchQuery.isEmpty()) recentMessages else searchResults
 
             AnimatedVisibility(
@@ -213,9 +227,12 @@ fun MessageScreen(
                         items(displayMessages) { message ->
                             MessageItem(
                                 message = message,
+                                currentUserId = viewModel.currentUserId.value
+                                    ?: "",  // currentUserId'yi geçiyoruz
                                 onItemClick = {
                                     if (selectedMessages.isEmpty()) {
-                                        val otherUserId = if (message.senderId == viewModel.currentUserId.value) message.receiverId else message.senderId
+                                        val otherUserId =
+                                            if (message.senderId == viewModel.currentUserId.value) message.receiverId else message.senderId
                                         navController.navigate("chat/$otherUserId")
                                     } else {
                                         toggleSelection(message, selectedMessages)
@@ -241,6 +258,7 @@ fun MessageScreen(
 @Composable
 fun MessageItem(
     message: Message,
+    currentUserId: String,
     onItemClick: () -> Unit,
     onLongPress: () -> Unit,
     isSelected: Boolean,
@@ -248,13 +266,23 @@ fun MessageItem(
     textColor: Color,
     accentColor: Color
 ) {
-    var user by remember { mutableStateOf<User?>(null) }
+    // Gönderen kim? Eğer mesajın göndereni şu anki kullanıcıysa, diğer kişi alıcıdır
+    val otherUserId = if (message.senderId == currentUserId) message.receiverId else message.senderId
+    var otherUser by remember { mutableStateOf<User?>(null) }
 
-    LaunchedEffect(message.senderId) {
-        user = messageViewModel.getUserById(message.senderId)
+    // Diğer kullanıcının bilgilerini getirmek için LaunchedEffect kullan
+    LaunchedEffect(otherUserId) {
+        otherUser = messageViewModel.getUserById(otherUserId)
     }
 
-    val profilePictureUrl = user?.profilePictureUrl
+    // Profil resmi URL'si ve kullanıcı adını al
+    val profilePictureUrl = otherUser?.profilePictureUrl
+    val username = otherUser?.username ?: "Unknown"
+
+    // Mesajın zaman damgası (Firestore'dan gelen zaman damgasını UTC'ye göre formatlıyoruz)
+    val formatter = SimpleDateFormat("HH:mm", Locale.getDefault())
+    formatter.timeZone = TimeZone.getTimeZone("UTC")  // Dünya saatine göre ayarlandı
+    val messageTime = formatter.format(message.timestamp) // Firestore zaman damgası
 
     Row(
         modifier = Modifier
@@ -294,7 +322,7 @@ fun MessageItem(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = user?.username ?: "Unknown",
+                    text = username,  // Diğer kullanıcının kullanıcı adını göster
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontFamily = poppinsFontFamily,
                         fontWeight = FontWeight.SemiBold,
@@ -302,17 +330,28 @@ fun MessageItem(
                     )
                 )
 
-                val dateFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-                val timeString = dateFormat.format(message.timestamp)
-
-                Text(
-                    text = timeString,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontFamily = poppinsFontFamily,
-                        color = textColor.copy(alpha = 0.5f),
-                        fontSize = 12.sp
+                // Mesajın dünya saatine göre gösterimi (UTC)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = messageTime,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontFamily = poppinsFontFamily,
+                            color = textColor.copy(alpha = 0.5f),
+                            fontSize = 12.sp
+                        )
                     )
-                )
+
+                    // Okunmamış mesaj göstergesi (yeşil nokta)
+                    if (!message.isRead) {
+                        Spacer(modifier = Modifier.width(8.dp))  // Saat ile nokta arasında boşluk bırak
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .clip(CircleShape)
+                                .background(Color.Green)  // Yeşil nokta
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(4.dp))
@@ -329,6 +368,7 @@ fun MessageItem(
         }
     }
 }
+
 
 fun toggleSelection(message: Message, selectedMessages: MutableList<Message>) {
     if (selectedMessages.contains(message)) {

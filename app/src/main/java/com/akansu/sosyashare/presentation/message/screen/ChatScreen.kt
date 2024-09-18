@@ -396,12 +396,6 @@ fun ChatMessageList(
 
             lastSenderId = message.senderId
         }
-
-        if (isTyping) {
-            item {
-                TypingIndicator(bubbleColorOther)
-            }
-        }
     }
 }
 
@@ -848,34 +842,6 @@ fun ReplyBubble(
 }
 
 
-
-@Composable
-fun TypingIndicator(bubbleColor: Color) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.Start
-    ) {
-        Box(
-            modifier = Modifier
-                .background(bubbleColor, RoundedCornerShape(16.dp))
-                .padding(horizontal = 12.dp, vertical = 8.dp)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                for (i in 1..3) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .background(Color.Gray, CircleShape)
-                            .padding(2.dp)
-                    )
-                    if (i < 3) Spacer(modifier = Modifier.width(4.dp))
-                }
-            }
-        }
-    }
-}
 
 @Composable
 fun CircleAvatar(size: Dp, imageUrl: String?) {

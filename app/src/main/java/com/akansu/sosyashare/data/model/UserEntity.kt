@@ -6,10 +6,8 @@ import androidx.room.TypeConverters
 import com.akansu.sosyashare.data.local.Converters
 import java.util.*
 
-@Entity(tableName = "users")
-@TypeConverters(Converters::class)
 data class UserEntity(
-    @PrimaryKey val id: String = "",
+    val id: String = "",  // Firestore'da documentId ile eşleşen alan
     val username: String = "",
     val email: String = "",
     val profilePictureUrl: String? = null,

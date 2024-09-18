@@ -1,6 +1,7 @@
 package com.akansu.sosyashare.presentation
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -20,6 +21,9 @@ import com.akansu.sosyashare.domain.repository.UserRepository
 import com.akansu.sosyashare.presentation.login.viewmodel.AuthViewModel
 import com.akansu.sosyashare.presentation.ui.theme.SosyashareTheme
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.messaging.FirebaseMessaging
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -32,6 +36,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         super.onCreate(savedInstanceState)
+        PermissionManager.requestNotificationPermission(this)
 
         setContent {
             SosyashareTheme {
@@ -53,10 +58,16 @@ class MainActivity : ComponentActivity() {
                             .fillMaxSize()
                             .navigationBarsPadding()
                     ) {
-                        NavGraph(navController = navController, authViewModel = authViewModel, userRepository = userRepository)
+                        NavGraph(
+                            navController = navController,
+                            authViewModel = authViewModel,
+                            userRepository = userRepository
+                        )
                     }
                 }
             }
         }
     }
 }
+
+

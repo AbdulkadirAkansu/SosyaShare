@@ -45,22 +45,25 @@ class MessageRepositoryImpl @Inject constructor(
     }
 
     override fun listenForMessages(chatId: String, onMessagesChanged: (List<Message>) -> Unit) {
+        Log.d("MessageRepositoryImpl", "Listening for messages in chatId: $chatId")
         messageService.listenForMessages(chatId) { messageEntities ->
             val messages = messageEntities.map { it.toDomainModel() }
+            Log.d("MessageRepositoryImpl", "Messages received: $messages")
             onMessagesChanged(messages)
         }
+    }
+
+    override suspend fun getRecentChats(userId: String): List<Message> {
+        Log.d("MessageRepositoryImpl", "Fetching recent chats for userId: $userId")
+        val chatMessages = messageService.getRecentChats(userId)
+        Log.d("MessageRepositoryImpl", "Recent chats fetched: $chatMessages")
+        return chatMessages
     }
 
     override suspend fun getMessagesByChatId(chatId: String): List<Message> {
         val messages = messageService.getMessagesByChatId(chatId).map { it.toDomainModel() }
         Log.d("MessageRepositoryImpl", "getMessagesByChatId - Messages: $messages")
         return messages
-    }
-
-    override suspend fun getRecentChats(userId: String): List<Message> {
-        val chatMessages = messageService.getRecentChats(userId)
-        Log.d("MessageRepositoryImpl", "getRecentChats - Messages: $chatMessages")
-        return chatMessages
     }
 
     override suspend fun updateMessageReadStatus(chatId: String, messageId: String, isRead: Boolean) {

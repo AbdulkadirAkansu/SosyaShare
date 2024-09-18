@@ -2,16 +2,23 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- İnternet erişim izni -->
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Bildirim izni (Android 13 ve üzeri cihazlar için) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"
+        android:required="false"
+        tools:targetApi="33" />
+
+    <!-- Diğer izinler -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
 
+    <!-- Kamera özelliği -->
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
-
-
 
     <application
         android:name=".SosyaShareApp"
@@ -24,16 +31,19 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Sosyashare"
         tools:targetApi="31">
+
+        <!-- Ana activity (MainActivity) -->
         <activity
             android:name=".presentation.MainActivity"
             android:exported="true"
             android:theme="@style/Theme.Sosyashare">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- FileProvider (Medya dosyaları ile ilgili) -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.provider"
@@ -43,6 +53,16 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/filepaths" />
         </provider>
+
+        <!-- Firebase Cloud Messaging servisi -->
+        <service
+            android:name=".data.remote.MyFirebaseMessagingService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
     </application>
 
 </manifest>

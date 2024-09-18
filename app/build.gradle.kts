@@ -85,6 +85,7 @@ dependencies {
     implementation(libs.firebase.storage.ktx)
     implementation(libs.firebase.analytics.ktx)
     implementation(libs.firebase.analytics)
+    implementation ("com.google.firebase:firebase-messaging:24.0.1")
 
     // Coil for image loading
     implementation(libs.coil.compose)

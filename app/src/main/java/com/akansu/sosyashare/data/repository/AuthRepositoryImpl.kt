@@ -32,8 +32,12 @@ class AuthRepositoryImpl @Inject constructor(
         authService.reloadUser()
     }
 
-    override suspend fun getUserDetails(userId: String): UserEntity? {
-        return authService.getUserDetails(userId)
+    override suspend fun getUserDetails(): UserEntity? {
+        return authService.getUserDetails()
+    }
+
+    override suspend fun updateEmailVerifiedStatus(userId: String) {
+        authService.updateEmailVerifiedStatus(userId)
     }
 
     override suspend fun isUsernameUnique(username: String): Boolean {
@@ -43,7 +47,7 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun getCurrentUserProfilePictureUrl(): String? {
         val currentUser = authService.getCurrentUser()
         return currentUser?.let {
-            val userDetails = authService.getUserDetails(it.uid)
+            val userDetails = authService.getUserDetails()
             userDetails?.profilePictureUrl
         }
     }
