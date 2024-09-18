@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.akansu.sosyashare.domain.model.Post
 import com.akansu.sosyashare.domain.model.User
+import com.akansu.sosyashare.domain.repository.NotificationRepository
 import com.akansu.sosyashare.domain.repository.PostRepository
 import com.akansu.sosyashare.domain.repository.SaveRepository
 import com.akansu.sosyashare.domain.repository.UserRepository
@@ -19,7 +20,8 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val postRepository: PostRepository,
-    private val saveRepository: SaveRepository
+    private val saveRepository: SaveRepository,
+    private val notificationRepository: NotificationRepository
 ) : ViewModel() {
 
     private val _users = MutableStateFlow<Map<String, User>>(emptyMap())
@@ -98,18 +100,42 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun likePost(postId: String) {
+    fun likePost(postId: String, postOwnerId: String) {
         viewModelScope.launch {
             val currentUserId = userRepository.getCurrentUserId() ?: return@launch
-            try {
-                postRepository.likePost(postId, currentUserId)
-                _posts.value = _posts.value.map { p ->
-                    if (p.id == postId) {
-                        p.copy(isLiked = true, likeCount = p.likeCount + 1)
-                    } else p
+            val currentUser = userRepository.getUserById(currentUserId).firstOrNull()
+
+            // Kullanıcının tekrar tekrar beğeni yapmasını engelle
+            val canLike = notificationRepository.canUserLikeOrComment(currentUserId, postId, "like")
+
+            if (canLike) {
+                try {
+                    // Gönderiyi beğen
+                    postRepository.likePost(postId, currentUserId)
+
+                    // Bildirim gönder
+                    if (currentUser != null) {
+                        notificationRepository.sendNotification(
+                            userId = postOwnerId,
+                            postId = postId,
+                            senderId = currentUserId,
+                            senderUsername = currentUser.username,
+                            senderProfileUrl = currentUser.profilePictureUrl,
+                            notificationType = "like"
+                        )
+                    }
+
+                    // Liked status güncellemesi
+                    _posts.value = _posts.value.map { p ->
+                        if (p.id == postId) {
+                            p.copy(isLiked = true, likeCount = p.likeCount + 1)
+                        } else p
+                    }
+                } catch (e: Exception) {
+                    Log.e("HomeViewModel", "Error Liking Post: postId=$postId, error=${e.message}")
                 }
-            } catch (e: Exception) {
-                Log.e("HomeViewModel", "Error Liking Post: postId=$postId, error=${e.message}")
+            } else {
+                Log.d("HomeViewModel", "User tried to like the post too frequently.")
             }
         }
     }

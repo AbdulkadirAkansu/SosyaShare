@@ -1,5 +1,6 @@
 package com.akansu.sosyashare.presentation.home
 
+import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -81,7 +82,7 @@ fun HomeScreen(
     ) {
         Column {
             Spacer(modifier = Modifier.height(16.dp))
-            TopBar(currentUsername, navController)
+            TopBar(currentUsername, currentUserId, navController) // `currentUserId`'yi buradan geçiyoruz
             PostsSection(posts, users, savedPosts, homeViewModel, navController, { postId ->
                 homeViewModel.loadLikedUsers(postId)
                 showLikedUsers = true
@@ -96,46 +97,43 @@ fun HomeScreen(
 }
 
 @Composable
-fun TopBar(currentUsername: String?, navController: NavHostController) {
-    var isNotificationSelected by remember { mutableStateOf(false) }
-    var isMessageSelected by remember { mutableStateOf(false) }
-
+fun TopBar(currentUsername: String?, currentUserId: String?, navController: NavHostController) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 16.dp) // Yüksekliği biraz azalttık
-            .background(MaterialTheme.colorScheme.background),
+            .padding(horizontal = 16.dp, vertical = 16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = currentUsername ?: "Menu",
             color = MaterialTheme.colorScheme.onBackground,
-            fontSize = 22.sp, // Font boyutunu biraz küçülttük
+            fontSize = 22.sp,
             fontWeight = FontWeight.Bold,
-            fontFamily = poppinsFontFamily,
-            modifier = Modifier.weight(1f, true)
+            modifier = Modifier.weight(1f)
         )
 
-        // Modern ikon tasarımı için düzenlemeler
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(50))
                 .background(MaterialTheme.colorScheme.surfaceVariant)
-                .padding(horizontal = 6.dp, vertical = 6.dp) // Padding'i biraz azalttık
+                .padding(horizontal = 6.dp, vertical = 6.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp) // İkonlar arası boşluk biraz azaltıldı
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Notification icon
                 Surface(
                     shape = CircleShape,
                     color = MaterialTheme.colorScheme.surface,
                     modifier = Modifier
-                        .size(32.dp) // İkonun genel boyutunu biraz küçülttük
+                        .size(32.dp)
                         .clickable {
-                            // Handle click for notification
+                            Log.d("Navigation", "Navigating to notifications screen with userId: $currentUserId")
+                            currentUserId?.let {
+                                navController.navigate("notifications/$it")
+                            } ?: Log.e("Navigation", "User ID is null, cannot navigate to notifications.")
                         }
                 ) {
                     Icon(
@@ -143,17 +141,18 @@ fun TopBar(currentUsername: String?, navController: NavHostController) {
                         contentDescription = "Notifications",
                         tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier
-                            .size(18.dp) // İkon boyutunu biraz küçülttük
+                            .size(18.dp)
                             .padding(4.dp)
                     )
                 }
+
 
                 // Messenger icon
                 Surface(
                     shape = CircleShape,
                     color = MaterialTheme.colorScheme.inverseSurface,
                     modifier = Modifier
-                        .size(32.dp) // İkonun genel boyutunu biraz küçülttük
+                        .size(32.dp)
                         .clickable {
                             navController.navigate("messages")
                         }
@@ -163,7 +162,7 @@ fun TopBar(currentUsername: String?, navController: NavHostController) {
                         contentDescription = "Messages",
                         tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier
-                            .size(18.dp) // İkon boyutunu biraz küçülttük
+                            .size(18.dp)
                             .padding(4.dp)
                     )
                 }
@@ -276,7 +275,8 @@ fun PostItem(
                                             scale.animateTo(1f)
                                             scale.animateTo(0f)
                                         }
-                                        homeViewModel.likePost(post.id)
+                                        homeViewModel.likePost(post.id, post.userId)
+
                                     } else {
                                         likes -= 1
                                         liked = false
@@ -393,7 +393,7 @@ fun PostItem(
                                 if (!liked) {
                                     likes += 1
                                     liked = true
-                                    homeViewModel.likePost(post.id)
+                                    homeViewModel.likePost(post.id, post.userId)
                                 } else {
                                     likes -= 1
                                     liked = false

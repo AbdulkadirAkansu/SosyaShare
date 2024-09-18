@@ -27,7 +27,9 @@ class UserViewModel @Inject constructor(
     init {
         getCurrentUserProfilePicture()
         loadCurrentUsername()
+        loadCurrentUserId()
     }
+
 
     private fun getCurrentUserProfilePicture() {
         viewModelScope.launch {

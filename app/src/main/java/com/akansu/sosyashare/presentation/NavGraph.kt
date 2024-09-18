@@ -30,6 +30,7 @@ import com.akansu.sosyashare.presentation.home.HomeScreen
 import com.akansu.sosyashare.presentation.message.screen.ChatScreen
 import com.akansu.sosyashare.presentation.message.screen.MessageScreen
 import com.akansu.sosyashare.presentation.message.screen.NewMessageScreen
+import com.akansu.sosyashare.presentation.notifications.screen.NotificationScreen
 import com.akansu.sosyashare.presentation.postdetail.screen.PostDetailScreen
 import com.akansu.sosyashare.presentation.savedposts.SavedPostsScreen
 import com.akansu.sosyashare.presentation.search.screen.SearchScreen
@@ -234,6 +235,18 @@ fun NavGraph(navController: NavHostController, authViewModel: AuthViewModel, use
             ChatScreen(navController = navController, userId = userId, forwardedMessage = forwardedMessage)
         }
 
-
+        composable(
+            route = "notifications/{userId}",
+            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: return@composable
+            NotificationScreen(
+                navController = navController,
+                userId = userId,
+                onNotificationClick = { notificationId ->
+                    // Bildirime tıklandığında yapılacak işlemi burada tanımlayın
+                }
+            )
+        }
     }
 }
