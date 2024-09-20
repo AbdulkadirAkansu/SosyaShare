@@ -1,7 +1,6 @@
 package com.akansu.sosyashare.presentation
 
 import android.net.Uri
-import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.CircularProgressIndicator
@@ -30,7 +29,7 @@ import com.akansu.sosyashare.presentation.home.HomeScreen
 import com.akansu.sosyashare.presentation.message.screen.ChatScreen
 import com.akansu.sosyashare.presentation.message.screen.MessageScreen
 import com.akansu.sosyashare.presentation.message.screen.NewMessageScreen
-import com.akansu.sosyashare.presentation.notifications.screen.NotificationScreen
+import com.akansu.sosyashare.presentation.notifications.NotificationScreen
 import com.akansu.sosyashare.presentation.postdetail.screen.PostDetailScreen
 import com.akansu.sosyashare.presentation.savedposts.SavedPostsScreen
 import com.akansu.sosyashare.presentation.search.screen.SearchScreen

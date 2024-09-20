@@ -17,49 +17,72 @@ class FirebaseNotificationService @Inject constructor(
         notificationsCollection.add(notification).await()
     }
 
-    suspend fun sendNotification(
-        userId: String,
-        postId: String,
-        senderId: String,
-        senderUsername: String,
-        senderProfileUrl: String?,
-        notificationType: String // Bildirim türü (like, comment)
-    ) {
-        val existingNotifications = notificationsCollection
+    suspend fun clearNotificationsByUserId(userId: String) {
+        val batch = firestore.batch()
+        val notificationsSnapshot = notificationsCollection
             .whereEqualTo("userId", userId)
-            .whereEqualTo("postId", postId)
-            .whereEqualTo("senderId", senderId)
-            .whereEqualTo("type", notificationType)
             .get()
             .await()
 
+        notificationsSnapshot.documents.forEach { document ->
+            batch.delete(document.reference)
+        }
+
+        batch.commit().await()  // Firestore'da toplu silme işlemi
+    }
+
+    suspend fun sendNotification(
+        userId: String,
+        postId: String?, // Nullable postId
+        senderId: String,
+        senderUsername: String,
+        senderProfileUrl: String?,
+        notificationType: String // Bildirim türü (like, comment, follow, unfollow)
+    ) {
+        // Firebase'de aynı bildirim daha önce gönderilmiş mi kontrol ediliyor
+        val query = notificationsCollection
+            .whereEqualTo("userId", userId)
+            .whereEqualTo("senderId", senderId)
+            .whereEqualTo("type", notificationType)
+
+        // Eğer postId null değilse, postId kontrolünü ekliyoruz
+        if (postId != null) {
+            query.whereEqualTo("postId", postId)
+        }
+
+        val existingNotifications = query.get().await()
+
+        // Eğer daha önce aynı bildirim gönderilmemişse yeni bildirim oluşturulur
         if (existingNotifications.isEmpty) {
+            // Bildirim içeriği notificationType'a göre belirlenir
             val content = when (notificationType) {
                 "like" -> "$senderUsername liked your post"
                 "comment" -> "$senderUsername commented on your post"
+                "follow" -> "$senderUsername started following you"
+                "unfollow" -> "$senderUsername stopped following you" // Unfollow mesajı eklendi
                 else -> "$senderUsername performed an action"
             }
 
-            // Bildirimi oluştur
+            // Bildirimi oluşturuyoruz
             val notification = NotificationEntity(
                 userId = userId,
                 senderId = senderId,
                 senderUsername = senderUsername,
-                senderProfileUrl = senderProfileUrl,
+                senderProfileUrl = senderProfileUrl ?: "", // Nullable ise boş string
                 type = notificationType,
-                postId = postId,
+                postId = postId, // Nullable postId
                 content = content,
                 isRead = false,
                 timestamp = Date()
             )
 
-            // Firestore'a ekle
+            // Firestore'a bildirimi ekliyoruz
             addNotification(notification)
+            Log.d("NotificationService", "Yeni bildirim gönderildi.")
         } else {
             Log.d("NotificationService", "Aynı bildirim zaten gönderilmiş.")
         }
     }
-
 
 
     suspend fun canUserLikeOrComment(userId: String, postId: String, notificationType: String): Boolean {

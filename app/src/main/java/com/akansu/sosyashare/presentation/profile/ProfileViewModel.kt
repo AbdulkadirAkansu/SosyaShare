@@ -8,6 +8,7 @@ import com.akansu.sosyashare.domain.model.BlockedUser
 import com.akansu.sosyashare.domain.model.Post
 import com.akansu.sosyashare.domain.model.User
 import com.akansu.sosyashare.domain.repository.BlockedUserRepository
+import com.akansu.sosyashare.domain.repository.NotificationRepository
 import com.akansu.sosyashare.domain.repository.PostRepository
 import com.akansu.sosyashare.domain.repository.UserPrivacyRepository
 import com.akansu.sosyashare.domain.repository.UserRepository
@@ -25,7 +26,8 @@ class ProfileViewModel @Inject constructor(
     private val userPrivacyService: FirebaseUserPrivacyService,
     private val userRepository: UserRepository,
     private val postRepository: PostRepository,
-    private val blockedUserRepository: BlockedUserRepository
+    private val blockedUserRepository: BlockedUserRepository,
+    private val notificationRepository: NotificationRepository
 ) : ViewModel() {
 
     private val _userPosts = MutableStateFlow<List<Post>>(emptyList())
@@ -127,8 +129,22 @@ class ProfileViewModel @Inject constructor(
             try {
                 Log.d("ProfileViewModel", "Attempting to follow user: $followUserId by $currentUserId")
 
+                // Kullanıcıyı takip et
                 userRepository.followUser(currentUserId, followUserId)
                 userPrivacyRepository.addAllowedFollower(followUserId, currentUserId)
+
+                // Bildirim gönder
+                val currentUser = userRepository.getUserById(currentUserId).firstOrNull()
+                currentUser?.let { user ->
+                    notificationRepository.sendNotification(
+                        userId = followUserId,
+                        postId = "",
+                        senderId = currentUserId,
+                        senderUsername = user.username,
+                        senderProfileUrl = user.profilePictureUrl,
+                        notificationType = "follow" // Bildirim türü follow
+                    )
+                }
 
                 Log.d("ProfileViewModel", "Successfully followed user: $followUserId by $currentUserId")
                 loadProfileData(currentUserId, followUserId)
@@ -143,8 +159,22 @@ class ProfileViewModel @Inject constructor(
             try {
                 Log.d("ProfileViewModel", "Attempting to unfollow user: $unfollowUserId by $currentUserId")
 
+                // Kullanıcıyı takip etmeyi bırak
                 userRepository.unfollowUser(currentUserId, unfollowUserId)
                 userPrivacyRepository.removeAllowedFollower(unfollowUserId, currentUserId)
+
+                // Bildirim gönderme opsiyonel
+                val currentUser = userRepository.getUserById(currentUserId).firstOrNull()
+                currentUser?.let { user ->
+                    notificationRepository.sendNotification(
+                        userId = unfollowUserId, // Takip edilen kullanıcıya bildirim gönderiyoruz
+                        postId = "",           // Bu bir post ile ilgili değil
+                        senderId = currentUserId,
+                        senderUsername = user.username,
+                        senderProfileUrl = user.profilePictureUrl,
+                        notificationType = "unfollow" // Bildirim türü unfollow
+                    )
+                }
 
                 _isPrivateAccount.value = userPrivacyService.fetchIsPrivateDirectly(unfollowUserId)
 
@@ -155,6 +185,7 @@ class ProfileViewModel @Inject constructor(
             }
         }
     }
+
 
     fun blockUser(currentUserId: String, blockUserId: String) {
         viewModelScope.launch {

@@ -15,6 +15,10 @@ class NotificationRepositoryImpl @Inject constructor(
         notificationService.addNotification(notificationEntity)
     }
 
+    override suspend fun clearNotificationsByUserId(userId: String) {
+        notificationService.clearNotificationsByUserId(userId)
+    }
+
     override suspend fun sendNotification(
         userId: String,
         postId: String,

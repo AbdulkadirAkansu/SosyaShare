@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.akansu.sosyashare.domain.model.Post
 import com.akansu.sosyashare.domain.model.User
+import com.akansu.sosyashare.domain.repository.NotificationRepository
 import com.akansu.sosyashare.domain.repository.PostRepository
 import com.akansu.sosyashare.domain.repository.SaveRepository
 import com.akansu.sosyashare.domain.repository.UserRepository
@@ -19,7 +20,8 @@ import javax.inject.Inject
 class PostDetailViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val postRepository: PostRepository,
-    private val saveRepository: SaveRepository
+    private val saveRepository: SaveRepository,
+    private val notificationRepository: NotificationRepository
 ) : ViewModel() {
 
     private val _user = MutableStateFlow<User?>(null)
@@ -109,13 +111,28 @@ class PostDetailViewModel @Inject constructor(
         }
     }
 
-    fun likePost(postId: String) {
+    fun likePost(postId: String, postOwnerId: String) {
         viewModelScope.launch {
             val currentUserId = _currentUserId.value ?: return@launch
             postRepository.likePost(postId, currentUserId)
+
+            // Beğeni sonrası bildirim gönder
+            val currentUser = userRepository.getUserById(currentUserId).firstOrNull()
+            currentUser?.let { user ->
+                notificationRepository.sendNotification(
+                    userId = postOwnerId, // Gönderinin sahibi
+                    postId = postId,      // Beğenilen post ID'si
+                    senderId = currentUserId,
+                    senderUsername = user.username,
+                    senderProfileUrl = user.profilePictureUrl,
+                    notificationType = "like" // Bildirim türü
+                )
+            }
+
             updatePostLikeStatus(postId, true)
         }
     }
+
 
     fun unlikePost(postId: String) {
         viewModelScope.launch {

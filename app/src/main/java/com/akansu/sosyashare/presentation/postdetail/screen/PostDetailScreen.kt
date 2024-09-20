@@ -62,8 +62,6 @@ fun PostDetailScreen(
     val listState = rememberLazyListState()
     val currentUserId by postDetailViewModel.currentUserId.collectAsState()
     var showLikedUsers by remember { mutableStateOf(false) }
-
-    // Postları en son eklenenden başlayarak sıralıyoruz
     val sortedPosts = posts.sortedByDescending { it.createdAt }
 
     LaunchedEffect(userId) {
@@ -116,7 +114,7 @@ fun PostDetailScreen(
                         profilePictureUrl = user?.profilePictureUrl,
                         createdAt = post.createdAt,
                         isLiked = post.isLiked,
-                        onLike = { postDetailViewModel.likePost(post.id) },
+                        onLike = { postDetailViewModel.likePost(post.id,post.userId) },
                         onUnlike = { postDetailViewModel.unlikePost(post.id) },
                         onSaveClick = {
                             postDetailViewModel.savePost(post.id)

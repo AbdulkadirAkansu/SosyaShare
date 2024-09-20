@@ -12,62 +12,77 @@ import com.google.firebase.messaging.RemoteMessage
 import com.akansu.sosyashare.R
 import com.akansu.sosyashare.presentation.MainActivity
 
-class MyFirebaseMessagingService : FirebaseMessagingService() {
+class FirebaseMessagingService : FirebaseMessagingService() {
 
-    // Gelen mesajı işleyen method
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
-        Log.d("FCM", "Mesaj Alındı: ${remoteMessage.from}")
+        // Data payload varsa
+        remoteMessage.data.isNotEmpty().let {
+            val userId = remoteMessage.data["userId"] ?: ""
+            val postId = remoteMessage.data["postId"] ?: ""
+            val content = remoteMessage.data["content"] ?: "Yeni bir bildirim var"
 
-        // Mesajın bildirim kısmı varsa, bildirimi göster
-        remoteMessage.notification?.let {
-            sendNotification(it.title ?: "Yeni Bildirim", it.body ?: "")
+            // Bildirimi göster
+            sendNotification("Yeni Bildirim", content, userId, postId)
         }
     }
 
-    // Token yenilendiğinde çağrılan method
+
+
+    private fun handleDataMessage(data: Map<String, String>) {
+        val userId = data["userId"] ?: ""
+        val postId = data["postId"] ?: ""
+
+        showInAppNotification(userId, postId)
+    }
+
+    private fun showInAppNotification(userId: String, postId: String) {
+        Log.d("FCM", "Uygulama içi bildirim gönderiliyor: UserId=$userId, PostId=$postId")
+        val intent = Intent("com.akansu.sosyashare.NEW_NOTIFICATION")
+        intent.putExtra("userId", userId)
+        intent.putExtra("postId", postId)
+        sendBroadcast(intent) // NotificationReceiver'ı tetikler
+    }
+
+
     override fun onNewToken(token: String) {
-        Log.d("FCM", "Yeni FCM Token Alındı: $token")
-        // Burada token'ı sunucunuza kaydedebilirsiniz
+        super.onNewToken(token)
+        Log.d("FCM", "Yeni Token Alındı: $token")
         sendTokenToServer(token)
     }
 
-    private fun sendNotification(title: String, messageBody: String) {
-        val intent = Intent(this, MainActivity::class.java)
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+    private fun sendTokenToServer(token: String) {
+        Log.d("FCM", "Token Sunucuya Gönderildi: $token")
+        // Token'ı sunucuya gönderme işlemi burada yapılmalı.
+    }
+
+    private fun sendNotification(title: String, messageBody: String, userId: String, postId: String) {
+        val intent = Intent(this, MainActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            putExtra("userId", userId)
+            putExtra("postId", postId)
+        }
 
         val pendingIntent = PendingIntent.getActivity(
-            this,
-            0,
-            intent,
-            PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE // FLAG_IMMUTABLE eklendi
+            this, 0, intent, PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
         )
 
         val channelId = "default_channel"
         val notificationBuilder = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(R.drawable.notification) // Bildirim simgesi
-            .setContentTitle(title) // Bildirim başlığı
-            .setContentText(messageBody) // Bildirim içeriği
-            .setAutoCancel(true) // Tıklanınca otomatik kapanacak
-            .setContentIntent(pendingIntent) // Bildirime tıklandığında açılacak intent
+            .setSmallIcon(R.drawable.notification)
+            .setContentTitle(title)
+            .setContentText(messageBody)
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
 
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        // Android 8.0 (Oreo) ve üstü için Notification Channel oluştur
-        val channel = NotificationChannel(
-            channelId,
-            "Default Channel",
-            NotificationManager.IMPORTANCE_DEFAULT
-        )
-        notificationManager.createNotificationChannel(channel)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId, "Default Channel", NotificationManager.IMPORTANCE_DEFAULT
+            )
+            notificationManager.createNotificationChannel(channel)
+        }
 
-        // Bildirimi göster
-        notificationManager.notify(0, notificationBuilder.build())
-    }
-
-
-    // Token'ı sunucuya kaydetme methodu (Opsiyonel)
-    private fun sendTokenToServer(token: String) {
-        // Token'ı sunucuya veya veritabanına kaydedin
-        Log.d("FCM", "FCM Token sunucuya kaydedildi: $token")
+        notificationManager.notify(System.currentTimeMillis().toInt(), notificationBuilder.build())
     }
 }

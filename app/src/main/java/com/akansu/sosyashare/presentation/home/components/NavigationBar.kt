@@ -1,8 +1,11 @@
 package com.akansu.sosyashare.presentation.home.components
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 import android.view.MotionEvent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -65,6 +68,8 @@ import com.akansu.sosyashare.util.PermissionHandler
 import java.io.File
 
 
+@SuppressLint("RememberReturnType")
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun NavigationBar(
     modifier: Modifier = Modifier,
@@ -74,6 +79,9 @@ fun NavigationBar(
     val isMenuExtended = remember { mutableStateOf(false) }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     val context = LocalContext.current
+    var lastClickTime by remember { mutableStateOf(0L) }
+    val handler = remember { Handler(Looper.getMainLooper()) }
+    var isDoubleClick by remember { mutableStateOf(false) }
 
     // Galeri launcher
     val openDocumentLauncher =
@@ -163,19 +171,33 @@ fun NavigationBar(
                     modifier = Modifier
                         .size(32.dp)
                         .clip(CircleShape)
-                        .clickable {
-                            navController.navigate("userprofile")
+                        .pointerInteropFilter { event ->
+                            if (event.action == MotionEvent.ACTION_DOWN) {
+                                val currentTime = System.currentTimeMillis()
+                                if (currentTime - lastClickTime < 300) { // Çift tıklama algılandı
+                                    isDoubleClick = true
+                                    handler.removeCallbacksAndMessages(null) // Tek tıklama beklemesini iptal et
+                                    navController.navigate("settings") // Çift tıklama ile settings sayfasına gider
+                                } else {
+                                    isDoubleClick = false
+                                    lastClickTime = currentTime
+                                    handler.postDelayed({
+                                        if (!isDoubleClick) {
+                                            navController.navigate("userprofile") // Tek tıklama ile userprofile sayfasına gider
+                                        }
+                                    }, 300) // 300ms içinde ikinci tıklama gelmezse tek tıklama olarak değerlendirir
+                                }
+                            }
+                            true
                         },
                     contentScale = ContentScale.Crop
                 )
             }
         }
 
-        // FAB'ler NavigationBar'ın üzerinde açılır
         if (isMenuExtended.value) {
             ModernFabGroup(
                 onCameraClick = {
-                    // Kamera açılır, gerekli izinler kontrol edilir
                     if (PermissionHandler.hasCameraPermission(context as Activity)) {
                         selectedImageUri = createImageFileUri()
                         cameraLauncher.launch(selectedImageUri!!)

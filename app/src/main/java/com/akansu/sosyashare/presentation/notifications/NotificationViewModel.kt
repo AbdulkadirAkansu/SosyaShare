@@ -34,6 +34,34 @@ class NotificationViewModel @Inject constructor(
         }
     }
 
+    fun addNewNotification(notification: Notification) {
+        viewModelScope.launch {
+            try {
+                notificationRepository.addNotification(notification)  // addNotification() metodunun NotificationRepository'de tanımlı olduğundan emin ol
+                Log.d("NotificationViewModel", "Yeni bildirim eklendi: ${notification.documentId}")
+                loadNotifications(notification.userId)
+            } catch (e: Exception) {
+                _error.value = "Yeni bildirim eklenirken hata oluştu: ${e.message}"
+                Log.e("NotificationViewModel", "Yeni bildirim eklenemedi: ${e.message}")
+            }
+        }
+    }
+
+    fun clearAllNotifications() {
+        viewModelScope.launch {
+            try {
+                val userId = _notifications.value.firstOrNull()?.userId
+                if (userId != null) {
+                    notificationRepository.clearNotificationsByUserId(userId)
+                    Log.d("NotificationViewModel", "Tüm bildirimler silindi.")
+                    _notifications.value = emptyList() // UI'yi güncellemek için listeyi temizliyoruz
+                }
+            } catch (e: Exception) {
+                _error.value = "Failed to clear notifications: ${e.message}"
+            }
+        }
+    }
+
     // Bildirimleri yükle ve okundu olarak işaretle
     fun loadNotificationsAndMarkAsRead(userId: String) {
         viewModelScope.launch {
@@ -53,7 +81,6 @@ class NotificationViewModel @Inject constructor(
         }
     }
 
-    // Mark notification as read
 // NotificationViewModel.kt
     fun deleteNotification(notificationDocumentId: String) {
         viewModelScope.launch {

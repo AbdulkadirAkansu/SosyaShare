@@ -4,11 +4,7 @@
 
     <!-- İnternet erişim izni -->
     <uses-permission android:name="android.permission.INTERNET" />
-
-    <!-- Bildirim izni (Android 13 ve üzeri cihazlar için) -->
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"
-        android:required="false"
-        tools:targetApi="33" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" android:required="false" tools:targetApi="33" />
 
     <!-- Diğer izinler -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
@@ -56,12 +52,20 @@
 
         <!-- Firebase Cloud Messaging servisi -->
         <service
-            android:name=".data.remote.MyFirebaseMessagingService"
+            android:name=".data.remote.FirebaseMessagingService"
             android:exported="true">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
+
+        <!-- NotificationReceiver (Bildirimleri alır) -->
+        <receiver android:name=".presentation.notifications.NotificationReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.akansu.sosyashare.NEW_NOTIFICATION" />
+            </intent-filter>
+        </receiver>
 
     </application>
 

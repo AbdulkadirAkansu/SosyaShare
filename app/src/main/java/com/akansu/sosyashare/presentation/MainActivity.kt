@@ -68,6 +68,10 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    // Token'ı sunucuya gönderme fonksiyonu (Opsiyonel)
+    private fun sendTokenToServer(token: String) {
+        // Token'ı sunucunuza veya veritabanınıza kaydedin
+        Log.d("FCM", "FCM Token sunucuya kaydedildi: $token")
+    }
 }
-
-
