@@ -21,7 +21,7 @@ class PostDetailViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val postRepository: PostRepository,
     private val saveRepository: SaveRepository,
-    private val notificationRepository: NotificationRepository
+    private val notificationRepository: NotificationRepository,
 ) : ViewModel() {
 
     private val _user = MutableStateFlow<User?>(null)

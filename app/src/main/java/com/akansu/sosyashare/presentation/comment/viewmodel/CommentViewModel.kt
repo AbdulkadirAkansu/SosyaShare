@@ -1,17 +1,22 @@
 package com.akansu.sosyashare.presentation.comment.viewmodel
 
+import android.app.Application
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.akansu.sosyashare.data.remote.FirebaseMessagingService
 import com.akansu.sosyashare.domain.model.Comment
 import com.akansu.sosyashare.domain.model.Reply
 import com.akansu.sosyashare.domain.repository.CommentRepository
+import com.akansu.sosyashare.domain.repository.MessagingRepository
 import com.akansu.sosyashare.domain.repository.NotificationRepository
 import com.akansu.sosyashare.domain.repository.PostRepository
 import com.akansu.sosyashare.domain.usecase.UpdateCommentCountUseCase
 import com.akansu.sosyashare.domain.repository.UserRepository
+import dagger.hilt.android.internal.Contexts.getApplication
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import java.util.Date
@@ -24,7 +29,8 @@ class CommentViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val updateCommentCountUseCase: UpdateCommentCountUseCase,
     private val notificationRepository: NotificationRepository,
-    private val postRepository: PostRepository
+    private val postRepository: PostRepository,
+    private val messagingRepository: MessagingRepository
 ) : ViewModel() {
 
     private val _comments = MutableLiveData<List<Comment>>()
@@ -37,7 +43,7 @@ class CommentViewModel @Inject constructor(
     val replyingTo: LiveData<Reply?> get() = _replyingTo
 
     private var currentUserName: String? = null
-    private var postOwnerId: String? = null // Post sahibini burada tutuyoruz
+    private var postOwnerId: String? = null
 
     init {
         viewModelScope.launch {
@@ -67,10 +73,10 @@ class CommentViewModel @Inject constructor(
         content: String,
         userId: String,
         username: String,
-        userProfileUrl: String
+        userProfileUrl: String,
+        context: Context
     ) {
         viewModelScope.launch {
-            // Kullanıcının spam yorum yapmasını engelle
             val canComment = notificationRepository.canUserLikeOrComment(userId, postId, "comment")
 
             if (canComment) {
@@ -89,6 +95,7 @@ class CommentViewModel @Inject constructor(
                 loadComments(postId)
 
                 postOwnerId?.let { ownerId ->
+                    // Uygulama içi bildirim gönderme
                     notificationRepository.sendNotification(
                         ownerId,
                         postId,
@@ -97,12 +104,19 @@ class CommentViewModel @Inject constructor(
                         userProfileUrl,
                         notificationType = "comment"
                     )
+                    val fcmToken = messagingRepository.getFCMTokenByUserId(ownerId)
+
+                    if (fcmToken != null) {
+                        Log.d("CommentViewModel", "Post sahibi FCM Token: $fcmToken")
+                        messagingRepository.sendFCMNotification(context, fcmToken, "$username commented", content)
+                    } else {
+                        Log.e("CommentViewModel", "Kullanıcının FCM token'ı bulunamadı.")
+                    }
                 }
-            } else {
-                Log.d("CommentViewModel", "User tried to comment too frequently.")
             }
         }
     }
+
 
 
     fun deleteComment(commentId: String, postId: String) {

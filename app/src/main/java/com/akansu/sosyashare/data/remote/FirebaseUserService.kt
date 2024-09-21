@@ -56,14 +56,11 @@ class FirebaseUserService @Inject constructor(
             val document = firestore.collection("users").document(userId).get(Source.SERVER).await()
             if (document.exists()) {
                 val user = document.toObject(UserEntity::class.java)?.copy(id = userId)
-                Log.d("FirebaseUserService", "Fetched user details: $user")
                 user
             } else {
-                Log.e("FirebaseUserService", "No such document")
                 null
             }
         } catch (e: Exception) {
-            Log.e("FirebaseUserService", "Error fetching user details: ${e.message}")
             null
         }
     }
@@ -262,7 +259,6 @@ class FirebaseUserService @Inject constructor(
             }
             followers
         } catch (e: Exception) {
-            Log.e("FirebaseUserService", "Error fetching followers: ${e.message}")
             emptyList()
         }
     }
@@ -281,7 +277,6 @@ class FirebaseUserService @Inject constructor(
             }
             following
         } catch (e: Exception) {
-            Log.e("FirebaseUserService", "Error fetching following: ${e.message}")
             emptyList()
         }
     }

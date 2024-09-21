@@ -4,6 +4,7 @@ accompanistSystemuicontrollerVersion = "0.30.0"
 agp = "8.5.1"
 coilCompose = "2.6.0"
 firebaseBom = "33.1.2"
+firebaseMessaging = "24.0.1"
 gson = "2.10.1"
 hiltAndroid = "2.51.1"
 hiltCompiler = "1.2.0"
@@ -28,6 +29,7 @@ workRuntimeKtx = "2.9.0"
 hiltCommon = "1.2.0"
 firebaseDatabaseKtx = "21.0.0"
 appcompat = "1.7.0"
+volley = "1.2.1"
 
 [libraries]
 accompanist-pager = { module = "com.google.accompanist:accompanist-pager", version.ref = "accompanistPager" }
@@ -46,6 +48,7 @@ coil-gif = { module = "io.coil-kt:coil-gif", version.ref = "coilCompose" }
 firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
 firebase-auth-ktx = { module = "com.google.firebase:firebase-auth-ktx" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
+firebase-messaging = { module = "com.google.firebase:firebase-messaging", version.ref = "firebaseMessaging" }
 firebase-storage-ktx = { module = "com.google.firebase:firebase-storage-ktx" }
 firebase-analytics-ktx = { module = "com.google.firebase:firebase-analytics-ktx" }
 firebase-firestore-ktx = { module = "com.google.firebase:firebase-firestore-ktx" }
@@ -75,6 +78,7 @@ androidx-hilt-common = { group = "androidx.hilt", name = "hilt-common", version.
 firebase-database-ktx = { group = "com.google.firebase", name = "firebase-database-ktx", version.ref = "firebaseDatabaseKtx" }
 material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+volley = { group = "com.android.volley", name = "volley", version.ref = "volley" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -17,4 +17,5 @@ data class UserEntity(
     val followers: List<String> = emptyList(),
     val bio: String = "",
     val lastUsernameChange: Date? = null,
+    val fcmToken: String? = null // Burada fcmToken alanını ekliyoruz
 )

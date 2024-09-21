@@ -1,10 +1,12 @@
 package com.akansu.sosyashare.presentation.home.viewmodel
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.akansu.sosyashare.domain.model.Post
 import com.akansu.sosyashare.domain.model.User
+import com.akansu.sosyashare.domain.repository.MessagingRepository
 import com.akansu.sosyashare.domain.repository.NotificationRepository
 import com.akansu.sosyashare.domain.repository.PostRepository
 import com.akansu.sosyashare.domain.repository.SaveRepository
@@ -21,7 +23,8 @@ class HomeViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val postRepository: PostRepository,
     private val saveRepository: SaveRepository,
-    private val notificationRepository: NotificationRepository
+    private val notificationRepository: NotificationRepository,
+    private val messagingRepository: MessagingRepository
 ) : ViewModel() {
 
     private val _users = MutableStateFlow<Map<String, User>>(emptyMap())
@@ -100,21 +103,23 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun likePost(postId: String, postOwnerId: String) {
+    fun likePost(postId: String, postOwnerId: String, context: Context) {
         viewModelScope.launch {
             val currentUserId = userRepository.getCurrentUserId() ?: return@launch
             val currentUser = userRepository.getUserById(currentUserId).firstOrNull()
+            // getPostById doğrudan Post? döndürdüğü için firstOrNull() kullanmanıza gerek yok
+            val post = postRepository.getPostById(postId) // suspend fonksiyon zaten Post? döndürüyor
 
-            // Kullanıcının tekrar tekrar beğeni yapmasını engelle
-            val canLike = notificationRepository.canUserLikeOrComment(currentUserId, postId, "like")
+            if (currentUser != null && post != null) {
+                // Kullanıcının tekrar tekrar beğeni yapmasını engelle
+                val canLike = notificationRepository.canUserLikeOrComment(currentUserId, postId, "like")
 
-            if (canLike) {
-                try {
-                    // Gönderiyi beğen
-                    postRepository.likePost(postId, currentUserId)
+                if (canLike) {
+                    try {
+                        // Gönderiyi beğen
+                        postRepository.likePost(postId, currentUserId)
 
-                    // Bildirim gönder
-                    if (currentUser != null) {
+                        // Uygulama içi bildirim gönder
                         notificationRepository.sendNotification(
                             userId = postOwnerId,
                             postId = postId,
@@ -123,22 +128,30 @@ class HomeViewModel @Inject constructor(
                             senderProfileUrl = currentUser.profilePictureUrl,
                             notificationType = "like"
                         )
-                    }
 
-                    // Liked status güncellemesi
-                    _posts.value = _posts.value.map { p ->
-                        if (p.id == postId) {
-                            p.copy(isLiked = true, likeCount = p.likeCount + 1)
-                        } else p
+                        // FCM bildirimi gönder
+                        val fcmToken = messagingRepository.getFCMTokenByUserId(postOwnerId)
+                        if (fcmToken != null) {
+                            val postContent = post.content ?: "Your post was liked!"
+                            messagingRepository.sendFCMNotification(
+                                context, fcmToken, "${currentUser.username} liked your post", postContent
+                            )
+                        }
+
+                        // Beğeni durumu güncellemesi
+                        _posts.value = _posts.value.map { p ->
+                            if (p.id == postId) {
+                                p.copy(isLiked = true, likeCount = p.likeCount + 1)
+                            } else p
+                        }
+                    } catch (e: Exception) {
+                        Log.e("HomeViewModel", "Error Liking Post: postId=$postId, error=${e.message}")
                     }
-                } catch (e: Exception) {
-                    Log.e("HomeViewModel", "Error Liking Post: postId=$postId, error=${e.message}")
                 }
-            } else {
-                Log.d("HomeViewModel", "User tried to like the post too frequently.")
             }
         }
     }
+
 
     fun unlikePost(postId: String) {
         viewModelScope.launch {

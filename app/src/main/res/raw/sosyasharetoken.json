@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "sosyashare",
+  "private_key_id": "dbfc81d3af5ca99f234412694dcf21ac1d9a8bca",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCezXKNOHQi/+pV\n5/Tl3N7bourBIVOOIOixTiJTbgmARJv04oSIjsqXfYHJ5X2miRwjKElacRMJKx/8\n1XiBWBSCGtFiRmq2g2waHIQWKaXH1kT55MCqYTZqX/ZTZFMnlsaPi9YISXWoFRIC\nf5bEogBv8Iqlmp3BqPD+/r5Lu0IJCj6m4q8jipxnSfGrb5KMJ0+xWns0jb1dCntW\n4iUIE3BgogXe4gCCrN/YjzFre9wKKJJ/EKSZT+d2q0PbELCvBUcQzos+3unvurOx\n/zx2p5lLYfGNWbqG9bmB4Zudc9lc2zoDYwiW46V+XBLcXSig1TJAeiSX/io27I1X\nNMcZ7qfNAgMBAAECggEAGZmbHuL77ex9lW24UBoEHzorSAkcVCw/9t1WsUZq56+n\nyJl/rhf+1t8XvjltwRwXWh+Te64A2JiIJpUvQQK3A6ZZHNOnPlb/ZVI1hPEf1ZBY\nPETBPnY/dHSV3CmvMhGfXuK3FUzqV7dV2OtCnd5T3bfUUhAT4HVgrGrauJCue5BW\n9lDbHi1tDHj0wKTnEaT5DPaAcGpWlcO+f9vAzadsBfAVso6TvguYWRLfrejTziNd\nL/+gYJGOsC6/qpa81XN63taSKLnJfYCe9bbIyT+oHxwtUup2kwdH8WY3KFqv9b0o\net3npDcqWgTNGOhD2g1RUESZV5agcxfcRSPZy/nQQQKBgQDchyskfntkLj7gT0CB\nM4vZ8MuYpxQJO1gvgsEmNzulUiPNKFaYyjWkgaJsL1qhm61stnPorM0PfPMSJum9\nTNWo3/ze7iYKCa78x7exfV6vJh5NgvhLxCkY/ikK5QQ2PrdfZBANNn9v0XyELkrX\nnF+Qh8Xr/VraQBrfMuphLNVa3QKBgQC4WJEynOeYtoLPzQLzPO87133RD1WfrZ9K\n8RQpQjCbgbubfLLYjI0UHh9GE3tybh0NCPliVlp+Lo5/EKHEZSin5kxUiyskfUrr\n/z7U8zdi/bAWh5AW76FNgc2JK7sPfhFJrBWkHjJ5WQ4BWQ+C8yFY/X9uapzqGp/5\nSCx5deRZsQKBgQC+ksTSrcb+JQTLHVHWFXCG75NSIRisfa9Qp4M4/kQ6Msijk3d6\nZEyFFE4DhcyhmgH9z5JNAX/YIZeBGUWnBE4juSUylcUjqYiiBAmXhYsceyl2vHbM\nKwGFCqb3NkA0jHA1LCi+8ligjf030TV2LDldkieVL4Wi1AEk30Ayp+bctQKBgQCG\ndnu6Wj6H4qB56ET9nPW3RZCNPE0tQpxNMpmNGq2P0EpCuOtPDv4crXgMSkuiBPWF\nu4UEGI67OURRJJWKRmsoRNBqXnSikg1jJHP1Kk69EuQtGsacJEAY49RC+LXiMAd2\nIGJMqoYQg0e27fplfuhVG9qmdHduPutvDhj6o2ZjkQKBgAXAe8uhmCz0w+HBmb3R\niLStCZxcXRZRw9hwwGRCuIZe8lDoWF8cr/TjSUCzodcSuNae2voowq1XaxpdcOmI\nEALpaUw78g4WXEDaEE54MlTeMpRKNrgiLAY1gj5Umr184h3gmLhXYoT+WeCijkMu\ngu6PHAbwTEn+iYuUBNtIv9aR\n-----END PRIVATE KEY-----\n",
+  "client_email": "kladir-sosyashare@sosyashare.iam.gserviceaccount.com",
+  "client_id": "103522142941927267165",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/kladir-sosyashare%40sosyashare.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

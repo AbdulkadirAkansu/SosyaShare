@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -43,6 +44,7 @@ fun CommentScreen(
 ) {
     val comments by viewModel.comments.observeAsState(emptyList())
     val repliesMap by viewModel.replies.observeAsState(emptyMap())
+    val context = LocalContext.current
 
     BoxWithConstraints {
         Surface(
@@ -110,7 +112,7 @@ fun CommentScreen(
                         if (replyInfo != null) {
                             viewModel.replyToComment(replyInfo.commentId, content, currentUserId, currentUserName, currentUserProfileUrl)
                         } else {
-                            viewModel.addComment(postId, content, currentUserId, currentUserName, currentUserProfileUrl)
+                            viewModel.addComment(postId, content, currentUserId, currentUserName, currentUserProfileUrl,context)
                         }
                     },
                     replyingTo = viewModel.replyingTo.observeAsState(null).value,

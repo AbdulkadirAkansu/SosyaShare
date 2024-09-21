@@ -2,8 +2,10 @@ package com.akansu.sosyashare.data.remote
 
 import android.util.Log
 import com.akansu.sosyashare.data.model.NotificationEntity
+import com.akansu.sosyashare.util.getAccessToken
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
+import okhttp3.OkHttpClient
 import java.util.Date
 import javax.inject.Inject
 
@@ -87,7 +89,7 @@ class FirebaseNotificationService @Inject constructor(
 
     suspend fun canUserLikeOrComment(userId: String, postId: String, notificationType: String): Boolean {
         val now = Date()
-        val timeLimit = 30 * 1000
+        val timeLimit = 0
         val recentActions = notificationsCollection
             .whereEqualTo("userId", userId)
             .whereEqualTo("postId", postId)

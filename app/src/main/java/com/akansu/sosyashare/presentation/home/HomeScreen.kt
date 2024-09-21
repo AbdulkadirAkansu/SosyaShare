@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -212,6 +213,7 @@ fun PostItem(
     val coroutineScope = rememberCoroutineScope()
     val lastTapTimestamp = remember { mutableStateOf(0L) }   // For double-tap detection
     val doubleTapTimeout = 300L  // Double-tap timeout in ms
+    val context = LocalContext.current
 
     // Full screen image functionality
     if (showFullImage) {
@@ -275,7 +277,7 @@ fun PostItem(
                                             scale.animateTo(1f)
                                             scale.animateTo(0f)
                                         }
-                                        homeViewModel.likePost(post.id, post.userId)
+                                        homeViewModel.likePost(post.id, post.userId,context)
 
                                     } else {
                                         likes -= 1
@@ -393,7 +395,7 @@ fun PostItem(
                                 if (!liked) {
                                     likes += 1
                                     liked = true
-                                    homeViewModel.likePost(post.id, post.userId)
+                                    homeViewModel.likePost(post.id, post.userId,context)
                                 } else {
                                     likes -= 1
                                     liked = false

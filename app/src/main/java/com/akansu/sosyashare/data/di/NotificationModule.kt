@@ -1,5 +1,6 @@
 package com.akansu.sosyashare.data.di
 
+import android.content.Context
 import com.akansu.sosyashare.data.remote.FirebaseNotificationService
 import com.akansu.sosyashare.data.repository.NotificationRepositoryImpl
 import com.akansu.sosyashare.domain.repository.NotificationRepository
@@ -8,6 +9,7 @@ import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 

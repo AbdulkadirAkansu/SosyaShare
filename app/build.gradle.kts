@@ -48,6 +48,7 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "META-INF/DEPENDENCIES"
         }
     }
 }
@@ -64,6 +65,7 @@ dependencies {
     implementation(libs.androidx.room.common)
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.appcompat)
+    implementation(libs.volley)
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.hilt.common)
     implementation(libs.firebase.database.ktx)
@@ -85,7 +87,7 @@ dependencies {
     implementation(libs.firebase.storage.ktx)
     implementation(libs.firebase.analytics.ktx)
     implementation(libs.firebase.analytics)
-    implementation ("com.google.firebase:firebase-messaging:24.0.1")
+    implementation (libs.firebase.messaging)
 
     // Coil for image loading
     implementation(libs.coil.compose)
@@ -124,7 +126,15 @@ dependencies {
     implementation("com.airbnb.android:lottie-compose:5.2.0")
 
     implementation (libs.google.accompanist.systemuicontroller)
-    
+
+    implementation ("com.google.auth:google-auth-library-oauth2-http:1.3.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation ("com.google.android.gms:play-services-base:18.5.0")
+
+    implementation ("com.android.volley:volley:1.2.1")
+
+    implementation ("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation ("com.squareup.retrofit2:converter-gson:2.9.0")
 
 }
 
