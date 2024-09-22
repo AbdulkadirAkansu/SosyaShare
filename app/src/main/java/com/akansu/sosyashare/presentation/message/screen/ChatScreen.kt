@@ -40,7 +40,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
@@ -52,7 +51,6 @@ import com.akansu.sosyashare.presentation.message.viewmodel.ChatViewModel
 import com.akansu.sosyashare.presentation.message.viewmodel.getChatColors
 import com.akansu.sosyashare.presentation.postdetail.screen.FullScreenImage
 import com.akansu.sosyashare.util.poppinsFontFamily
-import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat

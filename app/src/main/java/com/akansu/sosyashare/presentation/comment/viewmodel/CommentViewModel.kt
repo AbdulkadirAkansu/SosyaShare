@@ -1,13 +1,11 @@
 package com.akansu.sosyashare.presentation.comment.viewmodel
 
-import android.app.Application
 import android.content.Context
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.akansu.sosyashare.data.remote.FirebaseMessagingService
 import com.akansu.sosyashare.domain.model.Comment
 import com.akansu.sosyashare.domain.model.Reply
 import com.akansu.sosyashare.domain.repository.CommentRepository
@@ -16,7 +14,6 @@ import com.akansu.sosyashare.domain.repository.NotificationRepository
 import com.akansu.sosyashare.domain.repository.PostRepository
 import com.akansu.sosyashare.domain.usecase.UpdateCommentCountUseCase
 import com.akansu.sosyashare.domain.repository.UserRepository
-import dagger.hilt.android.internal.Contexts.getApplication
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import java.util.Date
@@ -57,7 +54,6 @@ class CommentViewModel @Inject constructor(
             val comments = commentRepository.getCommentsForPost(postId)
             _comments.value = comments
 
-            // Post sahibinin userId'sini alıyoruz
             val post = postRepository.getPostById(postId)
             postOwnerId = post?.userId
 
@@ -95,7 +91,6 @@ class CommentViewModel @Inject constructor(
                 loadComments(postId)
 
                 postOwnerId?.let { ownerId ->
-                    // Uygulama içi bildirim gönderme
                     notificationRepository.sendNotification(
                         ownerId,
                         postId,
@@ -108,7 +103,12 @@ class CommentViewModel @Inject constructor(
 
                     if (fcmToken != null) {
                         Log.d("CommentViewModel", "Post sahibi FCM Token: $fcmToken")
-                        messagingRepository.sendFCMNotification(context, fcmToken, "$username commented", content)
+                        messagingRepository.sendFCMNotification(
+                            context,
+                            fcmToken,
+                            "$username commented",
+                            content
+                        )
                     } else {
                         Log.e("CommentViewModel", "Kullanıcının FCM token'ı bulunamadı.")
                     }
@@ -116,7 +116,6 @@ class CommentViewModel @Inject constructor(
             }
         }
     }
-
 
 
     fun deleteComment(commentId: String, postId: String) {
@@ -134,7 +133,6 @@ class CommentViewModel @Inject constructor(
     fun deleteReply(replyId: String, postId: String) {
         viewModelScope.launch {
             try {
-                // Yalnızca yanıtı sil
                 commentRepository.deleteReply(replyId)
                 loadComments(postId)
             } catch (e: Exception) {
@@ -147,7 +145,8 @@ class CommentViewModel @Inject constructor(
         viewModelScope.launch {
             commentRepository.likeComment(commentId, userId)
             val postId = commentRepository.getCommentById(commentId)?.postId ?: return@launch
-            val commentOwnerId = commentRepository.getCommentById(commentId)?.userId ?: return@launch
+            val commentOwnerId =
+                commentRepository.getCommentById(commentId)?.userId ?: return@launch
             loadComments(postId)
 
             notificationRepository.sendNotification(

@@ -9,7 +9,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -66,9 +65,8 @@ fun MessageScreen(
     val messages by viewModel.messages.collectAsState()
 
     var searchQuery by remember { mutableStateOf("") }
-    val selectedMessages = remember { mutableStateListOf<Message>() } // Seçilen mesajlar listesi
+    val selectedMessages = remember { mutableStateListOf<Message>() }
 
-    // LaunchedEffect to load recent chats and listen for messages in a specific chat
     LaunchedEffect(Unit) {
         Log.d("MessageScreen", "Starting to load recent chats")
         viewModel.loadRecentChats()
@@ -123,7 +121,7 @@ fun MessageScreen(
                                     viewModel.getChatId(message.senderId, message.receiverId)
                                 viewModel.deleteMessage(chatId, message.id)
                             }
-                            selectedMessages.clear() // Tüm seçimi temizle
+                            selectedMessages.clear()
                         }) {
                             Icon(
                                 painter = painterResource(id = R.drawable.delete_icon),
@@ -133,7 +131,7 @@ fun MessageScreen(
                         }
 
                         IconButton(onClick = {
-                            selectedMessages.clear() // İptal et
+                            selectedMessages.clear()
                         }) {
                             Icon(
                                 Icons.Rounded.Close,
@@ -186,7 +184,6 @@ fun MessageScreen(
                     .padding(horizontal = 12.dp, vertical = 8.dp)
             )
 
-            // Display messages based on search query
             val displayMessages = if (searchQuery.isEmpty()) recentMessages else searchResults
 
             AnimatedVisibility(
@@ -228,7 +225,7 @@ fun MessageScreen(
                             MessageItem(
                                 message = message,
                                 currentUserId = viewModel.currentUserId.value
-                                    ?: "",  // currentUserId'yi geçiyoruz
+                                    ?: "",
                                 onItemClick = {
                                     if (selectedMessages.isEmpty()) {
                                         val otherUserId =
@@ -266,23 +263,20 @@ fun MessageItem(
     textColor: Color,
     accentColor: Color
 ) {
-    // Gönderen kim? Eğer mesajın göndereni şu anki kullanıcıysa, diğer kişi alıcıdır
-    val otherUserId = if (message.senderId == currentUserId) message.receiverId else message.senderId
+    val otherUserId =
+        if (message.senderId == currentUserId) message.receiverId else message.senderId
     var otherUser by remember { mutableStateOf<User?>(null) }
 
-    // Diğer kullanıcının bilgilerini getirmek için LaunchedEffect kullan
     LaunchedEffect(otherUserId) {
         otherUser = messageViewModel.getUserById(otherUserId)
     }
 
-    // Profil resmi URL'si ve kullanıcı adını al
     val profilePictureUrl = otherUser?.profilePictureUrl
     val username = otherUser?.username ?: "Unknown"
 
-    // Mesajın zaman damgası (Firestore'dan gelen zaman damgasını UTC'ye göre formatlıyoruz)
     val formatter = SimpleDateFormat("HH:mm", Locale.getDefault())
-    formatter.timeZone = TimeZone.getTimeZone("UTC")  // Dünya saatine göre ayarlandı
-    val messageTime = formatter.format(message.timestamp) // Firestore zaman damgası
+    formatter.timeZone = TimeZone.getTimeZone("UTC")
+    val messageTime = formatter.format(message.timestamp)
 
     Row(
         modifier = Modifier
@@ -305,7 +299,9 @@ fun MessageItem(
             AsyncImage(
                 model = profilePictureUrl,
                 contentDescription = null,
-                modifier = Modifier.size(48.dp).clip(CircleShape),
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape),
                 contentScale = ContentScale.Crop
             )
         }
@@ -322,7 +318,7 @@ fun MessageItem(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = username,  // Diğer kullanıcının kullanıcı adını göster
+                    text = username,
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontFamily = poppinsFontFamily,
                         fontWeight = FontWeight.SemiBold,
@@ -341,14 +337,13 @@ fun MessageItem(
                         )
                     )
 
-                    // Okunmamış mesaj göstergesi (yeşil nokta)
                     if (!message.isRead) {
-                        Spacer(modifier = Modifier.width(8.dp))  // Saat ile nokta arasında boşluk bırak
+                        Spacer(modifier = Modifier.width(8.dp))
                         Box(
                             modifier = Modifier
                                 .size(10.dp)
                                 .clip(CircleShape)
-                                .background(Color.Green)  // Yeşil nokta
+                                .background(Color.Green)
                         )
                     }
                 }

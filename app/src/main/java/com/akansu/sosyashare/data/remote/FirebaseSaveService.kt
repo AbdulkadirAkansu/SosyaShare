@@ -26,12 +26,16 @@ class FirebaseSaveService @Inject constructor(
         }
 
         val saveEntity = SaveEntity(postId = postId, userId = currentUserId)
-        currentUserCollection(currentUserId).document(postId).set(SaveMapper.fromEntity(saveEntity)).await()
+        currentUserCollection(currentUserId).document(postId).set(SaveMapper.fromEntity(saveEntity))
+            .await()
     }
 
     suspend fun removeSavedPost(postId: String) {
         val currentUserId = userRepository.getCurrentUserId() ?: return
-        Log.d("FirebaseSaveService", "Removing saved post with postId=$postId for user=$currentUserId")
+        Log.d(
+            "FirebaseSaveService",
+            "Removing saved post with postId=$postId for user=$currentUserId"
+        )
         currentUserCollection(currentUserId).document(postId).delete().await()
     }
 
@@ -49,7 +53,10 @@ class FirebaseSaveService @Inject constructor(
                 saveEntity
             }
         }
-        Log.d("FirebaseSaveService", "Fetched ${savedPosts.size} saved posts for user $currentUserId")
+        Log.d(
+            "FirebaseSaveService",
+            "Fetched ${savedPosts.size} saved posts for user $currentUserId"
+        )
         return savedPosts
     }
 }

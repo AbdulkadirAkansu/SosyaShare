@@ -17,8 +17,11 @@ object MessageModule {
 
     @Provides
     @Singleton
-    fun provideMessageService(firestore: FirebaseFirestore, storage: FirebaseStorage): FirebaseMessageService {
-        return FirebaseMessageService(firestore,storage)
+    fun provideMessageService(
+        firestore: FirebaseFirestore,
+        storage: FirebaseStorage
+    ): FirebaseMessageService {
+        return FirebaseMessageService(firestore, storage)
     }
 
     @Provides
@@ -28,6 +31,4 @@ object MessageModule {
     ): MessageRepository {
         return MessageRepositoryImpl(messageService)
     }
-
-
 }

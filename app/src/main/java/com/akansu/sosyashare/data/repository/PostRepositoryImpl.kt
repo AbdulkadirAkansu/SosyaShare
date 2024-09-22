@@ -66,5 +66,4 @@ class PostRepositoryImpl @Inject constructor(
         val postEntities = postService.getUserPosts(userId)
         return postEntities.map { it.toDomainModel() }
     }
-
 }

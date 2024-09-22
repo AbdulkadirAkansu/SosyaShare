@@ -1,5 +1,6 @@
 package com.akansu.sosyashare.presentation.profile
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -8,6 +9,7 @@ import com.akansu.sosyashare.domain.model.BlockedUser
 import com.akansu.sosyashare.domain.model.Post
 import com.akansu.sosyashare.domain.model.User
 import com.akansu.sosyashare.domain.repository.BlockedUserRepository
+import com.akansu.sosyashare.domain.repository.MessagingRepository
 import com.akansu.sosyashare.domain.repository.NotificationRepository
 import com.akansu.sosyashare.domain.repository.PostRepository
 import com.akansu.sosyashare.domain.repository.UserPrivacyRepository
@@ -27,7 +29,8 @@ class ProfileViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val postRepository: PostRepository,
     private val blockedUserRepository: BlockedUserRepository,
-    private val notificationRepository: NotificationRepository
+    private val notificationRepository: NotificationRepository,
+    private val messagingRepository: MessagingRepository
 ) : ViewModel() {
 
     private val _userPosts = MutableStateFlow<List<Post>>(emptyList())
@@ -83,18 +86,28 @@ class ProfileViewModel @Inject constructor(
                 _backgroundImageUrl.value = user?.backgroundImageUrl
 
                 _isFollowing.value = userRepository.checkIfFollowing(currentUserId, userId)
-                Log.d("ProfileViewModel", "isFollowing for $userId by $currentUserId is ${_isFollowing.value}")
+                Log.d(
+                    "ProfileViewModel",
+                    "isFollowing for $userId by $currentUserId is ${_isFollowing.value}"
+                )
 
                 _userDetails.value = userRepository.getUserDetails(userId)
                 Log.d("ProfileViewModel", "User details for $userId loaded: ${_userDetails.value}")
 
-                val allowedFollowers = userPrivacyService.getUserPrivacy(userId)?.allowedFollowers ?: emptyList()
+                val allowedFollowers =
+                    userPrivacyService.getUserPrivacy(userId)?.allowedFollowers ?: emptyList()
                 if (shouldFetchPosts(isPrivate, allowedFollowers)) {
                     _userPosts.value = postRepository.getUserPosts(userId)
-                    Log.d("ProfileViewModel", "User posts loaded for $userId: ${_userPosts.value.size} posts")
+                    Log.d(
+                        "ProfileViewModel",
+                        "User posts loaded for $userId: ${_userPosts.value.size} posts"
+                    )
                 } else {
                     _userPosts.value = emptyList()
-                    Log.d("ProfileViewModel", "User posts hidden due to privacy settings for $userId")
+                    Log.d(
+                        "ProfileViewModel",
+                        "User posts hidden due to privacy settings for $userId"
+                    )
                 }
 
                 loadFollowersAndFollowing(userId)
@@ -113,7 +126,10 @@ class ProfileViewModel @Inject constructor(
             _following.value = userRepository.getFollowing(userId)
             Log.d("ProfileViewModel", "Following loaded for $userId: ${_following.value.size}")
         } catch (e: Exception) {
-            Log.e("ProfileViewModel", "Error loading followers and following for $userId: ${e.message}")
+            Log.e(
+                "ProfileViewModel",
+                "Error loading followers and following for $userId: ${e.message}"
+            )
         }
     }
 
@@ -124,10 +140,13 @@ class ProfileViewModel @Inject constructor(
         return shouldFetch
     }
 
-    fun followUser(currentUserId: String, followUserId: String) {
+    fun followUser(currentUserId: String, followUserId: String, context: Context) {
         viewModelScope.launch {
             try {
-                Log.d("ProfileViewModel", "Attempting to follow user: $followUserId by $currentUserId")
+                Log.d(
+                    "ProfileViewModel",
+                    "Attempting to follow user: $followUserId by $currentUserId"
+                )
 
                 // Kullanıcıyı takip et
                 userRepository.followUser(currentUserId, followUserId)
@@ -142,22 +161,46 @@ class ProfileViewModel @Inject constructor(
                         senderId = currentUserId,
                         senderUsername = user.username,
                         senderProfileUrl = user.profilePictureUrl,
-                        notificationType = "follow" // Bildirim türü follow
+                        notificationType = "follow"
                     )
+
+                    // FCM Token alma ve bildirim gönderme
+                    val fcmToken = messagingRepository.getFCMTokenByUserId(followUserId)
+                    fcmToken?.let { token ->
+                        val messageTitle = "New Follower"
+                        val messageBody = "${user.username} started following you."
+                        messagingRepository.sendFCMNotification(
+                            context,
+                            token,
+                            messageTitle,
+                            messageBody
+                        )
+                    } ?: run {
+                        Log.e("ProfileViewModel", "FCM Token bulunamadı.")
+                    }
                 }
 
-                Log.d("ProfileViewModel", "Successfully followed user: $followUserId by $currentUserId")
+                Log.d(
+                    "ProfileViewModel",
+                    "Successfully followed user: $followUserId by $currentUserId"
+                )
                 loadProfileData(currentUserId, followUserId)
             } catch (e: Exception) {
-                Log.e("ProfileViewModel", "Error following user: $followUserId by $currentUserId: ${e.message}")
+                Log.e(
+                    "ProfileViewModel",
+                    "Error following user: $followUserId by $currentUserId: ${e.message}"
+                )
             }
         }
     }
 
-    fun unfollowUser(currentUserId: String, unfollowUserId: String) {
+    fun unfollowUser(currentUserId: String, unfollowUserId: String, context: Context) {
         viewModelScope.launch {
             try {
-                Log.d("ProfileViewModel", "Attempting to unfollow user: $unfollowUserId by $currentUserId")
+                Log.d(
+                    "ProfileViewModel",
+                    "Attempting to unfollow user: $unfollowUserId by $currentUserId"
+                )
 
                 // Kullanıcıyı takip etmeyi bırak
                 userRepository.unfollowUser(currentUserId, unfollowUserId)
@@ -167,21 +210,42 @@ class ProfileViewModel @Inject constructor(
                 val currentUser = userRepository.getUserById(currentUserId).firstOrNull()
                 currentUser?.let { user ->
                     notificationRepository.sendNotification(
-                        userId = unfollowUserId, // Takip edilen kullanıcıya bildirim gönderiyoruz
-                        postId = "",           // Bu bir post ile ilgili değil
+                        userId = unfollowUserId,
+                        postId = "",
                         senderId = currentUserId,
                         senderUsername = user.username,
                         senderProfileUrl = user.profilePictureUrl,
-                        notificationType = "unfollow" // Bildirim türü unfollow
+                        notificationType = "unfollow"
                     )
+
+                    // FCM Token alma ve bildirim gönderme
+                    val fcmToken = messagingRepository.getFCMTokenByUserId(unfollowUserId)
+                    fcmToken?.let { token ->
+                        val messageTitle = "Unfollow Notification"
+                        val messageBody = "${user.username} unfollowed you."
+                        messagingRepository.sendFCMNotification(
+                            context,
+                            token,
+                            messageTitle,
+                            messageBody
+                        )
+                    } ?: run {
+                        Log.e("ProfileViewModel", "FCM Token bulunamadı.")
+                    }
                 }
 
                 _isPrivateAccount.value = userPrivacyService.fetchIsPrivateDirectly(unfollowUserId)
 
-                Log.d("ProfileViewModel", "Successfully unfollowed user: $unfollowUserId by $currentUserId")
+                Log.d(
+                    "ProfileViewModel",
+                    "Successfully unfollowed user: $unfollowUserId by $currentUserId"
+                )
                 loadProfileData(currentUserId, unfollowUserId)
             } catch (e: Exception) {
-                Log.e("ProfileViewModel", "Error unfollowing user: $unfollowUserId by $currentUserId: ${e.message}")
+                Log.e(
+                    "ProfileViewModel",
+                    "Error unfollowing user: $unfollowUserId by $currentUserId: ${e.message}"
+                )
             }
         }
     }
@@ -195,7 +259,10 @@ class ProfileViewModel @Inject constructor(
                     blockedUserId = blockUserId
                 )
                 blockedUserRepository.blockUser(blockedUser)
-                Log.d("ProfileViewModel", "User $blockUserId successfully blocked by $currentUserId")
+                Log.d(
+                    "ProfileViewModel",
+                    "User $blockUserId successfully blocked by $currentUserId"
+                )
             } catch (e: Exception) {
                 Log.e("ProfileViewModel", "Error blocking user: ${e.message}")
             }
@@ -217,7 +284,10 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 blockedUserRepository.unblockUser(currentUserId, blockedUserId)
-                Log.d("ProfileViewModel", "User $blockedUserId successfully unblocked by $currentUserId")
+                Log.d(
+                    "ProfileViewModel",
+                    "User $blockedUserId successfully unblocked by $currentUserId"
+                )
             } catch (e: Exception) {
                 Log.e("ProfileViewModel", "Error unblocking user: ${e.message}")
             }

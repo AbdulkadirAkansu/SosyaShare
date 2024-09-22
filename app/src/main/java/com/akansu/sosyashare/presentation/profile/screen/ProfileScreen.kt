@@ -1,7 +1,6 @@
 package com.akansu.sosyashare.presentation.profile.screen
 
-import android.app.Activity
-import android.os.Build
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -9,7 +8,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -23,15 +21,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
@@ -109,7 +103,9 @@ fun ProfileScreen(
                             userId?.let { id ->
                                 profileViewModel.blockUser(currentId, id)
                                 navController.navigate("home") {
-                                    popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                                    popUpTo(navController.graph.startDestinationId) {
+                                        inclusive = true
+                                    }
                                 }
                             }
                         }
@@ -118,7 +114,6 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Profil istatistikleri
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -190,7 +185,6 @@ fun ProfileScreen(
             }
         }
 
-        // Dialogları gösterme
         if (showFollowersDialog) {
             FollowersFollowingDialog(
                 users = followers,
@@ -221,12 +215,11 @@ fun BackgroundWithProfile(
     onSettingsClick: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val offsetValue = 8.dp // Dropdown menünün yukarı veya aşağı konumunu ayarlamak için
+    val offsetValue = 8.dp
 
     Box(
         modifier = Modifier.fillMaxWidth()
     ) {
-        // Arka plan resmi
         Card(
             shape = RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp),
             modifier = Modifier
@@ -263,7 +256,7 @@ fun BackgroundWithProfile(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp)
-                .offset(y = 16.dp) // Bu satır ikonları aşağı çeker
+                .offset(y = 16.dp)
                 .align(Alignment.TopCenter),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -277,12 +270,16 @@ fun BackgroundWithProfile(
 
             Box {
                 IconButton(onClick = { expanded = true }) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "More options", tint = MaterialTheme.colorScheme.onBackground)
+                    Icon(
+                        Icons.Default.MoreVert,
+                        contentDescription = "More options",
+                        tint = MaterialTheme.colorScheme.onBackground
+                    )
                 }
                 DropdownMenu(
                     expanded = expanded,
                     onDismissRequest = { expanded = false },
-                    offset = DpOffset(x = 0.dp, y = offsetValue) // Dropdown menünün konumunu ayarlıyoruz
+                    offset = DpOffset(x = 0.dp, y = offsetValue)
                 ) {
                     DropdownMenuItem(
                         text = { Text("Block User") },
@@ -299,7 +296,13 @@ fun BackgroundWithProfile(
 
 
 @Composable
-fun ActionButtons(profileViewModel: ProfileViewModel, currentUserId: String, userId: String, isFollowing: Boolean) {
+fun ActionButtons(
+    profileViewModel: ProfileViewModel,
+    currentUserId: String,
+    userId: String,
+    isFollowing: Boolean
+) {
+    val context = LocalContext.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -309,9 +312,9 @@ fun ActionButtons(profileViewModel: ProfileViewModel, currentUserId: String, use
         Button(
             onClick = {
                 if (isFollowing) {
-                    profileViewModel.unfollowUser(currentUserId, userId)
+                    profileViewModel.unfollowUser(currentUserId, userId, context)
                 } else {
-                    profileViewModel.followUser(currentUserId, userId)
+                    profileViewModel.followUser(currentUserId, userId, context)
                 }
             },
             modifier = Modifier
@@ -375,7 +378,6 @@ fun StatColumn(count: String, label: String, onClick: () -> Unit) {
 
 @Composable
 fun PostGrid(posts: List<Post>, onPostClick: (Int) -> Unit) {
-    // Postları en son eklenenden başlayarak sıralıyoruz (createdAt alanına göre)
     val sortedPosts = posts.sortedByDescending { it.createdAt }
 
     LazyVerticalGrid(
@@ -383,7 +385,7 @@ fun PostGrid(posts: List<Post>, onPostClick: (Int) -> Unit) {
         contentPadding = PaddingValues(8.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .height(500.dp), // Grid yüksekliği ihtiyaca göre ayarlanabilir
+            .height(500.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -407,7 +409,7 @@ fun PostGrid(posts: List<Post>, onPostClick: (Int) -> Unit) {
                         .clickable { onPostClick(index) }
                 ) {
                     AsyncImage(
-                        model = sortedPosts[index].imageUrl,  // Artık sıralı postları gösteriyoruz
+                        model = sortedPosts[index].imageUrl,
                         contentDescription = "Post",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()

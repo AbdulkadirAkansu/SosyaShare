@@ -2,8 +2,6 @@ package com.akansu.sosyashare.presentation.message.screen
 
 import android.annotation.SuppressLint
 import android.net.Uri
-import android.util.Log
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -31,7 +29,6 @@ import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import com.akansu.sosyashare.R
 import com.akansu.sosyashare.domain.model.User
-import com.akansu.sosyashare.presentation.home.components.NavigationBar
 import com.akansu.sosyashare.presentation.message.viewmodel.NewMessageViewModel
 import com.akansu.sosyashare.util.poppinsFontFamily
 
@@ -41,12 +38,12 @@ import com.akansu.sosyashare.util.poppinsFontFamily
 fun NewMessageScreen(
     navController: NavHostController,
     viewModel: NewMessageViewModel = hiltViewModel(),
-    messageContent: String? = null // forward edilen içerik
+    messageContent: String? = null
 ) {
     var searchQuery by remember { mutableStateOf(TextFieldValue("")) }
     val searchResults by viewModel.searchResults.collectAsState(initial = emptyList())
     val isDarkTheme = isSystemInDarkTheme()
-    val errorState by viewModel.error.collectAsState()  // Error handling
+    val errorState by viewModel.error.collectAsState()
     val context = LocalContext.current
 
     val backgroundColor = if (isDarkTheme) MaterialTheme.colorScheme.background else Color.White
@@ -67,12 +64,6 @@ fun NewMessageScreen(
                 )
             )
         },
-        /* bottomBar = {
-            NavigationBar(
-                navController = navController,
-                profilePictureUrl = currentUserProfilePictureUrl
-            )
-        }, */
         containerColor = backgroundColor
     ) { paddingValues ->
         Column(
@@ -100,13 +91,17 @@ fun NewMessageScreen(
                         user = user,
                         textColor = textColor,
                         onClick = {
-                            // Eğer forward edilen bir mesaj varsa onu ChatScreen'e ilet
                             messageContent?.let { content ->
-                                navController.navigate("chat/${user.id}?forwardedMessage=${Uri.encode(content)}") {
+                                navController.navigate(
+                                    "chat/${user.id}?forwardedMessage=${
+                                        Uri.encode(
+                                            content
+                                        )
+                                    }"
+                                ) {
                                     popUpTo("new_message_screen") { inclusive = true }
                                 }
                             } ?: run {
-                                // Eğer forward edilen mesaj yoksa direkt chat ekranına git
                                 navController.navigate("chat/${user.id}") {
                                     popUpTo("new_message_screen") { inclusive = true }
                                 }

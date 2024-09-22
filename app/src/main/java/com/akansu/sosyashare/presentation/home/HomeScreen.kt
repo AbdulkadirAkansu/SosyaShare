@@ -1,14 +1,12 @@
 package com.akansu.sosyashare.presentation.home
 
 import android.util.Log
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,14 +17,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -42,7 +37,6 @@ import com.akansu.sosyashare.presentation.home.components.LikedUsersDialog
 import com.akansu.sosyashare.presentation.home.components.NavigationBar
 import com.akansu.sosyashare.presentation.home.viewmodel.HomeViewModel
 import com.akansu.sosyashare.presentation.userprofile.viewmodel.UserViewModel
-import com.akansu.sosyashare.util.poppinsFontFamily
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlinx.coroutines.launch
 
@@ -83,7 +77,11 @@ fun HomeScreen(
     ) {
         Column {
             Spacer(modifier = Modifier.height(16.dp))
-            TopBar(currentUsername, currentUserId, navController) // `currentUserId`'yi buradan geçiyoruz
+            TopBar(
+                currentUsername,
+                currentUserId,
+                navController
+            )
             PostsSection(posts, users, savedPosts, homeViewModel, navController, { postId ->
                 homeViewModel.loadLikedUsers(postId)
                 showLikedUsers = true
@@ -124,17 +122,22 @@ fun TopBar(currentUsername: String?, currentUserId: String?, navController: NavH
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Notification icon
                 Surface(
                     shape = CircleShape,
                     color = MaterialTheme.colorScheme.surface,
                     modifier = Modifier
                         .size(32.dp)
                         .clickable {
-                            Log.d("Navigation", "Navigating to notifications screen with userId: $currentUserId")
+                            Log.d(
+                                "Navigation",
+                                "Navigating to notifications screen with userId: $currentUserId"
+                            )
                             currentUserId?.let {
                                 navController.navigate("notifications/$it")
-                            } ?: Log.e("Navigation", "User ID is null, cannot navigate to notifications.")
+                            } ?: Log.e(
+                                "Navigation",
+                                "User ID is null, cannot navigate to notifications."
+                            )
                         }
                 ) {
                     Icon(
@@ -188,7 +191,14 @@ fun PostsSection(
     ) {
         items(posts) { post ->
             val user = users[post.userId]
-            PostItem(post, user, savedPosts.any { it.id == post.id }, homeViewModel, navController, onLikesClick)
+            PostItem(
+                post,
+                user,
+                savedPosts.any { it.id == post.id },
+                homeViewModel,
+                navController,
+                onLikesClick
+            )
         }
     }
 }
@@ -207,12 +217,12 @@ fun PostItem(
     var likes by remember { mutableIntStateOf(post.likeCount) }
     var saved by remember { mutableStateOf(isSaved) }
     var showHeartAnimation by remember { mutableStateOf(false) }
-    var showFullContent by remember { mutableStateOf(false) } // For full content dialog
-    var showFullImage by remember { mutableStateOf(false) }   // For full-screen image
+    var showFullContent by remember { mutableStateOf(false) }
+    var showFullImage by remember { mutableStateOf(false) }
     val scale = remember { androidx.compose.animation.core.Animatable(0f) }
     val coroutineScope = rememberCoroutineScope()
-    val lastTapTimestamp = remember { mutableStateOf(0L) }   // For double-tap detection
-    val doubleTapTimeout = 300L  // Double-tap timeout in ms
+    val lastTapTimestamp = remember { mutableStateOf(0L) }
+    val doubleTapTimeout = 300L
     val context = LocalContext.current
 
     // Full screen image functionality
@@ -231,7 +241,7 @@ fun PostItem(
             text = {
                 Text(
                     post.content ?: "No content available",
-                    color = MaterialTheme.colorScheme.onBackground // Use theme color
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             },
             confirmButton = {
@@ -277,7 +287,7 @@ fun PostItem(
                                             scale.animateTo(1f)
                                             scale.animateTo(0f)
                                         }
-                                        homeViewModel.likePost(post.id, post.userId,context)
+                                        homeViewModel.likePost(post.id, post.userId, context)
 
                                     } else {
                                         likes -= 1
@@ -307,7 +317,6 @@ fun PostItem(
                             )
                         }
 
-                        // Fullscreen icon at the top-right corner of the image
                         Icon(
                             painter = painterResource(id = R.drawable.fullscreen),
                             contentDescription = "Fullscreen Icon",
@@ -321,7 +330,6 @@ fun PostItem(
                                 }
                         )
 
-                        // Profile picture and username at the top-left corner
                         Row(
                             modifier = Modifier
                                 .align(Alignment.TopStart)
@@ -331,7 +339,9 @@ fun PostItem(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Image(
-                                painter = rememberAsyncImagePainter(user?.profilePictureUrl ?: R.drawable.profile),
+                                painter = rememberAsyncImagePainter(
+                                    user?.profilePictureUrl ?: R.drawable.profile
+                                ),
                                 contentDescription = "Profile Picture",
                                 modifier = Modifier
                                     .size(40.dp)
@@ -354,7 +364,6 @@ fun PostItem(
             }
         }
 
-        // Post content and icons in the same card
         Card(
             shape = RoundedCornerShape(
                 topStart = 0.dp,
@@ -380,7 +389,6 @@ fun PostItem(
             )
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                // Icons and labels above the content
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -388,14 +396,13 @@ fun PostItem(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Like button and count
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(
                             onClick = {
                                 if (!liked) {
                                     likes += 1
                                     liked = true
-                                    homeViewModel.likePost(post.id, post.userId,context)
+                                    homeViewModel.likePost(post.id, post.userId, context)
                                 } else {
                                     likes -= 1
                                     liked = false
@@ -407,14 +414,17 @@ fun PostItem(
                             Icon(
                                 painter = painterResource(id = if (liked) R.drawable.red_heart_icon else R.drawable.heart_icon),
                                 contentDescription = "Like",
-                                tint = MaterialTheme.colorScheme.onBackground // Correct color based on theme
+                                tint = MaterialTheme.colorScheme.onBackground
                             )
                         }
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = "$likes likes", color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp)
+                        Text(
+                            text = "$likes likes",
+                            color = MaterialTheme.colorScheme.onBackground,
+                            fontSize = 14.sp
+                        )
                     }
 
-                    // Comment button and count
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(
                             onClick = {
@@ -429,7 +439,11 @@ fun PostItem(
                             )
                         }
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = " ${post.commentCount} comments", color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp)
+                        Text(
+                            text = " ${post.commentCount} comments",
+                            color = MaterialTheme.colorScheme.onBackground,
+                            fontSize = 14.sp
+                        )
                     }
 
 
@@ -454,13 +468,16 @@ fun PostItem(
                             )
                         }
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = if (saved) "Saved" else "Save", color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp)
+                        Text(
+                            text = if (saved) "Saved" else "Save",
+                            color = MaterialTheme.colorScheme.onBackground,
+                            fontSize = 14.sp
+                        )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Content text with the username at the beginning
                 val contentText = if (post.content.isNullOrEmpty()) "See comments" else post.content
                 Text(
                     text = "${user?.username ?: "Unknown"}: $contentText",

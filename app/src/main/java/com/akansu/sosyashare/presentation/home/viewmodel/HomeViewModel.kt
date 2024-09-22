@@ -129,7 +129,6 @@ class HomeViewModel @Inject constructor(
                             notificationType = "like"
                         )
 
-                        // FCM bildirimi gönder
                         val fcmToken = messagingRepository.getFCMTokenByUserId(postOwnerId)
                         if (fcmToken != null) {
                             val postContent = post.content ?: "Your post was liked!"

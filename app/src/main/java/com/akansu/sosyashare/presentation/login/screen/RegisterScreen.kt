@@ -1,6 +1,6 @@
 package com.akansu.sosyashare.presentation.login.screen
 
-import androidx.compose.foundation.BorderStroke
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -31,7 +31,7 @@ fun RegisterScreen(navController: NavController, viewModel: AuthViewModel = hilt
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var username by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) } // Şifreyi göstermek için
+    var passwordVisible by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     BoxWithConstraints(
@@ -56,7 +56,6 @@ fun RegisterScreen(navController: NavController, viewModel: AuthViewModel = hilt
         ) {
             Spacer(modifier = Modifier.height(screenHeight * 0.08f))
 
-            // Night logo
             Image(
                 painter = painterResource(id = R.drawable.nightlogo),
                 contentDescription = "Night Logo",
@@ -84,7 +83,6 @@ fun RegisterScreen(navController: NavController, viewModel: AuthViewModel = hilt
 
             Spacer(modifier = Modifier.height(screenHeight * 0.08f))
 
-            // Username field
             Surface(
                 shape = RoundedCornerShape(12.dp),
                 color = Color.White,
@@ -107,7 +105,10 @@ fun RegisterScreen(navController: NavController, viewModel: AuthViewModel = hilt
                         unfocusedIndicatorColor = Color(0xFF0D47A1),
                         cursorColor = Color(0xFF0D47A1)
                     ),
-                    textStyle = LocalTextStyle.current.copy(fontFamily = poppinsFontFamily, fontSize = 14.sp)
+                    textStyle = LocalTextStyle.current.copy(
+                        fontFamily = poppinsFontFamily,
+                        fontSize = 14.sp
+                    )
                 )
             }
 
@@ -133,13 +134,16 @@ fun RegisterScreen(navController: NavController, viewModel: AuthViewModel = hilt
                         unfocusedIndicatorColor = Color(0xFF0D47A1),
                         cursorColor = Color(0xFF0D47A1)
                     ),
-                    textStyle = LocalTextStyle.current.copy(fontFamily = poppinsFontFamily, fontSize = 14.sp)
+                    textStyle = LocalTextStyle.current.copy(
+                        fontFamily = poppinsFontFamily,
+                        fontSize = 14.sp
+                    )
                 )
             }
 
             Spacer(modifier = Modifier.height(screenHeight * 0.02f))
 
-            // Password field with visibility toggle
+
             Surface(
                 shape = RoundedCornerShape(12.dp),
                 color = Color.White,
@@ -169,7 +173,10 @@ fun RegisterScreen(navController: NavController, viewModel: AuthViewModel = hilt
                         unfocusedIndicatorColor = Color(0xFF0D47A1),
                         cursorColor = Color(0xFF0D47A1)
                     ),
-                    textStyle = LocalTextStyle.current.copy(fontFamily = poppinsFontFamily, fontSize = 14.sp)
+                    textStyle = LocalTextStyle.current.copy(
+                        fontFamily = poppinsFontFamily,
+                        fontSize = 14.sp
+                    )
                 )
             }
 
@@ -181,16 +188,20 @@ fun RegisterScreen(navController: NavController, viewModel: AuthViewModel = hilt
                         username.isEmpty() -> {
                             errorMessage = "Username cannot be empty."
                         }
+
                         !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches() -> {
                             errorMessage = "Invalid email format."
                         }
+
                         password.length < 6 -> {
                             errorMessage = "Password must be at least 6 characters long."
                         }
+
                         else -> {
                             viewModel.isUsernameUnique(username) { isUnique ->
                                 if (!isUnique) {
-                                    errorMessage = "This username is already taken. Please choose a different one."
+                                    errorMessage =
+                                        "This username is already taken. Please choose a different one."
                                 } else {
                                     viewModel.registerUser(email, password, username, onSuccess = {
                                         navController.navigate("email_verification")
@@ -204,8 +215,8 @@ fun RegisterScreen(navController: NavController, viewModel: AuthViewModel = hilt
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp) // Button genişliğini TextField ile eşleştirildi.
-                    .height(50.dp), // Buton yüksekliği sabitlenmiş.
+                    .padding(horizontal = 16.dp)
+                    .height(50.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
@@ -231,7 +242,7 @@ fun RegisterScreen(navController: NavController, viewModel: AuthViewModel = hilt
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Back to Login text (Bold)
+
             Text(
                 text = "Already have an account? Log In",
                 modifier = Modifier

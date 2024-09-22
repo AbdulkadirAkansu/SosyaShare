@@ -1,14 +1,11 @@
 package com.akansu.sosyashare.presentation.share.viewmodel
 
-import android.content.Context
-import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.akansu.sosyashare.domain.model.Post
 import com.akansu.sosyashare.domain.repository.PostRepository
 import com.akansu.sosyashare.domain.repository.UserRepository
 import com.akansu.sosyashare.domain.repository.StorageRepository
-import com.akansu.sosyashare.util.FileUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

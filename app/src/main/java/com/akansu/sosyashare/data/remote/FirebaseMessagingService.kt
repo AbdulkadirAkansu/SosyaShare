@@ -29,7 +29,7 @@ class FirebaseMessagingService : FirebaseMessagingService() {
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         Log.d("FCM", "Yeni token alındı: $token")
-        sendTokenToServer(token)  // Token'ı sunucuya veya FCM'ye gönder
+        sendTokenToServer(token)
     }
 
     suspend fun getFCMTokenByUserId(userId: String): String? {
@@ -44,13 +44,17 @@ class FirebaseMessagingService : FirebaseMessagingService() {
         }
     }
 
-    fun sendFCMNotification(context: Context, fcmToken: String, title: String, commentContent: String) {
+    fun sendFCMNotification(
+        context: Context,
+        fcmToken: String,
+        title: String,
+        commentContent: String
+    ) {
         CoroutineScope(Dispatchers.IO).launch {
             val client = OkHttpClient()
             val url = "https://fcm.googleapis.com/v1/projects/sosyashare/messages:send"
-            val accessToken = getAccessToken(context)  // Doğru Context'i alıyoruz.
+            val accessToken = getAccessToken(context)
 
-            // Bildirimi oluşturuyoruz, Post ID yerine comment içeriği gösteriliyor
             val notificationJson = """
         {
             "message": {
@@ -87,7 +91,7 @@ class FirebaseMessagingService : FirebaseMessagingService() {
     private fun sendTokenToServer(token: String) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val accessToken = getAccessToken(this@FirebaseMessagingService) // Doğru context ile getAccessToken çağrısı
+                val accessToken = getAccessToken(this@FirebaseMessagingService)
                 val url = "https://fcm.googleapis.com/v1/projects/sosyashare/messages:send"
 
                 val tokenJson = """
@@ -100,7 +104,7 @@ class FirebaseMessagingService : FirebaseMessagingService() {
                 val request = Request.Builder()
                     .url(url)
                     .post(tokenJson.toRequestBody("application/json".toMediaType()))
-                    .addHeader("Authorization", "Bearer $accessToken")  // Bearer Token
+                    .addHeader("Authorization", "Bearer $accessToken")
                     .build()
 
                 // Ağ işlemi
@@ -108,7 +112,10 @@ class FirebaseMessagingService : FirebaseMessagingService() {
                     if (response.isSuccessful) {
                         Log.d("FCM", "Token başarıyla sunucuya gönderildi")
                     } else {
-                        Log.e("FCM", "Token gönderiminde hata: ${response.code} - ${response.message}")
+                        Log.e(
+                            "FCM",
+                            "Token gönderiminde hata: ${response.code} - ${response.message}"
+                        )
                     }
                 }
             } catch (e: Exception) {
@@ -130,7 +137,8 @@ class FirebaseMessagingService : FirebaseMessagingService() {
             this, 0, intent,
             PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
         )
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager =
+            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         val channelId = "default_channel"
         val notificationBuilder = NotificationCompat.Builder(this, channelId)

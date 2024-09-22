@@ -6,23 +6,18 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ExitToApp
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.akansu.sosyashare.R
@@ -69,7 +64,7 @@ fun SettingsScreen(
                         Icon(
                             Icons.Default.ArrowBack,
                             contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.onBackground // İkon rengi dark/light uyumlu
+                            tint = MaterialTheme.colorScheme.onBackground
                         )
                     }
                 }
@@ -155,12 +150,12 @@ fun SettingsScreen(
 
 @Composable
 fun SettingsOption(
-    icon: Int,  // Drawable kaynağını Int olarak alıyoruz
+    icon: Int,
     label: String,
     trailing: @Composable (() -> Unit)? = null,
     onClick: (() -> Unit)? = null
 ) {
-    val iconTintColor = MaterialTheme.colorScheme.onBackground // İkon rengi dark/light uyumlu
+    val iconTintColor = MaterialTheme.colorScheme.onBackground
 
     Row(
         modifier = Modifier
@@ -173,7 +168,7 @@ fun SettingsOption(
             painter = painterResource(id = icon),
             contentDescription = null,
             modifier = Modifier
-                .size(40.dp) // İkon boyutunu artırıyoruz
+                .size(40.dp)
                 .padding(end = 16.dp),
             colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(iconTintColor)
         )
@@ -182,7 +177,7 @@ fun SettingsOption(
             fontWeight = FontWeight.Medium,
             fontSize = 16.sp,
             fontFamily = poppinsFontFamily,
-            color = MaterialTheme.colorScheme.onBackground // Metin rengi dark/light uyumlu
+            color = MaterialTheme.colorScheme.onBackground
         )
         Spacer(modifier = Modifier.weight(1f))
         trailing?.invoke()
@@ -203,7 +198,7 @@ fun BlockedUsersDialog(
                 fontSize = 22.sp,
                 fontWeight = FontWeight.SemiBold,
                 fontFamily = poppinsFontFamily,
-                color = MaterialTheme.colorScheme.onBackground // Dark/light uyumlu metin
+                color = MaterialTheme.colorScheme.onBackground
             )
         },
         text = {
@@ -229,7 +224,7 @@ fun BlockedUsersDialog(
                             fontWeight = FontWeight.Medium,
                             fontSize = 16.sp,
                             fontFamily = poppinsFontFamily,
-                            color = MaterialTheme.colorScheme.onBackground // Dark/light uyumlu metin
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                         Spacer(modifier = Modifier.weight(1f))
                         Button(onClick = { onUnblockUser(user.id) }) {
@@ -246,7 +241,7 @@ fun BlockedUsersDialog(
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
                     fontFamily = poppinsFontFamily,
-                    color = MaterialTheme.colorScheme.onBackground // Dark/light uyumlu metin
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             }
         },

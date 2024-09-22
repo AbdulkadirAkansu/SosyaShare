@@ -9,7 +9,6 @@ fun UserPrivacyEntity.toDomainModel(): UserPrivacy {
     return try {
         Log.d("UserPrivacyMapper", "Mapping UserPrivacyEntity to UserPrivacy. Data: $this")
 
-        // Null ve veri tiplerini kontrol et
         val mappedUserPrivacy = UserPrivacy(
             userId = userId ?: run {
                 Log.w("UserPrivacyMapper", "userId is null, defaulting to empty string")
@@ -24,12 +23,18 @@ fun UserPrivacyEntity.toDomainModel(): UserPrivacy {
                 emptyList()
             }
         )
-
-        Log.d("UserPrivacyMapper", "Successfully mapped UserPrivacyEntity to UserPrivacy: $mappedUserPrivacy")
+        Log.d(
+            "UserPrivacyMapper",
+            "Successfully mapped UserPrivacyEntity to UserPrivacy: $mappedUserPrivacy"
+        )
         mappedUserPrivacy
     } catch (e: Exception) {
-        Log.e("UserPrivacyMapper", "Error mapping UserPrivacyEntity to UserPrivacy: ${e.message}", e)
-        throw e // Veya null döndürebilirsiniz ama genelde bu tür hatalar throw edilir
+        Log.e(
+            "UserPrivacyMapper",
+            "Error mapping UserPrivacyEntity to UserPrivacy: ${e.message}",
+            e
+        )
+        throw e
     }
 }
 

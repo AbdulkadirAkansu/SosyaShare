@@ -212,7 +212,6 @@ fun UserProfileScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Profil istatistikleri
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -259,12 +258,11 @@ fun UserProfileScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Grid height'i kontrol ederek boş alanı kaplama
                 PostGrid(
                     posts = sortedPosts.mapNotNull { it.imageUrl },
                     userId = currentUser?.uid ?: "",
                     navController = navController,
-                    gridHeight = 500.dp // Grid yüksekliğini ayarlayın
+                    gridHeight = 500.dp
                 )
             }
         }
@@ -273,7 +271,12 @@ fun UserProfileScreen(
 
 
 @Composable
-fun PostGrid(posts: List<String>, userId: String, navController: NavHostController, gridHeight: Dp) {
+fun PostGrid(
+    posts: List<String>,
+    userId: String,
+    navController: NavHostController,
+    gridHeight: Dp
+) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(3),
         modifier = Modifier
@@ -305,7 +308,7 @@ fun PostGrid(posts: List<String>, userId: String, navController: NavHostControll
                         }
                 ) {
                     AsyncImage(
-                        model = posts[index],  // Ters sırayla göstermeye gerek yok çünkü sortedByDescending yapıldı
+                        model = posts[index],
                         contentDescription = "Post",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
@@ -339,7 +342,7 @@ fun ActionButtons(navController: NavHostController) {
                 "Edit Profile",
                 fontFamily = poppinsFontFamily,
                 fontWeight = FontWeight.Medium,
-                fontSize = 16.sp // İstediğiniz boyutta ayarlayabilirsiniz
+                fontSize = 16.sp
             )
         }
         Button(
@@ -403,7 +406,6 @@ fun BackgroundWithProfile(
         modifier = Modifier
             .fillMaxWidth()
     ) {
-        // Arka plan resmi
         Card(
             shape = RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp),
             modifier = Modifier
@@ -419,7 +421,6 @@ fun BackgroundWithProfile(
             )
         }
 
-        // Profil resmi
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -446,10 +447,18 @@ fun BackgroundWithProfile(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             IconButton(onClick = onBackClick) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onBackground)
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = MaterialTheme.colorScheme.onBackground
+                )
             }
             IconButton(onClick = onSettingsClick) {
-                Icon(Icons.Default.Menu, contentDescription = "More options", tint = MaterialTheme.colorScheme.onBackground)
+                Icon(
+                    Icons.Default.Menu,
+                    contentDescription = "More options",
+                    tint = MaterialTheme.colorScheme.onBackground
+                )
             }
         }
     }

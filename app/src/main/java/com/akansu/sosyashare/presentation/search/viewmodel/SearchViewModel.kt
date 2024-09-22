@@ -27,16 +27,18 @@ class SearchViewModel @Inject constructor(
         viewModelScope.launch {
             val currentUserId = authRepository.getCurrentUser()?.uid ?: return@launch
 
-            // Hem engellediğim kullanıcıların ID'lerini hem de beni engelleyenlerin ID'lerini alın
-            val blockedUserIds = blockedUserRepository.getBlockedUsersByUserId(currentUserId).map { it.blockedUserId }
-            val usersWhoBlockedMe = blockedUserRepository.getUsersWhoBlockedUserId(currentUserId).map { it.blockerUserId }
 
-            // Her iki listeyi birleştirerek hem engellediğim hem de beni engelleyenleri arama sonuçlarından hariç tutalım
+            val blockedUserIds = blockedUserRepository.getBlockedUsersByUserId(currentUserId)
+                .map { it.blockedUserId }
+            val usersWhoBlockedMe = blockedUserRepository.getUsersWhoBlockedUserId(currentUserId)
+                .map { it.blockerUserId }
+
+
             val allBlockedIds = blockedUserIds + usersWhoBlockedMe
 
             if (query.isNotBlank()) {
-                val users = userRepository.searchUsers(query) // Servisten kullanıcılar alınıyor
-                val filteredUsers = users.filter { it.id !in allBlockedIds } // Engellenmiş veya beni engellemiş kullanıcıları filtrele
+                val users = userRepository.searchUsers(query)
+                val filteredUsers = users.filter { it.id !in allBlockedIds }
                 _searchResults.value = filteredUsers
             } else {
                 _searchResults.value = emptyList()

@@ -3,6 +3,7 @@ package com.akansu.sosyashare.data.repository
 import com.akansu.sosyashare.data.model.UserEntity
 import com.akansu.sosyashare.data.remote.FirebaseAuthService
 import com.akansu.sosyashare.domain.repository.AuthRepository
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.firebase.auth.FirebaseUser
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -30,6 +31,10 @@ class AuthRepositoryImpl @Inject constructor(
 
     override suspend fun reloadUser() {
         authService.reloadUser()
+    }
+
+    override suspend fun firebaseAuthWithGoogle(account: GoogleSignInAccount): UserEntity {
+        return authService.firebaseAuthWithGoogle(account)
     }
 
     override suspend fun getUserDetails(): UserEntity? {

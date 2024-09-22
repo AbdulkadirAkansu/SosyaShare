@@ -16,16 +16,15 @@ fun VideoBackgroundPlayerWithSurfaceView(videoUri: Uri) {
             setMediaItem(MediaItem.fromUri(videoUri))
             prepare()
             playWhenReady = true
-            repeatMode = ExoPlayer.REPEAT_MODE_ONE // Videoyu döngüde oynatma
+            repeatMode = ExoPlayer.REPEAT_MODE_ONE
         }
     }
 
-    // SurfaceView kullanarak performans artırmaya yönelik video oynatma
     AndroidView(
         factory = {
             SurfaceView(context).apply {
                 val surfaceView = this
-                exoPlayer.setVideoSurfaceView(surfaceView) // SurfaceView'i ExoPlayer'a bağla
+                exoPlayer.setVideoSurfaceView(surfaceView)
             }
         },
         modifier = Modifier.fillMaxSize()

@@ -1,7 +1,6 @@
 package com.akansu.sosyashare.data.di
 
 import com.akansu.sosyashare.data.remote.FirebaseCommentService
-import com.akansu.sosyashare.data.local.CommentDao
 import com.akansu.sosyashare.data.repository.CommentRepositoryImpl
 import com.akansu.sosyashare.domain.repository.CommentRepository
 import dagger.Module
@@ -16,14 +15,13 @@ object CommentModule {
 
     @Provides
     @Singleton
-    fun provideCommentDao(): CommentDao {
+    fun provideCommentService(): FirebaseCommentService {
         return FirebaseCommentService()
     }
 
     @Provides
     @Singleton
-    fun provideCommentRepository(commentDao: CommentDao): CommentRepository {
-        return CommentRepositoryImpl(commentDao)
+    fun provideCommentRepository(commentService: FirebaseCommentService): CommentRepository {
+        return CommentRepositoryImpl(commentService)
     }
 }
-

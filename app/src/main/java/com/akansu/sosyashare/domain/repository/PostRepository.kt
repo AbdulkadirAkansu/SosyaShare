@@ -12,7 +12,7 @@ interface PostRepository {
     suspend fun unlikePost(postId: String, likerId: String)
     suspend fun getPostById(postId: String): Post?
     suspend fun getLikeStatus(postId: String, likerId: String): Boolean
-    suspend fun getLikedUserIds(postId: String): List<String> // Yeni işlevi ekledik
+    suspend fun getLikedUserIds(postId: String): List<String>
     suspend fun getUserPosts(userId: String): List<Post>
     suspend fun updateCommentCount(postId: String, newCommentCount: Int)
 }

@@ -10,6 +10,6 @@ data class MessageEntity(
     val content: String = "",
     val timestamp: Date = Date(),
     @get:PropertyName("isRead") val isRead: Boolean = false,
-    val replyToMessageId: String? = null, // Yanıtlanan mesajın ID'si, null olabilir
-    val chatId: String = "" // Mesajın hangi sohbete ait olduğunu belirlemek için
+    val replyToMessageId: String? = null,
+    val chatId: String = ""
 )

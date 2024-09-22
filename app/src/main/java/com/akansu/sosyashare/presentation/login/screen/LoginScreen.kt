@@ -1,26 +1,32 @@
 package com.akansu.sosyashare.presentation.login.screen
 
+import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.* // Box, Column, Modifier ve Spacer için gerekli
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.* // ButtonDefaults, Button, Text, TextButton
-import androidx.compose.runtime.* // remember, mutableStateOf, Composable
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.akansu.sosyashare.presentation.login.viewmodel.AuthViewModel
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
 import kotlinx.coroutines.delay
+import com.akansu.sosyashare.R
 
 @Composable
 fun LoginScreen(navController: NavController, viewModel: AuthViewModel = hiltViewModel()) {
@@ -55,7 +61,7 @@ fun LoginScreen(navController: NavController, viewModel: AuthViewModel = hiltVie
             Spacer(modifier = Modifier.weight(1f))
             TypewriterText()
             Spacer(modifier = Modifier.weight(1f))
-            LoginOptionsBox(navController)
+            LoginOptionsBox(navController, viewModel)
         }
     }
 }
@@ -87,14 +93,14 @@ fun AnimatedBackground() {
 @Composable
 fun TypewriterText() {
     val messages = listOf(
-        "Paylaş ●",
-        "Keşfet ●",
-        "Bağlan ●",
-        "Takip Et ●",
-        "Beğen ●",
-        "Yorum Yap ●",
-        "Story Paylaş ●",
-        "Trendleri Keşfet ●"
+        "Share ●",
+        "Explore ●",
+        "Connect ●",
+        "Follow ●",
+        "Like ●",
+        "Comment ●",
+        "Share a Story ●",
+        "Discover Trends ●"
     )
 
     var currentMessage by remember { mutableStateOf("") }
@@ -123,7 +129,7 @@ fun TypewriterText() {
 }
 
 @Composable
-fun LoginOptionsBox(navController: NavController) {
+fun LoginOptionsBox(navController: NavController, viewModel: AuthViewModel) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -133,30 +139,57 @@ fun LoginOptionsBox(navController: NavController) {
             )
             .padding(24.dp)
     ) {
-        LoginOptions(navController)
+        LoginOptions(navController, viewModel)
     }
 }
 
 @Composable
-fun LoginOptions(navController: NavController) {
+fun LoginOptions(navController: NavController, viewModel: AuthViewModel) {
+    val context = LocalContext.current
+
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.getResult(ApiException::class.java)
+            if (account != null) {
+                viewModel.loginWithGoogle(account,
+                    onSuccess = {
+                        navController.navigate("home")
+                    },
+                    onFailure = {
+                        // Hata durumunda yapılacaklar
+                    }
+                )
+            }
+        } catch (e: ApiException) {
+            Log.e("GoogleSignInError", "Google Sign-In failed: ${e.statusCode}")
+        }
+    }
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Google ile devam et butonu
         SocialLoginButton(
-            text = "Google ile devam et",
+            text = "Continue with Google",
             backgroundColor = Color.White,
             textColor = Color.Black,
             onClick = {
-                // Google login işlemi burada yapılacak
+                val googleSignInOptions = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                    .requestIdToken(context.getString(R.string.default_web_client_id))
+                    .requestEmail()
+                    .build()
+                val googleSignInClient = GoogleSignIn.getClient(context, googleSignInOptions)
+                val signInIntent = googleSignInClient.signInIntent
+                googleSignInLauncher.launch(signInIntent)
             }
         )
 
-        // E-posta ile kaydol butonu
         SocialLoginButton(
-            text = "E-posta ile kaydol",
+            text = "Sign up with Email",
             backgroundColor = Color(0xFF404040),
             textColor = Color.White,
             onClick = {
@@ -174,7 +207,7 @@ fun LoginOptions(navController: NavController) {
 
         OutlinedButton(
             onClick = {
-                navController.navigate("sign_in") // Rota doğru tanımlandığından emin ol
+                navController.navigate("sign_in")
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -183,7 +216,7 @@ fun LoginOptions(navController: NavController) {
             border = ButtonDefaults.outlinedButtonBorder.copy(width = 1.dp),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
         ) {
-            Text("Oturum aç", fontSize = 16.sp)
+            Text("Sign In", fontSize = 16.sp)
         }
     }
 }

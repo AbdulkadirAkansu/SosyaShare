@@ -27,15 +27,27 @@ class NotificationRepositoryImpl @Inject constructor(
         senderProfileUrl: String?,
         notificationType: String
     ) {
-        notificationService.sendNotification(userId, postId, senderId, senderUsername, senderProfileUrl, notificationType)
+        notificationService.sendNotification(
+            userId,
+            postId,
+            senderId,
+            senderUsername,
+            senderProfileUrl,
+            notificationType
+        )
     }
 
-    override suspend fun canUserLikeOrComment(userId: String, postId: String, notificationType: String): Boolean {
+    override suspend fun canUserLikeOrComment(
+        userId: String,
+        postId: String,
+        notificationType: String
+    ): Boolean {
         return notificationService.canUserLikeOrComment(userId, postId, notificationType)
     }
 
     override suspend fun getNotificationsByUserId(userId: String): List<Notification> {
-        return notificationService.getNotificationsByUserId(userId).map { NotificationMapper.fromEntity(it) }
+        return notificationService.getNotificationsByUserId(userId)
+            .map { NotificationMapper.fromEntity(it) }
     }
 
     override suspend fun markNotificationAsRead(notificationId: String) {

@@ -10,7 +10,6 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
-// `object` kullanarak @Provides anotasyonu ile bağımlılık sağlıyoruz
 @Module
 @InstallIn(SingletonComponent::class)
 object FirebaseServiceModule {
@@ -22,7 +21,6 @@ object FirebaseServiceModule {
     }
 }
 
-// `abstract` kullanarak @Binds anotasyonu ile implementasyonu bağlıyoruz
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class MessagingRepositoryModule {
@@ -33,3 +31,4 @@ abstract class MessagingRepositoryModule {
         messagingRepositoryImpl: MessagingRepositoryImpl
     ): MessagingRepository
 }
+

@@ -61,13 +61,17 @@ class FirebasePostService @Inject constructor(
             if (!likeSnapshot.exists()) {
                 val newLikeCount = (postSnapshot.getLong("likeCount") ?: 0) + 1
                 transaction.update(postRef, "likeCount", newLikeCount)
-                val likedByList = postSnapshot.get("likedBy") as? MutableList<String> ?: mutableListOf()
+                val likedByList =
+                    postSnapshot.get("likedBy") as? MutableList<String> ?: mutableListOf()
                 likedByList.add(likerId)
                 transaction.update(postRef, "likedBy", likedByList)
 
                 transaction.set(likeRef, mapOf("userId" to likerId))
 
-                Log.d("FirebasePostService", "Post Liked: postId=$postId, newLikeCount=$newLikeCount, likedBy=$likedByList")
+                Log.d(
+                    "FirebasePostService",
+                    "Post Liked: postId=$postId, newLikeCount=$newLikeCount, likedBy=$likedByList"
+                )
             } else {
                 Log.d("FirebasePostService", "User $likerId has already liked post $postId")
             }
@@ -99,7 +103,6 @@ class FirebasePostService @Inject constructor(
     }
 
 
-
     suspend fun unlikePost(postId: String, likerId: String) {
         Log.d("FirebasePostService", "Unliking Post: postId=$postId by User: $likerId")
         val postRef = firestore.collection("posts").document(postId)
@@ -115,14 +118,18 @@ class FirebasePostService @Inject constructor(
                 transaction.update(postRef, "likeCount", newLikeCount)
 
                 // likedBy listesi güncellemesi
-                val likedByList = postSnapshot.get("likedBy") as? MutableList<String> ?: mutableListOf()
+                val likedByList =
+                    postSnapshot.get("likedBy") as? MutableList<String> ?: mutableListOf()
                 likedByList.remove(likerId)
                 transaction.update(postRef, "likedBy", likedByList)
 
                 // Beğeni kaydının silinmesi
                 transaction.delete(likeRef)
 
-                Log.d("FirebasePostService", "Post Unliked: postId=$postId, newLikeCount=$newLikeCount, likedBy=$likedByList")
+                Log.d(
+                    "FirebasePostService",
+                    "Post Unliked: postId=$postId, newLikeCount=$newLikeCount, likedBy=$likedByList"
+                )
             } else {
                 Log.d("FirebasePostService", "User $likerId had not liked post $postId")
             }

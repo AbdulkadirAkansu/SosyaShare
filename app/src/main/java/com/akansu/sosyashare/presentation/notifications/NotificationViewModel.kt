@@ -37,7 +37,7 @@ class NotificationViewModel @Inject constructor(
     fun addNewNotification(notification: Notification) {
         viewModelScope.launch {
             try {
-                notificationRepository.addNotification(notification)  // addNotification() metodunun NotificationRepository'de tanımlı olduğundan emin ol
+                notificationRepository.addNotification(notification)
                 Log.d("NotificationViewModel", "Yeni bildirim eklendi: ${notification.documentId}")
                 loadNotifications(notification.userId)
             } catch (e: Exception) {
@@ -54,7 +54,7 @@ class NotificationViewModel @Inject constructor(
                 if (userId != null) {
                     notificationRepository.clearNotificationsByUserId(userId)
                     Log.d("NotificationViewModel", "Tüm bildirimler silindi.")
-                    _notifications.value = emptyList() // UI'yi güncellemek için listeyi temizliyoruz
+                    _notifications.value = emptyList()
                 }
             } catch (e: Exception) {
                 _error.value = "Failed to clear notifications: ${e.message}"
@@ -69,7 +69,6 @@ class NotificationViewModel @Inject constructor(
                 val loadedNotifications = notificationRepository.getNotificationsByUserId(userId)
                 _notifications.value = loadedNotifications
 
-                // Bildirimlerin tamamını okundu olarak işaretle
                 loadedNotifications.forEach { notification ->
                     if (!notification.isRead) {
                         notificationRepository.markNotificationAsRead(notification.documentId)
@@ -81,7 +80,7 @@ class NotificationViewModel @Inject constructor(
         }
     }
 
-// NotificationViewModel.kt
+    // NotificationViewModel.kt
     fun deleteNotification(notificationDocumentId: String) {
         viewModelScope.launch {
             try {
@@ -98,11 +97,17 @@ class NotificationViewModel @Inject constructor(
     fun markNotificationAsRead(notificationDocumentId: String) {
         viewModelScope.launch {
             try {
-                Log.d("NotificationViewModel", "Okundu olarak işaretleniyor: $notificationDocumentId")
+                Log.d(
+                    "NotificationViewModel",
+                    "Okundu olarak işaretleniyor: $notificationDocumentId"
+                )
                 notificationRepository.markNotificationAsRead(notificationDocumentId)
                 loadNotifications(_notifications.value.firstOrNull()?.userId ?: "")
             } catch (e: Exception) {
-                Log.e("NotificationViewModel", "Bildirimi okundu olarak işaretleme hatası id=$notificationDocumentId: ${e.message}")
+                Log.e(
+                    "NotificationViewModel",
+                    "Bildirimi okundu olarak işaretleme hatası id=$notificationDocumentId: ${e.message}"
+                )
             }
         }
     }

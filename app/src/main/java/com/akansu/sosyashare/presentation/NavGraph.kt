@@ -135,7 +135,6 @@ fun NavGraph(navController: NavHostController, authViewModel: AuthViewModel, use
                 backStackEntry.arguments?.getString("currentUserId") ?: return@composable
             val currentUserProfileUrl = authViewModel.getCurrentUserProfilePictureUrl() ?: ""
 
-            // Coroutine Scope to fetch current user name
             var currentUserName by remember { mutableStateOf("") }
             val coroutineScope = rememberCoroutineScope()
 
@@ -161,7 +160,6 @@ fun NavGraph(navController: NavHostController, authViewModel: AuthViewModel, use
                 backStackEntry.arguments?.getString("currentUserId") ?: return@composable
             val currentUserProfileUrl = authViewModel.getCurrentUserProfilePictureUrl() ?: ""
 
-            // Coroutine Scope and LaunchedEffect to get current user name
             var currentUserName by remember { mutableStateOf<String?>(null) }
             val coroutineScope = rememberCoroutineScope()
 
@@ -243,7 +241,6 @@ fun NavGraph(navController: NavHostController, authViewModel: AuthViewModel, use
                 navController = navController,
                 userId = userId,
                 onNotificationClick = { notificationId ->
-                    // Bildirime tıklandığında yapılacak işlemi burada tanımlayın
                 }
             )
         }

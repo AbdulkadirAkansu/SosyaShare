@@ -1,10 +1,12 @@
 package com.akansu.sosyashare.presentation.postdetail.viewmodel
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.akansu.sosyashare.domain.model.Post
 import com.akansu.sosyashare.domain.model.User
+import com.akansu.sosyashare.domain.repository.MessagingRepository
 import com.akansu.sosyashare.domain.repository.NotificationRepository
 import com.akansu.sosyashare.domain.repository.PostRepository
 import com.akansu.sosyashare.domain.repository.SaveRepository
@@ -22,6 +24,7 @@ class PostDetailViewModel @Inject constructor(
     private val postRepository: PostRepository,
     private val saveRepository: SaveRepository,
     private val notificationRepository: NotificationRepository,
+    private val messagingRepository: MessagingRepository
 ) : ViewModel() {
 
     private val _user = MutableStateFlow<User?>(null)
@@ -104,14 +107,14 @@ class PostDetailViewModel @Inject constructor(
         viewModelScope.launch {
             val saves = saveRepository.getSavedPosts()
             val posts = saves.mapNotNull { save ->
-                postRepository.getPostById(save.postId) // Her bir Save için ilgili Post'u getir
+                postRepository.getPostById(save.postId)
             }
             _savedPosts.value = posts
             Log.d("PostDetailViewModel", "Updated _savedPosts with ${posts.size} posts")
         }
     }
 
-    fun likePost(postId: String, postOwnerId: String) {
+    fun likePost(postId: String, postOwnerId: String, context: Context) {
         viewModelScope.launch {
             val currentUserId = _currentUserId.value ?: return@launch
             postRepository.likePost(postId, currentUserId)
@@ -120,13 +123,28 @@ class PostDetailViewModel @Inject constructor(
             val currentUser = userRepository.getUserById(currentUserId).firstOrNull()
             currentUser?.let { user ->
                 notificationRepository.sendNotification(
-                    userId = postOwnerId, // Gönderinin sahibi
-                    postId = postId,      // Beğenilen post ID'si
+                    userId = postOwnerId,
+                    postId = postId,
                     senderId = currentUserId,
                     senderUsername = user.username,
                     senderProfileUrl = user.profilePictureUrl,
-                    notificationType = "like" // Bildirim türü
+                    notificationType = "like"
                 )
+
+                // FCM Token alma ve bildirim gönderme
+                val fcmToken = messagingRepository.getFCMTokenByUserId(postOwnerId)
+                fcmToken?.let { token ->
+                    val messageTitle = "Post Liked"
+                    val messageBody = "${user.username} liked your post."
+                    messagingRepository.sendFCMNotification(
+                        context,
+                        token,
+                        messageTitle,
+                        messageBody
+                    )
+                } ?: run {
+                    Log.e("PostDetailViewModel", "Post sahibinin FCM token'ı bulunamadı.")
+                }
             }
 
             updatePostLikeStatus(postId, true)
@@ -149,7 +167,10 @@ class PostDetailViewModel @Inject constructor(
     private fun updatePostLikeStatus(postId: String, isLiked: Boolean) {
         _posts.value = _posts.value.map { post ->
             if (post.id == postId) {
-                post.copy(isLiked = isLiked, likeCount = if (isLiked) post.likeCount + 1 else post.likeCount - 1)
+                post.copy(
+                    isLiked = isLiked,
+                    likeCount = if (isLiked) post.likeCount + 1 else post.likeCount - 1
+                )
             } else post
         }
     }

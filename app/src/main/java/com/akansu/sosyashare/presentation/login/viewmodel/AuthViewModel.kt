@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.akansu.sosyashare.data.model.UserEntity
 import com.akansu.sosyashare.domain.repository.AuthRepository
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.firebase.auth.FirebaseUser
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -29,6 +30,19 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    fun loginWithGoogle(account: GoogleSignInAccount, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val userEntity = authRepository.firebaseAuthWithGoogle(account)
+                saveLoginState(true)
+                onSuccess()
+            } catch (e: Exception) {
+                onFailure(e)
+            }
+        }
+    }
+
+
     fun registerUser(
         email: String,
         password: String,
@@ -45,7 +59,6 @@ class AuthViewModel @Inject constructor(
                     return@launch
                 }
 
-                // Kullanıcı adı benzersizse, kayıt işlemini gerçekleştir
                 authRepository.registerUser(email, password, username)
                 onSuccess()
             } catch (e: Exception) {
@@ -111,7 +124,6 @@ class AuthViewModel @Inject constructor(
                 val currentUser = authRepository.getCurrentUser()
 
                 if (currentUser?.isEmailVerified == true) {
-                    // Email doğrulandıysa, Firestore'da güncelle
                     authRepository.updateEmailVerifiedStatus(currentUser.uid)
                     onSuccess()
                 } else {
@@ -135,7 +147,6 @@ class AuthViewModel @Inject constructor(
                 authRepository.loginUser(email, password)
                 val currentUser = authRepository.getCurrentUser()
 
-                // Email doğrulandı mı diye kontrol et
                 if (currentUser?.isEmailVerified == true) {
                     saveLoginState(true)
                     onSuccess()

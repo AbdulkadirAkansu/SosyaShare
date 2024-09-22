@@ -1,10 +1,8 @@
 package com.akansu.sosyashare.presentation.message.viewmodel
 
 import android.net.Uri
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.navigation.NavHostController
 import com.akansu.sosyashare.domain.model.Message
 import com.akansu.sosyashare.domain.model.User
 import com.akansu.sosyashare.domain.repository.MessageRepository
@@ -56,7 +54,11 @@ class NewMessageViewModel @Inject constructor(
         }
     }
 
-    fun forwardMessageOrImage(receiverId: String, content: String, onMessageSent: (Boolean) -> Unit) {
+    fun forwardMessageOrImage(
+        receiverId: String,
+        content: String,
+        onMessageSent: (Boolean) -> Unit
+    ) {
         viewModelScope.launch {
             try {
                 val senderId = _currentUserId.value ?: return@launch

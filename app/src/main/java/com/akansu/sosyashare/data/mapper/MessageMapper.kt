@@ -13,8 +13,8 @@ fun MessageEntity.toDomainModel(): Message {
         content = this.content,
         timestamp = this.timestamp,
         isRead = this.isRead,
-        replyToMessageId = this.replyToMessageId, // Yanıtlanan mesaj ID'si
-        chatId = this.chatId, // Chat ID'si
+        replyToMessageId = this.replyToMessageId,
+        chatId = this.chatId,
     ).also {
         Log.d("Mapper", "toDomainModel - Resulting Message: $it")
     }
@@ -29,8 +29,8 @@ fun Message.toEntityModel(): MessageEntity {
         content = this.content,
         timestamp = this.timestamp,
         isRead = this.isRead,
-        replyToMessageId = this.replyToMessageId, // Yanıtlanan mesaj ID'si
-        chatId = this.chatId, // Chat ID'si
+        replyToMessageId = this.replyToMessageId,
+        chatId = this.chatId,
     ).also {
         Log.d("Mapper", "toEntityModel - Resulting MessageEntity: $it")
     }

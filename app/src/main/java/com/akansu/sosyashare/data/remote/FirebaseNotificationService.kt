@@ -14,7 +14,6 @@ class FirebaseNotificationService @Inject constructor(
 ) {
     private val notificationsCollection = firestore.collection("notifications")
 
-    // Yeni bildirim ekle
     suspend fun addNotification(notification: NotificationEntity) {
         notificationsCollection.add(notification).await()
     }
@@ -30,55 +29,49 @@ class FirebaseNotificationService @Inject constructor(
             batch.delete(document.reference)
         }
 
-        batch.commit().await()  // Firestore'da toplu silme işlemi
+        batch.commit().await()
     }
 
     suspend fun sendNotification(
         userId: String,
-        postId: String?, // Nullable postId
+        postId: String?,
         senderId: String,
         senderUsername: String,
         senderProfileUrl: String?,
-        notificationType: String // Bildirim türü (like, comment, follow, unfollow)
+        notificationType: String
     ) {
-        // Firebase'de aynı bildirim daha önce gönderilmiş mi kontrol ediliyor
         val query = notificationsCollection
             .whereEqualTo("userId", userId)
             .whereEqualTo("senderId", senderId)
             .whereEqualTo("type", notificationType)
 
-        // Eğer postId null değilse, postId kontrolünü ekliyoruz
         if (postId != null) {
             query.whereEqualTo("postId", postId)
         }
 
         val existingNotifications = query.get().await()
 
-        // Eğer daha önce aynı bildirim gönderilmemişse yeni bildirim oluşturulur
         if (existingNotifications.isEmpty) {
-            // Bildirim içeriği notificationType'a göre belirlenir
             val content = when (notificationType) {
                 "like" -> "$senderUsername liked your post"
                 "comment" -> "$senderUsername commented on your post"
                 "follow" -> "$senderUsername started following you"
-                "unfollow" -> "$senderUsername stopped following you" // Unfollow mesajı eklendi
+                "unfollow" -> "$senderUsername stopped following you"
                 else -> "$senderUsername performed an action"
             }
 
-            // Bildirimi oluşturuyoruz
             val notification = NotificationEntity(
                 userId = userId,
                 senderId = senderId,
                 senderUsername = senderUsername,
-                senderProfileUrl = senderProfileUrl ?: "", // Nullable ise boş string
+                senderProfileUrl = senderProfileUrl ?: "",
                 type = notificationType,
-                postId = postId, // Nullable postId
+                postId = postId,
                 content = content,
                 isRead = false,
                 timestamp = Date()
             )
 
-            // Firestore'a bildirimi ekliyoruz
             addNotification(notification)
             Log.d("NotificationService", "Yeni bildirim gönderildi.")
         } else {
@@ -87,7 +80,11 @@ class FirebaseNotificationService @Inject constructor(
     }
 
 
-    suspend fun canUserLikeOrComment(userId: String, postId: String, notificationType: String): Boolean {
+    suspend fun canUserLikeOrComment(
+        userId: String,
+        postId: String,
+        notificationType: String
+    ): Boolean {
         val now = Date()
         val timeLimit = 0
         val recentActions = notificationsCollection
@@ -104,11 +101,11 @@ class FirebaseNotificationService @Inject constructor(
             return true
         }
 
-        val lastActionTime = recentActions.documents.firstOrNull()?.getDate("timestamp") ?: return true
+        val lastActionTime =
+            recentActions.documents.firstOrNull()?.getDate("timestamp") ?: return true
         val timeDifference = now.time - lastActionTime.time
         return timeDifference > timeLimit
     }
-
 
 
     // Kullanıcının bildirimlerini al
@@ -121,13 +118,10 @@ class FirebaseNotificationService @Inject constructor(
 
         return result.documents.map { document ->
             val notification = document.toObject(NotificationEntity::class.java)!!
-            notification.copy(documentId = document.id) // Firestore document ID'yi ekliyoruz
+            notification.copy(documentId = document.id)
         }
     }
 
-
-    // Bildirimi okundu olarak işaretle
-// FirebaseNotificationService.kt
     suspend fun markNotificationAsRead(notificationDocumentId: String) {
         val document = notificationsCollection.document(notificationDocumentId)
         val snapshot = document.get().await()
@@ -142,12 +136,11 @@ class FirebaseNotificationService @Inject constructor(
 
     suspend fun deleteNotification(notificationDocumentId: String) {
         try {
-            // Firestore'daki benzersiz document ID ile işlem yapılıyor.
             val document = notificationsCollection.document(notificationDocumentId)
             val snapshot = document.get().await()
 
             if (snapshot.exists()) {
-                document.delete().await()  // Silme işlemi
+                document.delete().await()
                 Log.d("FirebaseNotificationService", "Bildirim silindi: $notificationDocumentId")
             } else {
                 Log.d("FirebaseNotificationService", "Belge bulunamadı: $notificationDocumentId")

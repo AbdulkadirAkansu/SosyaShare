@@ -12,7 +12,7 @@ data class Notification(
     val content: String = "",
     val isRead: Boolean = false,
     val timestamp: Date = Date(),
-    val documentId: String = ""  // Burada documentId'yi ekliyoruz
+    val documentId: String = ""
 )
 
 

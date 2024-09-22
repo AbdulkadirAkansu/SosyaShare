@@ -88,6 +88,7 @@ dependencies {
     implementation(libs.firebase.analytics.ktx)
     implementation(libs.firebase.analytics)
     implementation (libs.firebase.messaging)
+    implementation ("com.google.android.gms:play-services-auth:21.2.0")
 
     // Coil for image loading
     implementation(libs.coil.compose)

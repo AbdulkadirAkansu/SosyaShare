@@ -3,7 +3,6 @@ package com.akansu.sosyashare.presentation.login.screen
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,7 +23,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.akansu.sosyashare.R
 import com.akansu.sosyashare.presentation.login.viewmodel.AuthViewModel
-import com.akansu.sosyashare.presentation.ui.ErrorMessage
 import com.akansu.sosyashare.util.poppinsFontFamily
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -78,7 +76,7 @@ fun SingInScreen(navController: NavController, viewModel: AuthViewModel = hiltVi
                 TextField(
                     value = email,
                     onValueChange = { email = it },
-                    label = { Text("E-posta adresi", fontFamily = poppinsFontFamily) },
+                    label = { Text("Email Address", fontFamily = poppinsFontFamily) },
                     colors = TextFieldDefaults.textFieldColors(
                         focusedIndicatorColor = Color(0xFF0D47A1),
                         unfocusedIndicatorColor = Color(0xFF0D47A1),
@@ -106,7 +104,7 @@ fun SingInScreen(navController: NavController, viewModel: AuthViewModel = hiltVi
                 TextField(
                     value = password,
                     onValueChange = { password = it },
-                    label = { Text("Şifre", fontFamily = poppinsFontFamily) },
+                    label = { Text("Password", fontFamily = poppinsFontFamily) },
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
                         val image = if (passwordVisible)
@@ -157,7 +155,7 @@ fun SingInScreen(navController: NavController, viewModel: AuthViewModel = hiltVi
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(
-                    "Giriş Yap",
+                    "Sign In",
                     fontSize = (screenHeight * 0.02f).value.sp,
                     color = Color.White,
                     fontFamily = poppinsFontFamily
@@ -166,9 +164,8 @@ fun SingInScreen(navController: NavController, viewModel: AuthViewModel = hiltVi
 
             Spacer(modifier = Modifier.height(screenHeight * 0.02f))
 
-            // Şifremi unuttum
             Text(
-                text = "Şifremi unuttum?",
+                text = "Forgot Password?",
                 color = Color.White,
                 fontSize = (screenHeight * 0.02f).value.sp,
                 modifier = Modifier
@@ -180,7 +177,6 @@ fun SingInScreen(navController: NavController, viewModel: AuthViewModel = hiltVi
 
             Spacer(modifier = Modifier.height(screenHeight * 0.02f))
 
-            // Hata mesajı
             if (errorMessage != null) {
                 Snackbar(
                     action = {
@@ -189,7 +185,7 @@ fun SingInScreen(navController: NavController, viewModel: AuthViewModel = hiltVi
                         }
                     },
                     modifier = Modifier.padding(16.dp),
-                    containerColor = Color(0xFF0D47A1) // backgroundColor yerine containerColor kullanılıyor
+                    containerColor = Color(0xFF0D47A1)
                 ) {
                     Text(text = errorMessage ?: "", color = Color.White)
                 }
@@ -197,7 +193,6 @@ fun SingInScreen(navController: NavController, viewModel: AuthViewModel = hiltVi
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Yeni hesap oluştur
             OutlinedButton(
                 onClick = {
                     navController.navigate("register")
@@ -213,7 +208,7 @@ fun SingInScreen(navController: NavController, viewModel: AuthViewModel = hiltVi
                     .padding(horizontal = 16.dp)
             ) {
                 Text(
-                    "Yeni hesap oluştur",
+                    "Create a new account",
                     fontSize = (screenHeight * 0.018f).value.sp,
                     color = Color(0xFFFFFFFF),
                     fontFamily = poppinsFontFamily

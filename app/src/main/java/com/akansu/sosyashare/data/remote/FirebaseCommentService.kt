@@ -1,30 +1,29 @@
 package com.akansu.sosyashare.data.remote
 
 import android.util.Log
-import com.akansu.sosyashare.data.local.CommentDao
 import com.akansu.sosyashare.data.model.CommentEntity
 import com.akansu.sosyashare.data.model.ReplyEntity
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
-class FirebaseCommentService @Inject constructor() : CommentDao {
+class FirebaseCommentService @Inject constructor() {
     private val firestore = FirebaseFirestore.getInstance()
 
     // Comment işlemleri
-    override suspend fun addComment(comment: CommentEntity) {
+    suspend fun addComment(comment: CommentEntity) {
         try {
             firestore.collection("comments")
                 .document(comment.id)
                 .set(comment)
                 .await()
-            Log.d("FirebaseCommentService", "Comment added successfully: ${comment.username}") // Log ile username'i kontrol edin
+            Log.d("FirebaseCommentService", "Comment added successfully: ${comment.username}")
         } catch (e: Exception) {
             Log.e("FirebaseCommentService", "Failed to add comment: ${e.message}", e)
         }
     }
 
-    override suspend fun likeComment(commentId: String, userId: String) {
+    suspend fun likeComment(commentId: String, userId: String) {
         try {
             val commentRef = firestore.collection("comments").document(commentId)
             firestore.runTransaction { transaction ->
@@ -40,7 +39,7 @@ class FirebaseCommentService @Inject constructor() : CommentDao {
         }
     }
 
-    override suspend fun unlikeComment(commentId: String, userId: String) {
+    suspend fun unlikeComment(commentId: String, userId: String) {
         try {
             val commentRef = firestore.collection("comments").document(commentId)
             firestore.runTransaction { transaction ->
@@ -56,7 +55,7 @@ class FirebaseCommentService @Inject constructor() : CommentDao {
         }
     }
 
-    override suspend fun getCommentsForPost(postId: String): List<CommentEntity> {
+    suspend fun getCommentsForPost(postId: String): List<CommentEntity> {
         return try {
             val result = firestore.collection("comments")
                 .whereEqualTo("postId", postId)
@@ -69,7 +68,7 @@ class FirebaseCommentService @Inject constructor() : CommentDao {
         }
     }
 
-    override suspend fun deleteComment(commentId: String) {
+    suspend fun deleteComment(commentId: String) {
         try {
             firestore.collection("comments").document(commentId).delete().await()
             Log.d("FirebaseCommentService", "Comment deleted successfully: $commentId")
@@ -78,7 +77,7 @@ class FirebaseCommentService @Inject constructor() : CommentDao {
         }
     }
 
-    override suspend fun getCommentById(commentId: String): CommentEntity? {
+    suspend fun getCommentById(commentId: String): CommentEntity? {
         return try {
             val snapshot = firestore.collection("comments").document(commentId).get().await()
             snapshot.toObject(CommentEntity::class.java)
@@ -89,7 +88,7 @@ class FirebaseCommentService @Inject constructor() : CommentDao {
     }
 
     // Reply işlemleri
-    override suspend fun addReply(reply: ReplyEntity) {
+    suspend fun addReply(reply: ReplyEntity) {
         try {
             firestore.collection("replies")
                 .document(reply.id)
@@ -101,7 +100,7 @@ class FirebaseCommentService @Inject constructor() : CommentDao {
         }
     }
 
-    override suspend fun getRepliesForComment(commentId: String): List<ReplyEntity> {
+    suspend fun getRepliesForComment(commentId: String): List<ReplyEntity> {
         return try {
             val result = firestore.collection("replies")
                 .whereEqualTo("commentId", commentId)
@@ -114,7 +113,7 @@ class FirebaseCommentService @Inject constructor() : CommentDao {
         }
     }
 
-    override suspend fun deleteReply(replyId: String) {
+    suspend fun deleteReply(replyId: String) {
         try {
             firestore.collection("replies").document(replyId).delete().await()
             Log.d("FirebaseCommentService", "Reply deleted successfully: $replyId")
@@ -123,7 +122,7 @@ class FirebaseCommentService @Inject constructor() : CommentDao {
         }
     }
 
-    override suspend fun getReplyById(replyId: String): ReplyEntity? {
+    suspend fun getReplyById(replyId: String): ReplyEntity? {
         return try {
             val snapshot = firestore.collection("replies").document(replyId).get().await()
             snapshot.toObject(ReplyEntity::class.java)
@@ -134,7 +133,7 @@ class FirebaseCommentService @Inject constructor() : CommentDao {
     }
 
     // Comment with Replies işlemleri
-    override suspend fun deleteCommentWithReplies(commentId: String) {
+    suspend fun deleteCommentWithReplies(commentId: String) {
         try {
             val repliesSnapshot = firestore.collection("replies")
                 .whereEqualTo("commentId", commentId)
@@ -154,7 +153,11 @@ class FirebaseCommentService @Inject constructor() : CommentDao {
 
             Log.d("FirebaseCommentService", "Comment and replies deleted successfully: $commentId")
         } catch (e: Exception) {
-            Log.e("FirebaseCommentService", "Failed to delete comment with replies: ${e.message}", e)
+            Log.e(
+                "FirebaseCommentService",
+                "Failed to delete comment with replies: ${e.message}",
+                e
+            )
         }
     }
 }

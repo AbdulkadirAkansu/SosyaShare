@@ -54,34 +54,39 @@ fun ShareScreen(
 
     Log.d("ShareScreen", "ShareScreen launched")
 
-    val openDocumentLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
-        uri?.let {
-            // Kullanıcıya seçilen URI için kalıcı erişim izni veriyoruz
-            context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    val openDocumentLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+            uri?.let {
 
-            // Seçilen URI'den dosya oluşturuyoruz
-            val file = FileUtils.createFileFromUri(context, it)
+                context.contentResolver.takePersistableUriPermission(
+                    it,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
 
-            // Dosya başarılı bir şekilde oluşturulduysa PostCreationScreen'e yönlendiriyoruz
-            file?.let { selectedFile ->
-                navController.navigate("post_creation?imageUri=${Uri.fromFile(selectedFile)}")
-            } ?: run {
-                Toast.makeText(context, "Failed to create file from URI", Toast.LENGTH_SHORT).show()
+                val file = FileUtils.createFileFromUri(context, it)
+
+                file?.let { selectedFile ->
+                    navController.navigate("post_creation?imageUri=${Uri.fromFile(selectedFile)}")
+                } ?: run {
+                    Toast.makeText(context, "Failed to create file from URI", Toast.LENGTH_SHORT)
+                        .show()
+                }
             }
         }
-    }
 
 
-    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
-        Log.d("ShareScreen", "Camera photo taken, success: $success")
-        if (success) {
-            navController.navigate("post_creation?imageUri=$selectedImageUri")
+    val cameraLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+            Log.d("ShareScreen", "Camera photo taken, success: $success")
+            if (success) {
+                navController.navigate("post_creation?imageUri=$selectedImageUri")
+            }
         }
-    }
 
     fun createImageFileUri(): Uri {
         Log.d("ShareScreen", "Creating image file URI")
-        val storageDir: File = context.getExternalFilesDir(null) ?: throw IllegalStateException("External storage not available")
+        val storageDir: File = context.getExternalFilesDir(null)
+            ?: throw IllegalStateException("External storage not available")
         val file = File.createTempFile("IMG_", ".jpg", storageDir)
         return FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
     }

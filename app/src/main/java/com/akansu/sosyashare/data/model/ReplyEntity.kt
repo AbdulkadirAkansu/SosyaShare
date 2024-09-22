@@ -13,7 +13,6 @@ data class ReplyEntity(
     val timestamp: Date = Date(),
     val likes: List<String> = emptyList()
 ) {
-    // Boş yapıcı (no-argument constructor) ekledik
     constructor() : this(
         id = "",
         commentId = "",

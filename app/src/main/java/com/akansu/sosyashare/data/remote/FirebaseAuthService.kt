@@ -2,7 +2,9 @@ package com.akansu.sosyashare.data.remote
 
 import android.util.Log
 import com.akansu.sosyashare.data.model.UserEntity
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import kotlinx.coroutines.tasks.await
@@ -20,11 +22,10 @@ class FirebaseAuthService @Inject constructor(
             val userId = authResult.user?.uid ?: throw Exception("User ID is null")
             Log.d("RegisterUser", "Firebase Authentication'da kullanıcı oluşturuldu. UID: $userId")
 
-            // Yeni kullanıcıyı kaydet
             val userMap = mapOf(
                 "username" to username,
                 "email" to email,
-                "isEmailVerified" to false,  // Başlangıçta false
+                "isEmailVerified" to false,
                 "following" to emptyList<String>(),
                 "followers" to emptyList<String>()
             )
@@ -40,9 +41,17 @@ class FirebaseAuthService @Inject constructor(
                 "allowedFollowers" to emptyList<String>()
             )
             firestore.collection("user_privacy").document(userId).set(privacyMap).await()
-            Log.d("RegisterUser", "Kullanıcı gizlilik ayarları Firestore'a kaydedildi. UID: $userId")
+            Log.d(
+                "RegisterUser",
+                "Kullanıcı gizlilik ayarları Firestore'a kaydedildi. UID: $userId"
+            )
 
-            return UserEntity(id = userId, username = username, email = email, profilePictureUrl = null)
+            return UserEntity(
+                id = userId,
+                username = username,
+                email = email,
+                profilePictureUrl = null
+            )
         } catch (e: FirebaseFirestoreException) {
             Log.e("FirestoreError", "Kayıt işlemi sırasında Firestore hatası: ${e.message}")
             throw e
@@ -51,6 +60,40 @@ class FirebaseAuthService @Inject constructor(
             throw e
         }
     }
+
+    suspend fun firebaseAuthWithGoogle(account: GoogleSignInAccount): UserEntity {
+        val credential = GoogleAuthProvider.getCredential(account.idToken, null)
+        val authResult = auth.signInWithCredential(credential).await()
+        val user = authResult.user ?: throw Exception("Kullanıcı bulunamadı")
+
+        val userId = user.uid
+        val username = account.displayName ?: "Unknown"
+        val email = user.email ?: throw Exception("E-posta bulunamadı")
+
+        val userMap = mapOf(
+            "username" to username,
+            "email" to email,
+            "isEmailVerified" to true,
+            "following" to emptyList<String>(),
+            "followers" to emptyList<String>()
+        )
+        firestore.collection("users").document(userId).set(userMap).await()
+
+        val privacyMap = mapOf(
+            "userId" to userId,
+            "isPrivate" to false,
+            "allowedFollowers" to emptyList<String>()
+        )
+        firestore.collection("user_privacy").document(userId).set(privacyMap).await()
+
+        return UserEntity(
+            id = userId,
+            username = username,
+            email = email,
+            profilePictureUrl = user.photoUrl?.toString()
+        )
+    }
+
 
     suspend fun getUserDetails(): UserEntity? {
         try {
@@ -113,7 +156,10 @@ class FirebaseAuthService @Inject constructor(
             Log.d("GetUserByUsername", "Kullanıcı adı araması sonucu: ${user != null}")
             return user
         } catch (e: Exception) {
-            Log.e("GetUserByUsernameError", "Kullanıcı adıyla kullanıcı aranırken hata: ${e.message}")
+            Log.e(
+                "GetUserByUsernameError",
+                "Kullanıcı adıyla kullanıcı aranırken hata: ${e.message}"
+            )
             throw e
         }
     }
@@ -160,7 +206,10 @@ class FirebaseAuthService @Inject constructor(
                 Log.d("UpdateEmailVerified", "Firestore'da email doğrulama durumu güncellendi.")
             }
         } catch (e: Exception) {
-            Log.e("UpdateEmailVerifiedError", "Email doğrulama durumu güncellenirken hata: ${e.message}")
+            Log.e(
+                "UpdateEmailVerifiedError",
+                "Email doğrulama durumu güncellenirken hata: ${e.message}"
+            )
             throw e
         }
     }

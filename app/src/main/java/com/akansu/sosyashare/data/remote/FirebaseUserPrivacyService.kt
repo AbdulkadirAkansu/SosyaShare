@@ -64,7 +64,10 @@ class FirebaseUserPrivacyService @Inject constructor(
         }
     }
 
-    fun addUserPrivacySettingListener(userId: String, onPrivacyChanged: (Boolean) -> Unit): ListenerRegistration {
+    fun addUserPrivacySettingListener(
+        userId: String,
+        onPrivacyChanged: (Boolean) -> Unit
+    ): ListenerRegistration {
         return firestore.collection("user_privacy").document(userId)
             .addSnapshotListener { snapshot, e ->
                 if (e != null) {
@@ -82,15 +85,21 @@ class FirebaseUserPrivacyService @Inject constructor(
             }
     }
 
-    suspend fun updateUserPrivacyWithTransaction(userId: String, followerId: String, isFollowing: Boolean) {
+    suspend fun updateUserPrivacyWithTransaction(
+        userId: String,
+        followerId: String,
+        isFollowing: Boolean
+    ) {
         try {
             firestore.runTransaction { transaction ->
                 val documentRef = firestore.collection("user_privacy").document(userId)
                 val snapshot = transaction.get(documentRef)
 
-                val currentAllowedFollowers = snapshot.get("allowedFollowers") as? List<String> ?: emptyList()
+                val currentAllowedFollowers =
+                    snapshot.get("allowedFollowers") as? List<String> ?: emptyList()
                 val updatedFollowers = if (isFollowing) {
-                    currentAllowedFollowers.toMutableList().apply { if (!contains(followerId)) add(followerId) }
+                    currentAllowedFollowers.toMutableList()
+                        .apply { if (!contains(followerId)) add(followerId) }
                 } else {
                     currentAllowedFollowers.toMutableList().apply { remove(followerId) }
                 }

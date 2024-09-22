@@ -27,7 +27,7 @@ class FirebaseUserService @Inject constructor(
     suspend fun getCurrentUserName(): String? {
         val userId = auth.currentUser?.uid ?: return null
         val document = firestore.collection("users").document(userId).get().await()
-        return document.getString("username") // Firestore'dan "username" alanını doğru aldığınızdan emin olun
+        return document.getString("username")
     }
 
     suspend fun updateBackgroundImageUrl(userId: String, backgroundImageUrl: String) {
@@ -91,7 +91,7 @@ class FirebaseUserService @Inject constructor(
         for (document in result.documents) {
             val userEntity = document.toObject(UserEntity::class.java)?.copy(id = document.id)
             if (userEntity != null) {
-                users.add(userEntity.toDomainModel())  // Genişletme fonksiyonunu kullanarak UserEntity -> User dönüşümü
+                users.add(userEntity.toDomainModel())
             }
         }
         return users
@@ -153,14 +153,14 @@ class FirebaseUserService @Inject constructor(
     }
 
     suspend fun deletePost(userId: String, postId: String, postImageUrl: String) {
-        val postRef = firestore.collection("users").document(userId).collection("posts").document(postId)
+        val postRef =
+            firestore.collection("users").document(userId).collection("posts").document(postId)
         postRef.delete().await()
         if (postImageUrl.isNotEmpty()) {
             val storageRef = firebaseStorage.getReferenceFromUrl(postImageUrl)
             storageRef.delete().await()
         }
     }
-
 
 
     suspend fun uploadProfilePicture(uri: Uri): String {
@@ -196,7 +196,8 @@ class FirebaseUserService @Inject constructor(
 
     suspend fun likePost(postId: String, userId: String) {
         try {
-            val postRef = firestore.collection("users").document(userId).collection("posts").document(postId)
+            val postRef =
+                firestore.collection("users").document(userId).collection("posts").document(postId)
             firestore.runTransaction { transaction ->
                 val snapshot = transaction.get(postRef)
                 val currentLikes = snapshot.getLong("likeCount") ?: 0
@@ -212,7 +213,8 @@ class FirebaseUserService @Inject constructor(
     // Unlike a post
     suspend fun unlikePost(postId: String, userId: String) {
         try {
-            val postRef = firestore.collection("users").document(userId).collection("posts").document(postId)
+            val postRef =
+                firestore.collection("users").document(userId).collection("posts").document(postId)
             firestore.runTransaction { transaction ->
                 val snapshot = transaction.get(postRef)
                 val currentLikes = snapshot.getLong("likeCount") ?: 0
@@ -252,7 +254,8 @@ class FirebaseUserService @Inject constructor(
 
             val followers = mutableListOf<UserEntity>()
             for (followerId in followersIds) {
-                val followerDocument = firestore.collection("users").document(followerId).get().await()
+                val followerDocument =
+                    firestore.collection("users").document(followerId).get().await()
                 followerDocument.toObject(UserEntity::class.java)?.let {
                     followers.add(it)
                 }
@@ -270,7 +273,8 @@ class FirebaseUserService @Inject constructor(
 
             val following = mutableListOf<UserEntity>()
             for (followingId in followingIds) {
-                val followingDocument = firestore.collection("users").document(followingId).get().await()
+                val followingDocument =
+                    firestore.collection("users").document(followingId).get().await()
                 followingDocument.toObject(UserEntity::class.java)?.let {
                     following.add(it)
                 }

@@ -12,7 +12,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.*
-import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
@@ -26,7 +25,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.akansu.sosyashare.domain.model.BaseComment
-import com.akansu.sosyashare.domain.model.Comment
 import com.akansu.sosyashare.domain.model.Reply
 import com.akansu.sosyashare.presentation.comment.viewmodel.CommentViewModel
 import com.akansu.sosyashare.presentation.comment.viewmodel.formatTimestampToRelativeTime
@@ -110,9 +108,22 @@ fun CommentScreen(
                     onCommentAdded = { content ->
                         val replyInfo = viewModel.replyingTo.value
                         if (replyInfo != null) {
-                            viewModel.replyToComment(replyInfo.commentId, content, currentUserId, currentUserName, currentUserProfileUrl)
+                            viewModel.replyToComment(
+                                replyInfo.commentId,
+                                content,
+                                currentUserId,
+                                currentUserName,
+                                currentUserProfileUrl
+                            )
                         } else {
-                            viewModel.addComment(postId, content, currentUserId, currentUserName, currentUserProfileUrl,context)
+                            viewModel.addComment(
+                                postId,
+                                content,
+                                currentUserId,
+                                currentUserName,
+                                currentUserProfileUrl,
+                                context
+                            )
                         }
                     },
                     replyingTo = viewModel.replyingTo.observeAsState(null).value,
@@ -158,7 +169,7 @@ fun CommentItem(
                 .fillMaxWidth()
                 .combinedClickable(
                     onClick = { /* Boş bırak */ },
-                    onLongClick = { showDeleteIcon = !showDeleteIcon } // Silme ikonunu gösterme
+                    onLongClick = { showDeleteIcon = !showDeleteIcon }
                 ),
             verticalAlignment = Alignment.Top
         ) {
@@ -207,8 +218,16 @@ fun CommentItem(
                     if (!isReply) {
                         Text(
                             text = "Reply",
-                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary),
-                            modifier = Modifier.clickable { onReplyClick(comment.id, comment.username) }
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            ),
+                            modifier = Modifier.clickable {
+                                onReplyClick(
+                                    comment.id,
+                                    comment.username
+                                )
+                            }
                         )
                     }
                     Spacer(modifier = Modifier.width(16.dp))
@@ -220,7 +239,7 @@ fun CommentItem(
                 IconButton(
                     onClick = {
                         onDeleteClick()
-                        showDeleteIcon = false // İkonu sakla
+                        showDeleteIcon = false
                     }
                 ) {
                     Icon(
@@ -261,7 +280,7 @@ fun CommentItem(
                     CommentItem(
                         comment = reply,
                         currentUserId = currentUserId,
-                        replies = emptyList(), // Yanıtın yanıtları olmadığı için boş liste
+                        replies = emptyList(),
                         showReplies = false,
                         onToggleReplies = {},
                         onLikeClick = { onLikeClick() },
@@ -312,7 +331,12 @@ fun CommentInputField(
             modifier = Modifier
                 .weight(1f)
                 .padding(horizontal = 8.dp),
-            placeholder = { Text("Add a comment...", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)) },
+            placeholder = {
+                Text(
+                    "Add a comment...",
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
+            },
             colors = TextFieldDefaults.textFieldColors(
                 containerColor = Color.Transparent,
                 cursorColor = MaterialTheme.colorScheme.onBackground,
@@ -335,15 +359,3 @@ fun CommentInputField(
     }
 }
 
-fun Reply.toComment(postId: String): Comment {
-    return Comment(
-        id = this.id,
-        postId = postId,
-        userId = this.userId,
-        username = this.username,
-        userProfileUrl = this.userProfileUrl,
-        content = this.content,
-        timestamp = this.timestamp,
-        likes = this.likes
-    )
-}

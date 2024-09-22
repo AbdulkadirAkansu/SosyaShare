@@ -13,7 +13,12 @@ class MessagingRepositoryImpl @Inject constructor(
         return messagingService.getFCMTokenByUserId(userId)
     }
 
-    override suspend fun sendFCMNotification(context: Context, fcmToken: String, title: String, message: String) {
+    override suspend fun sendFCMNotification(
+        context: Context,
+        fcmToken: String,
+        title: String,
+        message: String
+    ) {
         messagingService.sendFCMNotification(context, fcmToken, title, message)
     }
 }

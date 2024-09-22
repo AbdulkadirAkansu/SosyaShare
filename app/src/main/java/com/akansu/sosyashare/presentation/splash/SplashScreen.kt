@@ -6,9 +6,6 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -20,13 +17,8 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -34,24 +26,19 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
-import com.airbnb.lottie.compose.*
 import com.akansu.sosyashare.R
 import com.akansu.sosyashare.presentation.login.viewmodel.AuthViewModel
-import com.akansu.sosyashare.util.poppinsFontFamily
+
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlin.math.PI
-import kotlin.math.cos
-import kotlin.math.pow
-import kotlin.math.sin
-import kotlin.math.sqrt
+
 import kotlin.random.Random
 
 @Composable
 fun SplashScreen(navController: NavController, authViewModel: AuthViewModel? = null) {
-    val videoUri = Uri.parse("android.resource://${LocalContext.current.packageName}/${R.raw.splash}")
+    val videoUri =
+        Uri.parse("android.resource://${LocalContext.current.packageName}/${R.raw.splash}")
     var showContent by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
@@ -68,14 +55,12 @@ fun SplashScreen(navController: NavController, authViewModel: AuthViewModel? = n
         // Video background
         VideoBackgroundPlayerWithSurfaceView(videoUri = videoUri)
 
-        // Darken the video slightly for better readability
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.6f))
         )
 
-        // Enhanced bubble animation
         BubbleAnimation()
 
         AnimatedVisibility(
@@ -88,16 +73,15 @@ fun SplashScreen(navController: NavController, authViewModel: AuthViewModel? = n
                     .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Logo stays at the top, no change in its position
                 OptimizedLogo(modifier = Modifier.padding(top = 104.dp))
 
                 // Text content, shifted upwards
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Top, // Yazıları yukarıya hizalar
+                    verticalArrangement = Arrangement.Top,
                     modifier = Modifier
                         .weight(1f)
-                        .padding(top = 150.dp) // Yazıları daha yukarı almak için padding ekledim
+                        .padding(top = 150.dp)
                 ) {
                     // Main title
                     AnimatedText(
@@ -111,7 +95,7 @@ fun SplashScreen(navController: NavController, authViewModel: AuthViewModel? = n
                         textAlign = TextAlign.Center
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp)) // Daha küçük boşluk
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     // Subtitle
                     AnimatedSubtitle(
@@ -126,11 +110,11 @@ fun SplashScreen(navController: NavController, authViewModel: AuthViewModel? = n
                     )
                 }
 
-                // Button stays at the bottom
                 AnimatedStartButton(
                     text = "Get Started",
                     onClick = {
-                        val destination = if (authViewModel?.isUserLoggedIn() == true) "home" else "login"
+                        val destination =
+                            if (authViewModel?.isUserLoggedIn() == true) "home" else "login"
                         navController.navigate(destination) {
                             popUpTo("splash") { inclusive = true }
                         }
@@ -200,9 +184,9 @@ fun BubbleAnimation() {
             EnhancedBubble(
                 x = Animatable(Random.nextFloat()),
                 y = Animatable(Random.nextFloat()),
-                size = Random.nextInt(10, 40).dp, // Boyutları biraz daha büyük tuttum
-                speed = Random.nextFloat() * 0.015f + 0.005f, // Daha yumuşak ve yavaş hızlar
-                color = Color.White.copy(alpha = Random.nextFloat() * 0.4f + 0.2f) // Sadece beyaz tonları ve saydamlık
+                size = Random.nextInt(10, 40).dp,
+                speed = Random.nextFloat() * 0.015f + 0.005f,
+                color = Color.White.copy(alpha = Random.nextFloat() * 0.4f + 0.2f)
             )
         }
     }
@@ -233,7 +217,7 @@ fun BubbleAnimation() {
                 color = bubble.color,
                 radius = bubble.size.toPx() / 2,
                 center = Offset(xPos, yPos),
-                style = Stroke(width = 2f) // Daha ince ve modern çerçeve efekti
+                style = Stroke(width = 2f)
             )
         }
     }

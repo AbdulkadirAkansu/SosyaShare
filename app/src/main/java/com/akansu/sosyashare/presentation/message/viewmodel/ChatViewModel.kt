@@ -54,7 +54,8 @@ class ChatViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             _currentUserId.value = userRepository.getCurrentUserId()
-            _currentUser.value = _currentUserId.value?.let { userRepository.getUserById(it).firstOrNull() }
+            _currentUser.value =
+                _currentUserId.value?.let { userRepository.getUserById(it).firstOrNull() }
         }
     }
 
@@ -76,7 +77,10 @@ class ChatViewModel @Inject constructor(
             try {
                 withContext(NonCancellable) {
                     messageRepository.deleteAllMessages(currentChatId)
-                    Log.d("ChatViewModel", "Successfully deleted all messages for chatId: $currentChatId")
+                    Log.d(
+                        "ChatViewModel",
+                        "Successfully deleted all messages for chatId: $currentChatId"
+                    )
                     _messages.value = emptyList()
                 }
             } catch (e: Exception) {
@@ -92,7 +96,11 @@ class ChatViewModel @Inject constructor(
             try {
                 val senderId = _currentUserId.value ?: return@launch
                 if (originalMessage.content.startsWith("http") && originalMessage.content.contains("firebase")) {
-                    messageRepository.sendImageMessage(senderId, receiverId, Uri.parse(originalMessage.content))
+                    messageRepository.sendImageMessage(
+                        senderId,
+                        receiverId,
+                        Uri.parse(originalMessage.content)
+                    )
                 } else {
                     messageRepository.forwardMessage(senderId, receiverId, originalMessage)
                 }
@@ -104,7 +112,8 @@ class ChatViewModel @Inject constructor(
 
 
     suspend fun saveImageToGallery(imageUrl: String, context: Context) {
-        val directory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
+        val directory =
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
         if (!directory.exists()) {
             directory.mkdirs()
         }
@@ -125,7 +134,8 @@ class ChatViewModel @Inject constructor(
             outputStream.close()
 
             // Notify gallery about new image
-            val mediaScanIntent = android.content.Intent(android.content.Intent.ACTION_MEDIA_SCANNER_SCAN_FILE)
+            val mediaScanIntent =
+                android.content.Intent(android.content.Intent.ACTION_MEDIA_SCANNER_SCAN_FILE)
             mediaScanIntent.data = android.net.Uri.fromFile(file)
             context.sendBroadcast(mediaScanIntent)
 
@@ -164,7 +174,12 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val senderId = _currentUserId.value ?: return@launch
-                messageRepository.replyToMessage(senderId, receiverId, originalMessage, replyContent)
+                messageRepository.replyToMessage(
+                    senderId,
+                    receiverId,
+                    originalMessage,
+                    replyContent
+                )
             } catch (e: Exception) {
                 _error.value = "Failed to reply to message: ${e.message}"
             }
@@ -214,7 +229,10 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val currentUserId = _currentUserId.value ?: return@launch
-                Log.d("SendMessage", "Sending message from $currentUserId to $receiverId with content: $content")
+                Log.d(
+                    "SendMessage",
+                    "Sending message from $currentUserId to $receiverId with content: $content"
+                )
 
                 val message = Message(
                     senderId = currentUserId,

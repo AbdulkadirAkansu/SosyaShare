@@ -3,7 +3,6 @@ package com.akansu.sosyashare.presentation.search.screen
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -37,7 +36,11 @@ import com.akansu.sosyashare.util.poppinsFontFamily
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SearchScreen(navController: NavHostController, searchViewModel: SearchViewModel = hiltViewModel(), userViewModel: UserViewModel = hiltViewModel()) {
+fun SearchScreen(
+    navController: NavHostController,
+    searchViewModel: SearchViewModel = hiltViewModel(),
+    userViewModel: UserViewModel = hiltViewModel()
+) {
     var query by remember { mutableStateOf("") }
     val searchResults by searchViewModel.searchResults.collectAsState()
     var selectedItem by remember { mutableIntStateOf(4) }
@@ -46,10 +49,10 @@ fun SearchScreen(navController: NavHostController, searchViewModel: SearchViewMo
     val currentUser = searchViewModel.getCurrentUser()
 
     Scaffold(
-      bottomBar = {
+        bottomBar = {
             NavigationBar(
                 navController = navController,
-                 profilePictureUrl = profilePictureUrl,
+                profilePictureUrl = profilePictureUrl,
             )
         },
         containerColor = MaterialTheme.colorScheme.background
@@ -79,7 +82,12 @@ fun SearchScreen(navController: NavHostController, searchViewModel: SearchViewMo
                         query = it
                         searchViewModel.searchUsers(query)
                     },
-                    placeholder = { Text("Search", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)) },
+                    placeholder = {
+                        Text(
+                            "Search",
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                        )
+                    },
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Search,
@@ -98,7 +106,7 @@ fun SearchScreen(navController: NavHostController, searchViewModel: SearchViewMo
                             }
                         }
                     },
-                    singleLine = true,  // Enter tuşuna basınca alt satıra inmesini engeller
+                    singleLine = true,
                     colors = TextFieldDefaults.textFieldColors(
                         containerColor = MaterialTheme.colorScheme.surface,
                         cursorColor = MaterialTheme.colorScheme.onBackground,
@@ -107,7 +115,7 @@ fun SearchScreen(navController: NavHostController, searchViewModel: SearchViewMo
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(20))  // Border köşeleri yuvarlak
+                        .clip(RoundedCornerShape(20))
 
                         .background(MaterialTheme.colorScheme.surface)
                 )

@@ -9,34 +9,11 @@ import android.os.Looper
 import android.view.MotionEvent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animate
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Call
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Home
-import androidx.compose.material.icons.rounded.Notifications
-import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.Share
-import androidx.compose.material.icons.rounded.Star
-import androidx.compose.material.icons.rounded.ThumbUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -44,24 +21,16 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import androidx.navigation.NavHostController
-import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import com.akansu.sosyashare.R
 import com.akansu.sosyashare.util.PermissionHandler
@@ -115,20 +84,20 @@ fun NavigationBar(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp) // Yanlardan padding verdik
-            .padding(bottom = 8.dp) // Alt tarafa daha küçük padding verdik
+            .padding(horizontal = 16.dp)
+            .padding(bottom = 8.dp)
     ) {
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp) // Card yüksekliği 65 dp'den 56 dp'ye indirildi
-                .align(Alignment.BottomCenter),  // Sabit alt pozisyon
+                .height(56.dp)
+                .align(Alignment.BottomCenter),
             shape = RoundedCornerShape(30.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background)
         ) {
             Row(
                 modifier = Modifier
-                    .padding(horizontal = 24.dp, vertical = 8.dp) // Daha dar padding kullanıldı
+                    .padding(horizontal = 24.dp, vertical = 8.dp)
                     .fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
@@ -143,13 +112,13 @@ fun NavigationBar(
                     icon = R.drawable.search,
                     contentDescription = "Search",
                     onClick = { navController.navigate("search") },
-                    iconSize = 30.dp,  // Search ikonu 33 dp'den 30 dp'ye indirildi
+                    iconSize = 30.dp,
                     modifier = Modifier.padding(start = 12.dp)
                 )
 
                 IconButton(
                     onClick = { isMenuExtended.value = !isMenuExtended.value },
-                    modifier = Modifier.size(50.dp) // Orta buton boyutu küçültüldü
+                    modifier = Modifier.size(50.dp)
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.more),
@@ -174,18 +143,18 @@ fun NavigationBar(
                         .pointerInteropFilter { event ->
                             if (event.action == MotionEvent.ACTION_DOWN) {
                                 val currentTime = System.currentTimeMillis()
-                                if (currentTime - lastClickTime < 300) { // Çift tıklama algılandı
+                                if (currentTime - lastClickTime < 300) {
                                     isDoubleClick = true
-                                    handler.removeCallbacksAndMessages(null) // Tek tıklama beklemesini iptal et
-                                    navController.navigate("settings") // Çift tıklama ile settings sayfasına gider
+                                    handler.removeCallbacksAndMessages(null)
+                                    navController.navigate("settings")
                                 } else {
                                     isDoubleClick = false
                                     lastClickTime = currentTime
                                     handler.postDelayed({
                                         if (!isDoubleClick) {
-                                            navController.navigate("userprofile") // Tek tıklama ile userprofile sayfasına gider
+                                            navController.navigate("userprofile")
                                         }
-                                    }, 300) // 300ms içinde ikinci tıklama gelmezse tek tıklama olarak değerlendirir
+                                    }, 300)
                                 }
                             }
                             true
@@ -206,7 +175,6 @@ fun NavigationBar(
                     }
                 },
                 onGalleryClick = {
-                    // Galeri açılır
                     openDocumentLauncher.launch(arrayOf("image/*"))
                 },
                 isExtended = isMenuExtended.value
@@ -222,7 +190,6 @@ fun ModernFabGroup(
     onGalleryClick: () -> Unit,
     isExtended: Boolean
 ) {
-    // Yan FAB butonların ölçek ve alfa animasyonları
     val fabScale = if (isExtended) 1f else 0f
     val fabAlpha = if (isExtended) 1f else 0f
 
@@ -230,27 +197,27 @@ fun ModernFabGroup(
         contentAlignment = Alignment.BottomCenter,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 40.dp) // FAB'leri daha da aşağı kaydırdım
+            .padding(bottom = 40.dp)
     ) {
         if (isExtended) {
             ModernRectFab(
-                icon = painterResource(R.drawable.gallery),  // Star ikonu yerine gallery.xml kullanıldı
+                icon = painterResource(R.drawable.gallery),
                 contentDescription = "Gallery",
                 onClick = onGalleryClick,
                 scale = fabScale,
                 alpha = fabAlpha,
                 offsetX = -40f,
-                offsetY = -40f // Aşağı kaydırıldı
+                offsetY = -40f
             )
 
             ModernRectFab(
-                icon = painterResource(R.drawable.camera),  // Share ikonu yerine camera.xml kullanıldı
+                icon = painterResource(R.drawable.camera),
                 contentDescription = "Camera",
                 onClick = onCameraClick,
                 scale = fabScale,
                 alpha = fabAlpha,
                 offsetX = 40f,
-                offsetY = -40f // Aşağı kaydırıldı
+                offsetY = -40f
             )
         }
     }
@@ -258,7 +225,7 @@ fun ModernFabGroup(
 
 @Composable
 fun ModernRectFab(
-    icon: Painter,  // ImageVector yerine Painter kullanıldı
+    icon: Painter,
     contentDescription: String,
     onClick: () -> Unit,
     scale: Float,
@@ -277,7 +244,7 @@ fun ModernRectFab(
         containerColor = MaterialTheme.colorScheme.background
     ) {
         Icon(
-            painter = icon,  // ImageVector yerine Painter kullanıldı
+            painter = icon,
             contentDescription = contentDescription,
             tint = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.size(36.dp)
@@ -291,13 +258,13 @@ fun BottomNavigationItem(
     contentDescription: String,
     onClick: () -> Unit,
     iconSize: Dp = 26.dp,
-    modifier: Modifier = Modifier // Modifier parametresini ekliyoruz
+    modifier: Modifier = Modifier
 ) {
     Icon(
         painter = painterResource(id = icon),
         contentDescription = contentDescription,
         tint = MaterialTheme.colorScheme.onBackground,
-        modifier = modifier  // Burada modifier'ı kullanıyoruz
+        modifier = modifier
             .size(iconSize)
             .clickable { onClick() }
     )

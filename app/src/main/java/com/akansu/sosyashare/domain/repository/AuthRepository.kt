@@ -1,6 +1,7 @@
 package com.akansu.sosyashare.domain.repository
 
 import com.akansu.sosyashare.data.model.UserEntity
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.firebase.auth.FirebaseUser
 
 interface AuthRepository {
@@ -16,4 +17,5 @@ interface AuthRepository {
     fun logoutUser()
     suspend fun syncAllUsers()
     suspend fun updateEmailVerifiedStatus(userId: String)
+    suspend fun firebaseAuthWithGoogle(account: GoogleSignInAccount): UserEntity
 }

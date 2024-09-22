@@ -11,14 +11,10 @@ interface CommentRepository {
     suspend fun getCommentById(commentId: String): Comment?
     suspend fun likeComment(commentId: String, userId: String)
     suspend fun unlikeComment(commentId: String, userId: String)
-
-    // Reply işlemleri
     suspend fun addReply(reply: Reply)
     suspend fun getRepliesForComment(commentId: String): List<Reply>
     suspend fun deleteReply(replyId: String)
     suspend fun getReplyById(replyId: String): Reply?
-
-    // Comment with Replies işlemleri
     suspend fun deleteCommentWithReplies(commentId: String)
 }
 

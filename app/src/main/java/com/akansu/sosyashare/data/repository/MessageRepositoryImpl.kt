@@ -27,16 +27,34 @@ class MessageRepositoryImpl @Inject constructor(
         Log.d("MessageRepository", "Successfully deleted all messages for chatId: $chatId")
     }
 
-    override suspend fun sendImageMessage(senderId: String, receiverId: String, imageUri: Uri): String {
+    override suspend fun sendImageMessage(
+        senderId: String,
+        receiverId: String,
+        imageUri: Uri
+    ): String {
         return messageService.sendImageMessage(senderId, receiverId, imageUri)
     }
 
-    override suspend fun forwardMessage(senderId: String, receiverId: String, originalMessage: Message) {
+    override suspend fun forwardMessage(
+        senderId: String,
+        receiverId: String,
+        originalMessage: Message
+    ) {
         messageService.forwardMessage(senderId, receiverId, originalMessage.toEntityModel())
     }
 
-    override suspend fun replyToMessage(senderId: String, receiverId: String, originalMessage: Message, replyContent: String) {
-        messageService.replyToMessage(senderId, receiverId, originalMessage.toEntityModel(), replyContent)
+    override suspend fun replyToMessage(
+        senderId: String,
+        receiverId: String,
+        originalMessage: Message,
+        replyContent: String
+    ) {
+        messageService.replyToMessage(
+            senderId,
+            receiverId,
+            originalMessage.toEntityModel(),
+            replyContent
+        )
     }
 
     override suspend fun sendMessage(senderId: String, receiverId: String, message: Message) {
@@ -66,8 +84,15 @@ class MessageRepositoryImpl @Inject constructor(
         return messages
     }
 
-    override suspend fun updateMessageReadStatus(chatId: String, messageId: String, isRead: Boolean) {
-        Log.d("MessageRepositoryImpl", "updateMessageReadStatus - Updating read status for message: $messageId in chat: $chatId")
+    override suspend fun updateMessageReadStatus(
+        chatId: String,
+        messageId: String,
+        isRead: Boolean
+    ) {
+        Log.d(
+            "MessageRepositoryImpl",
+            "updateMessageReadStatus - Updating read status for message: $messageId in chat: $chatId"
+        )
         messageService.updateMessageReadStatus(chatId, messageId, isRead)
     }
 }

@@ -3,7 +3,6 @@ package com.akansu.sosyashare.presentation.message.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.akansu.sosyashare.data.remote.FirebaseMessageService
 import com.akansu.sosyashare.domain.model.Message
 import com.akansu.sosyashare.domain.model.User
 import com.akansu.sosyashare.domain.repository.MessageRepository
@@ -13,14 +12,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
-import java.util.Date
 import javax.inject.Inject
 
 @HiltViewModel
 class MessageViewModel @Inject constructor(
     private val messageRepository: MessageRepository,
     private val userRepository: UserRepository,
-    private val firebaseMessageService: FirebaseMessageService
 ) : ViewModel() {
 
     private val _recentMessages = MutableStateFlow<List<Message>>(emptyList())
@@ -80,12 +77,16 @@ class MessageViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val userId = _currentUserId.value ?: return@launch
-                Log.d("MessageViewModel", "Searching chats for username: $username with userId: $userId")
+                Log.d(
+                    "MessageViewModel",
+                    "Searching chats for username: $username with userId: $userId"
+                )
                 val allChats = messageRepository.getRecentChats(userId)
                 Log.d("MessageViewModel", "All chats: $allChats")
 
                 val matchingChats = allChats.filter { chat ->
-                    val otherUserId = if (chat.senderId == userId) chat.receiverId else chat.senderId
+                    val otherUserId =
+                        if (chat.senderId == userId) chat.receiverId else chat.senderId
                     val otherUser = userRepository.getUserById(otherUserId).firstOrNull()
                     Log.d("MessageViewModel", "Other user fetched for chat: $otherUser")
                     otherUser?.username?.contains(username, ignoreCase = true) == true
@@ -103,7 +104,10 @@ class MessageViewModel @Inject constructor(
         _currentUserId.value?.let { userId ->
             val user = userRepository.getUserById(userId).firstOrNull()
             _currentUserProfilePictureUrl.value = user?.profilePictureUrl
-            Log.d("MessageViewModel", "Current User Profile Picture URL: ${_currentUserProfilePictureUrl.value}")
+            Log.d(
+                "MessageViewModel",
+                "Current User Profile Picture URL: ${_currentUserProfilePictureUrl.value}"
+            )
         }
     }
 
@@ -132,7 +136,10 @@ class MessageViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val userId = _currentUserId.value ?: return@launch
-                Log.d("MessageViewModel", "loadRecentChats - Loading recent chats for user ID: $userId")
+                Log.d(
+                    "MessageViewModel",
+                    "loadRecentChats - Loading recent chats for user ID: $userId"
+                )
 
                 val chats = messageRepository.getRecentChats(userId)
                 Log.d("MessageViewModel", "loadRecentChats - Loaded recent chats: $chats")
@@ -140,9 +147,15 @@ class MessageViewModel @Inject constructor(
                 // Chat'leri yükledikten sonra receiverId'nin boş olup olmadığını kontrol edin.
                 chats.forEach { chat ->
                     if (chat.receiverId.isBlank()) {
-                        Log.e("MessageViewModel", "loadRecentChats - Chat with id: ${chat.id} has an empty receiverId!")
+                        Log.e(
+                            "MessageViewModel",
+                            "loadRecentChats - Chat with id: ${chat.id} has an empty receiverId!"
+                        )
                     } else {
-                        Log.d("MessageViewModel", "loadRecentChats - Chat with id: ${chat.id} has receiverId: ${chat.receiverId}")
+                        Log.d(
+                            "MessageViewModel",
+                            "loadRecentChats - Chat with id: ${chat.id} has receiverId: ${chat.receiverId}"
+                        )
                     }
                 }
 
@@ -151,7 +164,10 @@ class MessageViewModel @Inject constructor(
 
             } catch (e: Exception) {
                 _error.value = "Failed to load recent messages: ${e.message}"
-                Log.e("MessageViewModel", "loadRecentChats - Error loading recent messages: ${e.message}")
+                Log.e(
+                    "MessageViewModel",
+                    "loadRecentChats - Error loading recent messages: ${e.message}"
+                )
             }
         }
     }

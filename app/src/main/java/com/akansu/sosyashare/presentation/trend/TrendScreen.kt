@@ -1,6 +1,5 @@
 package com.akansu.sosyashare.presentation.trend
 
-import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -51,8 +50,8 @@ fun TrendScreen(
     viewModel: TrendViewModel = hiltViewModel(),
     userViewModel: UserViewModel = hiltViewModel()
 ) {
-    val posts by viewModel.trendingPosts.collectAsState()  // Gönderi listesi
-    val users by viewModel.trendingUsers.collectAsState()  // Kullanıcı listesi
+    val posts by viewModel.trendingPosts.collectAsState()
+    val users by viewModel.trendingUsers.collectAsState()
     val profilePictureUrl by userViewModel.profilePictureUrl.collectAsState()
     var selectedPostId by remember { mutableStateOf<String?>(null) }
     val coroutineScope = rememberCoroutineScope()
@@ -63,13 +62,13 @@ fun TrendScreen(
         .crossfade(true)
         .memoryCache {
             MemoryCache.Builder(context)
-                .maxSizePercent(0.25) // Belleğin %25'ini kullan
+                .maxSizePercent(0.25)
                 .build()
         }
         .diskCache {
             DiskCache.Builder()
                 .directory(context.cacheDir.resolve("image_cache"))
-                .maxSizePercent(0.02) // Diskin %2'sini kullan
+                .maxSizePercent(0.02)
                 .build()
         }
         .build()
@@ -87,7 +86,6 @@ fun TrendScreen(
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
 
-        // Gönderi listesi ve kullanıcılar
         LazyVerticalStaggeredGrid(
             columns = StaggeredGridCells.Adaptive(minSize = 160.dp),
             modifier = Modifier
@@ -151,7 +149,13 @@ fun TrendingTopAppBar(navController: NavHostController) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PostCard(post: Post, user: User, imageLoader: ImageLoader, onClick: () -> Unit, isSelected: Boolean) {
+fun PostCard(
+    post: Post,
+    user: User,
+    imageLoader: ImageLoader,
+    onClick: () -> Unit,
+    isSelected: Boolean
+) {
     val scale by animateFloatAsState(
         targetValue = if (isSelected) 0.95f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
@@ -178,13 +182,13 @@ fun PostCard(post: Post, user: User, imageLoader: ImageLoader, onClick: () -> Un
             )
 
             AsyncImage(
-                model = post.imageUrl,  // Resmin URL'si veya model verisi burada olacak
-                contentDescription = "Post Image",  // İçeriği tanımlayıcı bir açıklama
-                imageLoader = imageLoader,  // Performans optimizasyonu için önceden oluşturulan ImageLoader
+                model = post.imageUrl,
+                contentDescription = "Post Image",
+                imageLoader = imageLoader,
                 modifier = Modifier
                     .fillMaxSize()
                     .blur(radius = 3.dp),
-                contentScale = ContentScale.Crop  // Resmin boyutunu doldurması ve keskinliğinin korunması için
+                contentScale = ContentScale.Crop
             )
 
 

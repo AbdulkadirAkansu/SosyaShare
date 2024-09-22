@@ -7,7 +7,7 @@ import com.akansu.sosyashare.data.local.Converters
 import java.util.*
 
 data class UserEntity(
-    val id: String = "",  // Firestore'da documentId ile eşleşen alan
+    val id: String = "",
     val username: String = "",
     val email: String = "",
     val profilePictureUrl: String? = null,
@@ -17,5 +17,5 @@ data class UserEntity(
     val followers: List<String> = emptyList(),
     val bio: String = "",
     val lastUsernameChange: Date? = null,
-    val fcmToken: String? = null // Burada fcmToken alanını ekliyoruz
+    val fcmToken: String? = null
 )

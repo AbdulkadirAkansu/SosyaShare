@@ -1,8 +1,6 @@
 package com.akansu.sosyashare.presentation.login.screen
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,8 +13,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -24,10 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.akansu.sosyashare.R
 import com.akansu.sosyashare.presentation.login.viewmodel.AuthViewModel
-import com.akansu.sosyashare.presentation.ui.ErrorMessage
-import com.akansu.sosyashare.presentation.ui.SuccessMessage
 import com.akansu.sosyashare.util.poppinsFontFamily
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -40,7 +33,7 @@ fun ForgotPasswordScreen(navController: NavController, viewModel: AuthViewModel 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val screenHeight = maxHeight
 
-        // Background gradient
+
         Box(
             modifier = Modifier
                 .fillMaxSize()

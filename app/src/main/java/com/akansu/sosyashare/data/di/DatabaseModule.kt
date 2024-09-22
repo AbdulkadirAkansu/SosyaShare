@@ -44,7 +44,7 @@ object DatabaseModule {
         firebaseAuth: FirebaseAuth,
         firestore: FirebaseFirestore,
     ): FirebaseAuthService {
-        return FirebaseAuthService(firebaseAuth, firestore,)
+        return FirebaseAuthService(firebaseAuth, firestore)
     }
 
     @Provides

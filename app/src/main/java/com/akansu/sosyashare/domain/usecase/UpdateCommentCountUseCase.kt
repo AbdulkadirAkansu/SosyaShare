@@ -9,7 +9,6 @@ class UpdateCommentCountUseCase @Inject constructor(
     private val commentRepository: CommentRepository
 ) {
     suspend operator fun invoke(postId: String) {
-        // Post'un toplam yorum sayısını günceller
         val comments = commentRepository.getCommentsForPost(postId)
         postRepository.updateCommentCount(postId, comments.size)
     }

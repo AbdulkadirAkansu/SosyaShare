@@ -41,11 +41,11 @@ fun NotificationScreen(
     userId: String,
     onNotificationClick: (String) -> Unit,
     viewModel: NotificationViewModel = hiltViewModel(),
-    postDetailViewModel: PostDetailViewModel = hiltViewModel() // Post verilerini almak için
+    postDetailViewModel: PostDetailViewModel = hiltViewModel()
 ) {
     val notifications by viewModel.notifications.collectAsState()
     val error by viewModel.error.collectAsState()
-    val posts by postDetailViewModel.posts.collectAsState() // Postları burada alıyoruz
+    val posts by postDetailViewModel.posts.collectAsState()
 
     var showMenu by remember { mutableStateOf(false) }
 
@@ -125,8 +125,6 @@ fun NotificationScreen(
 }
 
 
-
-// Bildirime tıklandığında ilgili ekrana yönlendirme yapılır
 fun handleNotificationClick(
     navController: NavController,
     notification: Notification,
@@ -136,30 +134,33 @@ fun handleNotificationClick(
         "comment" -> {
             navController.navigate("comments/${notification.postId}/${notification.userId}")
         }
+
         "like" -> {
             val postIndex = posts.indexOfFirst { it.id == notification.postId }
-            Log.d("NotificationClick", "PostId from notification: ${notification.postId}")  // Log eklendi
-            Log.d("NotificationClick", "Posts available: ${posts.map { it.id }}")  // Tüm postların id'lerini loglayalım
-            Log.d("NotificationClick", "PostIndex for liked post: $postIndex")  // Log eklendi
+            Log.d("NotificationClick", "PostId from notification: ${notification.postId}")
+            Log.d("NotificationClick", "Posts available: ${posts.map { it.id }}")
+            Log.d("NotificationClick", "PostIndex for liked post: $postIndex")
             if (postIndex != -1) {
                 navController.navigate("post_detail/${notification.userId}/$postIndex/true")
                 Log.d("NotificationClick", "Navigating to post detail for index: $postIndex")
             } else {
-                Log.d("NotificationClick", "Post bulunamadı") // Hata durumunda log
+                Log.d("NotificationClick", "Post bulunamadı")
             }
         }
+
         "follow" -> {
             navController.navigate("profile/${notification.senderId}")
         }
+
         "unfollow" -> {
             navController.navigate("profile/${notification.senderId}")
         }
+
         else -> {
             // Başka bir bildirim türü varsa burada işlemler yapılabilir
         }
     }
 }
-
 
 
 @Composable
@@ -171,7 +172,8 @@ fun NotificationItem(
     var offsetX by remember { mutableStateOf(0f) }
     val animatedOffsetX by animateDpAsState(targetValue = offsetX.dp)
     val threshold = 100f
-    val backgroundColor = if (notification.isRead) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.primaryContainer
+    val backgroundColor =
+        if (notification.isRead) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.primaryContainer
 
     Box(
         modifier = Modifier
@@ -181,9 +183,9 @@ fun NotificationItem(
                 detectHorizontalDragGestures(
                     onDragEnd = {
                         if (offsetX < -threshold) {
-                            onDelete() // Silme işlemi tetiklenir
+                            onDelete()
                         }
-                        offsetX = 0f // Kart geri sıfırlanır
+                        offsetX = 0f
                     },
                     onHorizontalDrag = { _, dragAmount ->
                         offsetX = (offsetX + dragAmount).coerceIn(-300f, 0f)
@@ -193,7 +195,9 @@ fun NotificationItem(
             .padding(vertical = 8.dp)
             .background(
                 color = backgroundColor,
-                shape = if (!notification.isRead) RoundedCornerShape(16.dp) else RoundedCornerShape(0.dp)
+                shape = if (!notification.isRead) RoundedCornerShape(16.dp) else RoundedCornerShape(
+                    0.dp
+                )
             ) // Radius ekledik
             .clickable(onClick = onNotificationClick)
     ) {
@@ -203,7 +207,6 @@ fun NotificationItem(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Profil fotoğrafı (CircleAvatar)
             Image(
                 painter = rememberAsyncImagePainter(notification.senderProfileUrl ?: ""),
                 contentDescription = "Profile Image",
@@ -227,7 +230,10 @@ fun NotificationItem(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 // Bildirim tarihi
-                val formattedDate = SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(notification.timestamp)
+                val formattedDate = SimpleDateFormat(
+                    "dd MMM yyyy",
+                    Locale.getDefault()
+                ).format(notification.timestamp)
                 Text(
                     text = formattedDate,
                     style = MaterialTheme.typography.bodySmall.copy(

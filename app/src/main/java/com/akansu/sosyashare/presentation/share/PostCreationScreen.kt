@@ -2,7 +2,6 @@ package com.akansu.sosyashare.presentation.share
 
 import android.net.Uri
 import androidx.compose.animation.*
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -100,7 +99,7 @@ fun PostCreationScreen(
                     value = comment,
                     onValueChange = { comment = it },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Bir şeyler yaz...") },
+                    placeholder = { Text("Write something...") },
                     colors = TextFieldDefaults.colors(
                         unfocusedContainerColor = Color.Transparent,
                         focusedContainerColor = Color.Transparent
@@ -149,7 +148,7 @@ fun PostCreationScreen(
                         )
                     } else {
                         Text(
-                            "Paylaş",
+                            "Share",
                             fontFamily = poppinsFontFamily,
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 16.sp

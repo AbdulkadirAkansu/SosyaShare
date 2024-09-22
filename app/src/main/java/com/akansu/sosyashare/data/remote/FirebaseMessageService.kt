@@ -44,7 +44,10 @@ class FirebaseMessageService @Inject constructor(
 
         try {
             val messagesSnapshot = messagesRef.get().await()
-            Log.d("FirebaseMessageService", "Fetched ${messagesSnapshot.size()} messages to delete for chatId: $chatId")
+            Log.d(
+                "FirebaseMessageService",
+                "Fetched ${messagesSnapshot.size()} messages to delete for chatId: $chatId"
+            )
 
             // Mesajları sil
             for (document in messagesSnapshot.documents) {
@@ -60,19 +63,23 @@ class FirebaseMessageService @Inject constructor(
     }
 
 
-    suspend fun forwardMessage(senderId: String, receiverId: String, originalMessage: MessageEntity) {
+    suspend fun forwardMessage(
+        senderId: String,
+        receiverId: String,
+        originalMessage: MessageEntity
+    ) {
         val forwardedMessage = originalMessage.copy(
-            id = "", // Firestore otomatik ID oluşturacak
+            id = "",
             senderId = senderId,
             receiverId = receiverId,
-            content = "${originalMessage.content} (İletildi)", // İletildiğini belirten ibare eklenebilir
+            content = "${originalMessage.content} (İletildi)",
             timestamp = Date()
         )
         sendMessage(senderId, receiverId, forwardedMessage)
     }
 
     suspend fun sendImageMessage(senderId: String, receiverId: String, imageUri: Uri): String {
-        val imageUrl = uploadImageToStorage(imageUri) // Resim Firebase Storage'a yüklendi
+        val imageUrl = uploadImageToStorage(imageUri)
         val message = MessageEntity(
             senderId = senderId,
             receiverId = receiverId,
@@ -90,9 +97,14 @@ class FirebaseMessageService @Inject constructor(
         return ref.downloadUrl.await().toString()
     }
 
-    suspend fun replyToMessage(senderId: String, receiverId: String, originalMessage: MessageEntity, replyContent: String) {
+    suspend fun replyToMessage(
+        senderId: String,
+        receiverId: String,
+        originalMessage: MessageEntity,
+        replyContent: String
+    ) {
         val replyMessage = MessageEntity(
-            id = "", // Boş bir id kullanıyoruz, bu id veritabanında oluşturulacaktır.
+            id = "",
             senderId = senderId,
             receiverId = receiverId,
             content = replyContent,
@@ -102,7 +114,6 @@ class FirebaseMessageService @Inject constructor(
         )
         sendMessage(senderId, receiverId, replyMessage)
     }
-
 
 
     private fun getChatId(user1Id: String, user2Id: String): String {
@@ -124,7 +135,8 @@ class FirebaseMessageService @Inject constructor(
                     Log.e("FirebaseMessageService", "Error listening for messages: ${e?.message}")
                     return@addSnapshotListener
                 }
-                val messages = snapshot.documents.mapNotNull { it.toObject(MessageEntity::class.java) }
+                val messages =
+                    snapshot.documents.mapNotNull { it.toObject(MessageEntity::class.java) }
                 onMessagesChanged(messages)
             }
     }
@@ -141,11 +153,13 @@ class FirebaseMessageService @Inject constructor(
 
             chatRef.collection("messages").document(documentRef.id).set(messageWithId).await()
 
-            chatRef.set(mapOf(
-                "lastMessage" to messageWithId.content,
-                "updatedAt" to messageWithId.timestamp,
-                "participants" to listOf(senderId, receiverId)
-            )).await()
+            chatRef.set(
+                mapOf(
+                    "lastMessage" to messageWithId.content,
+                    "updatedAt" to messageWithId.timestamp,
+                    "participants" to listOf(senderId, receiverId)
+                )
+            ).await()
 
         } catch (e: Exception) {
             Log.e("FirebaseMessageService", "Failed to send message: ${e.message}")
@@ -214,7 +228,10 @@ class FirebaseMessageService @Inject constructor(
     }
 
     suspend fun updateMessageReadStatus(chatId: String, messageId: String, isRead: Boolean) {
-        Log.d("FirebaseMessageService", "Attempting to update isRead for message: $messageId in chat: $chatId")
+        Log.d(
+            "FirebaseMessageService",
+            "Attempting to update isRead for message: $messageId in chat: $chatId"
+        )
         try {
             firestore.collection("chats")
                 .document(chatId)
@@ -222,7 +239,10 @@ class FirebaseMessageService @Inject constructor(
                 .document(messageId)
                 .update("isRead", isRead)
                 .await()
-            Log.d("FirebaseMessageService", "Successfully updated isRead for message: $messageId to $isRead")
+            Log.d(
+                "FirebaseMessageService",
+                "Successfully updated isRead for message: $messageId to $isRead"
+            )
         } catch (e: Exception) {
             Log.e("FirebaseMessageService", "Failed to update isRead for message: $messageId", e)
         }

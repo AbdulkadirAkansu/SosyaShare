@@ -29,7 +29,10 @@ class UserPrivacyRepositoryImpl @Inject constructor(
         service.updateUserPrivacySetting(userId, isPrivate)
     }
 
-    override fun addUserPrivacySettingListener(userId: String, onPrivacyChanged: (Boolean) -> Unit): ListenerRegistration {
+    override fun addUserPrivacySettingListener(
+        userId: String,
+        onPrivacyChanged: (Boolean) -> Unit
+    ): ListenerRegistration {
         return service.addUserPrivacySettingListener(userId, onPrivacyChanged)
     }
 

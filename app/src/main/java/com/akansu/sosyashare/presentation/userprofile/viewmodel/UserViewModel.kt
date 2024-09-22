@@ -17,7 +17,6 @@ class UserViewModel @Inject constructor(
     private val _profilePictureUrl = MutableStateFlow<String?>(null)
     val profilePictureUrl: StateFlow<String?> = _profilePictureUrl
 
-    // Burada username alanını ekliyoruz
     private val _username = MutableStateFlow<String?>(null)
     val username: StateFlow<String?> = _username
 

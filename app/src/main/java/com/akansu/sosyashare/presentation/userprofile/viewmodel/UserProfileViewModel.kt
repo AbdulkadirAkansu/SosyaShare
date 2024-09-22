@@ -1,13 +1,11 @@
 package com.akansu.sosyashare.presentation.userprofile.viewmodel
 
-import android.content.Context
-import android.net.Uri
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.akansu.sosyashare.domain.model.User
 import com.akansu.sosyashare.domain.repository.UserRepository
 import com.akansu.sosyashare.domain.repository.StorageRepository
-import com.akansu.sosyashare.util.FileUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -107,7 +105,7 @@ class UserProfileViewModel @Inject constructor(
             val user = userRepository.getUserById(userId).firstOrNull()
             user?.let {
                 _backgroundImageUrl.value =
-                    it.backgroundImageUrl  // Ensure the background image URL is set
+                    it.backgroundImageUrl
             }
             onResult(user)
         }

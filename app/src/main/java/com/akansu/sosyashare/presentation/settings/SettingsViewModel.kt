@@ -135,7 +135,10 @@ class SettingsViewModel @Inject constructor(
                 try {
                     blockedUserRepository.unblockUser(currentUserId, blockedUserId)
                     loadBlockedUsers(currentUserId)
-                    Log.d("SettingsViewModel", "User $blockedUserId successfully unblocked by $currentUserId")
+                    Log.d(
+                        "SettingsViewModel",
+                        "User $blockedUserId successfully unblocked by $currentUserId"
+                    )
                 } catch (e: Exception) {
                     Log.e("SettingsViewModel", "Error unblocking user: ${e.message}")
                 }

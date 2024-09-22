@@ -18,7 +18,7 @@ import javax.inject.Inject
 @HiltViewModel
 class TrendViewModel @Inject constructor(
     private val postRepository: PostRepository,
-    private val userRepository: UserRepository, // Kullanıcıları da getirebilmek için UserRepository ekleniyor
+    private val userRepository: UserRepository,
     private val userPrivacyRepository: UserPrivacyRepository
 ) : ViewModel() {
 
@@ -29,7 +29,7 @@ class TrendViewModel @Inject constructor(
     val trendingUsers: StateFlow<List<User>> = _trendingUsers
 
     init {
-        loadTrendingPostsAndUsers() // Hem postları hem kullanıcıları yükleyen fonksiyonu çağırıyoruz
+        loadTrendingPostsAndUsers()
     }
 
     private fun loadTrendingPostsAndUsers() {
@@ -42,8 +42,8 @@ class TrendViewModel @Inject constructor(
 
             _trendingPosts.value = filteredPosts
 
-            // Postlara göre kullanıcıları getirip trendingUsers'a ekliyoruz
-            val userIds = filteredPosts.map { it.userId }.distinct() // Tekrarlayan kullanıcıları ayıklıyoruz
+
+            val userIds = filteredPosts.map { it.userId }.distinct()
             val users = userIds.mapNotNull { userId ->
                 userRepository.getUserById(userId).firstOrNull()
             }

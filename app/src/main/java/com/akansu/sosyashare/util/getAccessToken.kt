@@ -5,7 +5,6 @@ import com.akansu.sosyashare.R
 import com.google.auth.oauth2.GoogleCredentials
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.FileInputStream
 
 
 suspend fun getAccessToken(context: Context): String? = withContext(Dispatchers.IO) {

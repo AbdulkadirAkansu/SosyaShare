@@ -1,6 +1,5 @@
 package com.akansu.sosyashare.presentation.postdetail.screen
 
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -14,8 +13,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,9 +21,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -40,12 +36,12 @@ import com.akansu.sosyashare.presentation.home.components.LikedUsersDialog
 import com.akansu.sosyashare.presentation.home.components.NavigationBar
 import com.akansu.sosyashare.presentation.home.viewmodel.HomeViewModel
 import com.akansu.sosyashare.presentation.postdetail.viewmodel.PostDetailViewModel
-import com.akansu.sosyashare.util.poppinsFontFamily
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PostDetailScreen(
@@ -54,15 +50,16 @@ fun PostDetailScreen(
     initialPostIndex: Int,
     showSaveIcon: Boolean,
     postDetailViewModel: PostDetailViewModel = hiltViewModel(),
-    homeViewModel: HomeViewModel = hiltViewModel() // Shared ViewModel
+    homeViewModel: HomeViewModel = hiltViewModel()
 ) {
     val user by postDetailViewModel.user.collectAsState()
     val posts by postDetailViewModel.posts.collectAsState()
-    val savedPosts by homeViewModel.savedPosts.collectAsState() // Shared state
+    val savedPosts by homeViewModel.savedPosts.collectAsState()
     val listState = rememberLazyListState()
     val currentUserId by postDetailViewModel.currentUserId.collectAsState()
     var showLikedUsers by remember { mutableStateOf(false) }
     val sortedPosts = posts.sortedByDescending { it.createdAt }
+    val context = LocalContext.current
 
     LaunchedEffect(userId) {
         postDetailViewModel.loadUserDetails(userId)
@@ -107,22 +104,22 @@ fun PostDetailScreen(
                     .padding(paddingValues)
             ) {
                 items(sortedPosts) { post ->
-                    val isSaved = savedPosts.any { it.id == post.id } // Check if post is saved
+                    val isSaved = savedPosts.any { it.id == post.id }
                     PostContent(
                         post = post,
                         username = user?.username ?: "",
                         profilePictureUrl = user?.profilePictureUrl,
                         createdAt = post.createdAt,
                         isLiked = post.isLiked,
-                        onLike = { postDetailViewModel.likePost(post.id,post.userId) },
+                        onLike = { postDetailViewModel.likePost(post.id, post.userId, context) },
                         onUnlike = { postDetailViewModel.unlikePost(post.id) },
                         onSaveClick = {
                             postDetailViewModel.savePost(post.id)
-                            homeViewModel.savePost(post.id) // Sync with HomeViewModel
+                            homeViewModel.savePost(post.id)
                         },
                         onUnsaveClick = {
                             postDetailViewModel.removeSavedPost(post.id)
-                            homeViewModel.removeSavedPost(post.id) // Sync with HomeViewModel
+                            homeViewModel.removeSavedPost(post.id)
                         },
                         isSaved = isSaved,
                         showSaveIcon = showSaveIcon,
@@ -182,7 +179,6 @@ fun PostContent(
             .padding(16.dp)
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // Profile information and timestamp
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -215,7 +211,6 @@ fun PostContent(
             }
         }
 
-        // Post image with double-tap to like
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -266,7 +261,6 @@ fun PostContent(
                 )
             }
 
-            // Full screen icon on top-right
             Icon(
                 painter = painterResource(id = R.drawable.fullscreen),
                 contentDescription = "Fullscreen Icon",
@@ -279,8 +273,9 @@ fun PostContent(
             )
         }
 
-        // Box for icons (like, comment, save) and text (likes count, content)
-        Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+        Column(modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -310,11 +305,14 @@ fun PostContent(
                             modifier = Modifier.size(24.dp)
                         )
                     }
-                    Text(text = " $likes", color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp)
+                    Text(
+                        text = " $likes",
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontSize = 14.sp
+                    )
 
-                    Spacer(modifier = Modifier.width(16.dp)) // Like ve Comment ikonları arasındaki boşluk
+                    Spacer(modifier = Modifier.width(16.dp))
 
-                    // Comment button and count
                     IconButton(
                         onClick = {
                             navController.navigate("comments/$postId/$currentUserId")
@@ -328,7 +326,11 @@ fun PostContent(
                             modifier = Modifier.size(24.dp)
                         )
                     }
-                    Text(text = "  ${post.commentCount}", color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp)
+                    Text(
+                        text = "  ${post.commentCount}",
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontSize = 14.sp
+                    )
                 }
 
                 // Save button
@@ -352,7 +354,6 @@ fun PostContent(
                 }
             }
 
-            // Post content or "See comments" if empty
             val contentText = if (post.content.isNullOrEmpty()) "See comments" else post.content
             Text(
                 text = contentText,

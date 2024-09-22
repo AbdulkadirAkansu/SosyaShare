@@ -1,6 +1,5 @@
 package com.akansu.sosyashare.presentation.login.screen
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -24,8 +23,6 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.akansu.sosyashare.presentation.login.viewmodel.AuthViewModel
-import com.akansu.sosyashare.presentation.ui.ErrorMessage
-import com.akansu.sosyashare.presentation.ui.SuccessMessage
 import com.akansu.sosyashare.util.poppinsFontFamily
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -33,12 +30,16 @@ import kotlinx.coroutines.withContext
 
 
 @Composable
-fun EmailVerificationScreen(navController: NavController, viewModel: AuthViewModel = hiltViewModel()) {
+fun EmailVerificationScreen(
+    navController: NavController,
+    viewModel: AuthViewModel = hiltViewModel()
+) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var successMessage by remember { mutableStateOf<String?>(null) }
     var isVerified by remember { mutableStateOf(false) }
     var showSnackbar by remember { mutableStateOf(false) }
     var snackbarMessage by remember { mutableStateOf("") }
+
 
     val infiniteTransition = rememberInfiniteTransition()
     val scale by infiniteTransition.animateFloat(
@@ -50,7 +51,6 @@ fun EmailVerificationScreen(navController: NavController, viewModel: AuthViewMod
         )
     )
 
-    // Automatically send email verification on screen load
     LaunchedEffect(Unit) {
         viewModel.sendEmailVerification(
             onSuccess = {
@@ -145,12 +145,12 @@ fun EmailVerificationScreen(navController: NavController, viewModel: AuthViewMod
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // Button to resend the verification email
                 Button(
                     onClick = {
                         viewModel.sendEmailVerification(
                             onSuccess = {
-                                successMessage = "Verification email sent again. Please check your inbox."
+                                successMessage =
+                                    "Verification email sent again. Please check your inbox."
                                 snackbarMessage = successMessage ?: ""
                                 showSnackbar = true
                             },

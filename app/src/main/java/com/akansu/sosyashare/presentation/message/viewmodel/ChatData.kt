@@ -1,10 +1,7 @@
 package com.akansu.sosyashare.presentation.message.viewmodel
 
-import androidx.compose.runtime.MutableState
-import androidx.compose.ui.graphics.Color
-import com.akansu.sosyashare.domain.model.Message
-import com.akansu.sosyashare.domain.model.User
 
+import androidx.compose.ui.graphics.Color
 
 data class ChatColors(
     val backgroundColor: Color,

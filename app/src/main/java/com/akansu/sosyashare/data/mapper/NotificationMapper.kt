@@ -15,7 +15,7 @@ object NotificationMapper {
             content = entity.content,
             isRead = entity.isRead,
             timestamp = entity.timestamp,
-            documentId = entity.documentId  // documentId'yi buraya ekliyoruz
+            documentId = entity.documentId
         )
     }
 
@@ -30,7 +30,7 @@ object NotificationMapper {
             content = notification.content,
             isRead = notification.isRead,
             timestamp = notification.timestamp,
-            documentId = notification.documentId  // documentId'yi buraya ekliyoruz
+            documentId = notification.documentId
         )
     }
 }
