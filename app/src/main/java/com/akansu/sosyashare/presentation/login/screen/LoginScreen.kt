@@ -183,10 +183,15 @@ fun LoginOptions(navController: NavController, viewModel: AuthViewModel) {
                     .requestEmail()
                     .build()
                 val googleSignInClient = GoogleSignIn.getClient(context, googleSignInOptions)
-                val signInIntent = googleSignInClient.signInIntent
-                googleSignInLauncher.launch(signInIntent)
+                googleSignInClient.signOut().addOnCompleteListener {
+                    googleSignInClient.revokeAccess().addOnCompleteListener {
+                        val signInIntent = googleSignInClient.signInIntent
+                        googleSignInLauncher.launch(signInIntent)
+                    }
+                }
             }
         )
+
 
         SocialLoginButton(
             text = "Sign up with Email",

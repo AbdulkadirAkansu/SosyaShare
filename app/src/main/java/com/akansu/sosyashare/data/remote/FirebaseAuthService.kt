@@ -94,6 +94,26 @@ class FirebaseAuthService @Inject constructor(
         )
     }
 
+    suspend fun getUserByEmail(email: String): UserEntity? {
+        return try {
+            val querySnapshot = firestore.collection("users")
+                .whereEqualTo("email", email)
+                .get()
+                .await()
+
+            if (!querySnapshot.isEmpty) {
+                val document = querySnapshot.documents[0]
+                document.toObject(UserEntity::class.java)?.copy(id = document.id)
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            Log.e("getUserByEmailError", "Error fetching user by email: ${e.message}")
+            null
+        }
+    }
+
+
 
     suspend fun getUserDetails(): UserEntity? {
         try {

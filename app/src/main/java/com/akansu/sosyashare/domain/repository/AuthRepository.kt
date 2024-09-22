@@ -17,5 +17,6 @@ interface AuthRepository {
     fun logoutUser()
     suspend fun syncAllUsers()
     suspend fun updateEmailVerifiedStatus(userId: String)
+    suspend fun getUserByEmail(email: String): UserEntity?
     suspend fun firebaseAuthWithGoogle(account: GoogleSignInAccount): UserEntity
 }

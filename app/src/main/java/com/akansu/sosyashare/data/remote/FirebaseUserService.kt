@@ -36,20 +36,6 @@ class FirebaseUserService @Inject constructor(
             .await()
     }
 
-    suspend fun registerUser(email: String, password: String, username: String): UserEntity {
-        val authResult = auth.createUserWithEmailAndPassword(email, password).await()
-        val userId = authResult.user?.uid ?: throw Exception("User ID is null")
-        val userMap = mapOf(
-            "username" to username,
-            "email" to email,
-            "isEmailVerified" to false,
-            "following" to emptyList<String>(),
-            "followers" to emptyList<String>()
-        )
-        firestore.collection("users").document(userId).set(userMap).await()
-        return UserEntity(id = userId, username = username, email = email, profilePictureUrl = null)
-    }
-
 
     suspend fun getUserDetails(userId: String): UserEntity? {
         return try {

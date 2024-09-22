@@ -33,6 +33,10 @@ class AuthRepositoryImpl @Inject constructor(
         authService.reloadUser()
     }
 
+    override suspend fun getUserByEmail(email: String): UserEntity? {
+        return authService.getUserByEmail(email)
+    }
+
     override suspend fun firebaseAuthWithGoogle(account: GoogleSignInAccount): UserEntity {
         return authService.firebaseAuthWithGoogle(account)
     }
