@@ -1,22 +1,39 @@
 package com.akansu.sosyashare.data.remote
 
+import android.content.Context
 import android.util.Log
 import com.akansu.sosyashare.data.model.UserEntity
+import com.akansu.sosyashare.util.NetworkUtils
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 class FirebaseAuthService @Inject constructor(
     private val auth: FirebaseAuth,
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    @ApplicationContext private val context: Context
 ) {
+    // İnternet bağlantısı olmadığında gösterilecek hata mesajı
+    private val OFFLINE_ERROR = "İnternet bağlantısı yok. Lütfen internet bağlantınızı kontrol edip tekrar deneyin."
+
+    // İnternet bağlantısını kontrol et
+    private fun checkNetworkConnection() {
+        if (!NetworkUtils.isNetworkAvailable(context)) {
+            Log.e("NetworkError", "İnternet bağlantısı yok")
+            throw FirebaseFirestoreException(OFFLINE_ERROR, FirebaseFirestoreException.Code.UNAVAILABLE)
+        }
+    }
 
     suspend fun registerUser(email: String, password: String, username: String): UserEntity {
         try {
+            // İnternet bağlantısını kontrol et
+            checkNetworkConnection()
+            
             Log.d("RegisterUser", "Kayıt işlemi başladı: $email")
             val authResult = auth.createUserWithEmailAndPassword(email, password).await()
             val userId = authResult.user?.uid ?: throw Exception("User ID is null")
@@ -62,40 +79,75 @@ class FirebaseAuthService @Inject constructor(
     }
 
     suspend fun firebaseAuthWithGoogle(account: GoogleSignInAccount): UserEntity {
-        val credential = GoogleAuthProvider.getCredential(account.idToken, null)
-        val authResult = auth.signInWithCredential(credential).await()
-        val user = authResult.user ?: throw Exception("Kullanıcı bulunamadı")
-
-        val userId = user.uid
-        val username = account.displayName ?: "Unknown"
-        val email = user.email ?: throw Exception("E-posta bulunamadı")
-
-        val userMap = mapOf(
-            "username" to username,
-            "email" to email,
-            "isEmailVerified" to true,
-            "following" to emptyList<String>(),
-            "followers" to emptyList<String>()
-        )
-        firestore.collection("users").document(userId).set(userMap).await()
-
-        val privacyMap = mapOf(
-            "userId" to userId,
-            "isPrivate" to false,
-            "allowedFollowers" to emptyList<String>()
-        )
-        firestore.collection("user_privacy").document(userId).set(privacyMap).await()
-
-        return UserEntity(
-            id = userId,
-            username = username,
-            email = email,
-            profilePictureUrl = user.photoUrl?.toString()
-        )
+        try {
+            // İnternet bağlantısını kontrol et
+            checkNetworkConnection()
+            
+            // Kullanıcı bilgilerini al
+            val user = auth.currentUser ?: throw Exception("Firebase kullanıcısı bulunamadı")
+            
+            val userId = user.uid
+            val username = account.displayName ?: "Unknown"
+            val email = user.email ?: throw Exception("E-posta bulunamadı")
+            val photoUrl = user.photoUrl?.toString()
+            
+            Log.d("FirebaseAuth", "Kullanıcı: $userId, Email: $email")
+            
+            try {
+                // Firestore'da kullanıcıyı kontrol et
+                val userDoc = firestore.collection("users").document(userId).get().await()
+                
+                if (!userDoc.exists()) {
+                    Log.d("FirebaseAuth", "Yeni kullanıcı oluşturuluyor")
+                    
+                    // Kullanıcı verilerini hazırla
+                    val userData = mapOf(
+                        "username" to username,
+                        "email" to email,
+                        "isEmailVerified" to true,
+                        "following" to emptyList<String>(),
+                        "followers" to emptyList<String>(),
+                        "profilePictureUrl" to (photoUrl ?: "")
+                    )
+                    
+                    // Verileri Firestore'a yaz
+                    firestore.collection("users").document(userId).set(userData).await()
+                    
+                    // Gizlilik ayarlarını oluştur
+                    val privacyData = mapOf(
+                        "userId" to userId,
+                        "isPrivate" to false,
+                        "allowedFollowers" to emptyList<String>()
+                    )
+                    firestore.collection("user_privacy").document(userId).set(privacyData).await()
+                    
+                    Log.d("FirebaseAuth", "Kullanıcı başarıyla oluşturuldu")
+                } else {
+                    Log.d("FirebaseAuth", "Kullanıcı zaten var")
+                }
+            } catch (e: FirebaseFirestoreException) {
+                // Firestore hatası aldık ama Authentication başarılı olduğu için devam edebiliriz
+                Log.e("FirebaseAuth", "Firestore işlemi başarısız oldu, ancak kimlik doğrulama başarılı: ${e.message}")
+            }
+            
+            // Kullanıcı nesnesini döndür (Firestore'a erişilemese bile Authentication'ı kullanabiliriz)
+            return UserEntity(
+                id = userId,
+                username = username,
+                email = email,
+                profilePictureUrl = photoUrl
+            )
+        } catch (e: Exception) {
+            Log.e("FirebaseAuth", "Google işlemi hatası: ${e.message}", e)
+            throw e
+        }
     }
 
     suspend fun getUserByEmail(email: String): UserEntity? {
         return try {
+            // İnternet bağlantısını kontrol et
+            checkNetworkConnection()
+            
             val querySnapshot = firestore.collection("users")
                 .whereEqualTo("email", email)
                 .get()
@@ -122,6 +174,10 @@ class FirebaseAuthService @Inject constructor(
                 Log.e("GetUserDetails", "Giriş yapmış kullanıcı bulunamadı.")
                 throw Exception("Giriş yapmış kullanıcı bulunamadı.")
             }
+            
+            // İnternet bağlantısını kontrol et
+            checkNetworkConnection()
+            
             val userId = currentUser.uid  // Oturum açmış kullanıcının UID'sini al
             Log.d("GetUserDetails", "Kullanıcı bilgileri alınıyor: $userId")
 
@@ -138,6 +194,9 @@ class FirebaseAuthService @Inject constructor(
 
     suspend fun sendEmailVerification() {
         try {
+            // İnternet bağlantısını kontrol et
+            checkNetworkConnection()
+            
             val user = auth.currentUser ?: throw Exception("No authenticated user")
             Log.d("EmailVerification", "Email doğrulaması gönderiliyor UID: ${user.uid}")
             user.sendEmailVerification().await()
@@ -150,6 +209,9 @@ class FirebaseAuthService @Inject constructor(
 
     suspend fun isUsernameUnique(username: String): Boolean {
         try {
+            // İnternet bağlantısını kontrol et
+            checkNetworkConnection()
+            
             Log.d("UsernameCheck", "Kullanıcı adı kontrol ediliyor: $username")
             val user = getUserByUsername(username)
             val isUnique = user == null
@@ -163,6 +225,9 @@ class FirebaseAuthService @Inject constructor(
 
     private suspend fun getUserByUsername(username: String): Map<String, Any>? {
         try {
+            // İnternet bağlantısını kontrol et
+            checkNetworkConnection()
+            
             Log.d("GetUserByUsername", "Kullanıcı adıyla kullanıcı aranıyor: $username")
             val querySnapshot = firestore.collection("users")
                 .whereEqualTo("username", username)
@@ -186,6 +251,9 @@ class FirebaseAuthService @Inject constructor(
 
     suspend fun loginUser(email: String, password: String): UserEntity? {
         try {
+            // İnternet bağlantısını kontrol et
+            checkNetworkConnection()
+            
             Log.d("LoginUser", "Giriş işlemi başladı: $email")
             auth.signInWithEmailAndPassword(email, password).await()
             val currentUser = auth.currentUser ?: throw Exception("Kullanıcı bulunamadı.")
@@ -215,6 +283,9 @@ class FirebaseAuthService @Inject constructor(
 
     suspend fun updateEmailVerifiedStatus(userId: String) {
         try {
+            // İnternet bağlantısını kontrol et
+            checkNetworkConnection()
+            
             Log.d("UpdateEmailVerified", "Email doğrulama durumu güncelleniyor UID: $userId")
             val user = auth.currentUser ?: throw Exception("No authenticated user")
             user.reload().await() // Kullanıcı bilgisini güncelle
@@ -236,6 +307,9 @@ class FirebaseAuthService @Inject constructor(
 
     suspend fun resetPassword(email: String) {
         try {
+            // İnternet bağlantısını kontrol et
+            checkNetworkConnection()
+            
             Log.d("ResetPassword", "Şifre sıfırlama işlemi başlatıldı: $email")
             auth.sendPasswordResetEmail(email).await()
             Log.d("ResetPassword", "Şifre sıfırlama emaili gönderildi: $email")
@@ -247,6 +321,9 @@ class FirebaseAuthService @Inject constructor(
 
     suspend fun reloadUser() {
         try {
+            // İnternet bağlantısını kontrol et
+            checkNetworkConnection()
+            
             val user = auth.currentUser ?: throw Exception("No authenticated user")
             Log.d("ReloadUser", "Kullanıcı bilgileri yeniden yükleniyor UID: ${user.uid}")
             user.reload().await() // Refresh user data
@@ -272,6 +349,9 @@ class FirebaseAuthService @Inject constructor(
 
     suspend fun syncAllUsers(): List<UserEntity> {
         try {
+            // İnternet bağlantısını kontrol et
+            checkNetworkConnection()
+            
             Log.d("SyncAllUsers", "Tüm kullanıcılar Firestore'dan alınıyor.")
             val result = firestore.collection("users").get().await()
             val users = mutableListOf<UserEntity>()

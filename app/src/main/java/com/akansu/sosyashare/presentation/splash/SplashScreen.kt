@@ -29,6 +29,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.akansu.sosyashare.R
 import com.akansu.sosyashare.presentation.login.viewmodel.AuthViewModel
+import com.akansu.sosyashare.presentation.components.NetworkErrorDialog
+import com.akansu.sosyashare.util.NetworkUtils
 
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -40,14 +42,23 @@ fun SplashScreen(navController: NavController, authViewModel: AuthViewModel? = n
     val videoUri =
         Uri.parse("android.resource://${LocalContext.current.packageName}/${R.raw.splash}")
     var showContent by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    var showNetworkError by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         delay(500)
         showContent = true
-        delay(150000)
-        val startDestination = if (authViewModel?.isUserLoggedIn() == true) "home" else "login"
-        navController.navigate(startDestination) {
-            popUpTo("splash") { inclusive = true }
+        delay(3000)  // Splash ekranını 3 saniye göster
+        
+        // İnternet bağlantısını kontrol et
+        if (!NetworkUtils.isNetworkAvailable(context)) {
+            showNetworkError = true
+        } else {
+            val startDestination = if (authViewModel?.isUserLoggedIn() == true) "home" else "login"
+            navController.navigate(startDestination) {
+                popUpTo("splash") { inclusive = true }
+            }
         }
     }
 
@@ -113,15 +124,34 @@ fun SplashScreen(navController: NavController, authViewModel: AuthViewModel? = n
                 AnimatedStartButton(
                     text = "Get Started",
                     onClick = {
-                        val destination =
-                            if (authViewModel?.isUserLoggedIn() == true) "home" else "login"
-                        navController.navigate(destination) {
-                            popUpTo("splash") { inclusive = true }
+                        // İnternet bağlantısını tekrar kontrol et
+                        if (!NetworkUtils.isNetworkAvailable(context)) {
+                            showNetworkError = true
+                        } else {
+                            val destination =
+                                if (authViewModel?.isUserLoggedIn() == true) "home" else "login"
+                            navController.navigate(destination) {
+                                popUpTo("splash") { inclusive = true }
+                            }
                         }
                     },
                     modifier = Modifier.padding(bottom = 32.dp)
                 )
             }
+        }
+        
+        // İnternet hatası dialog'u
+        if (showNetworkError) {
+            NetworkErrorDialog(
+                onDismiss = {
+                    showNetworkError = false
+                    // İnternet bağlantısı olmasa bile login ekranına yönlendir
+                    // Bu sayede kullanıcı, bağlantı sağlandığında uygulamayı kullanabilir
+                    navController.navigate("login") {
+                        popUpTo("splash") { inclusive = true }
+                    }
+                }
+            )
         }
     }
 }

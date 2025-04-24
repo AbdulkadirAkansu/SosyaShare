@@ -12,7 +12,12 @@
           "package_name": "com.akansu.sosyashare"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "864651653275-7qjascvqjdol81sbt9h9raqqgb9t1748.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAFaAiuihUI7mEyp0dprtgy_MDmGj4ccVQ"
@@ -20,7 +25,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "864651653275-7qjascvqjdol81sbt9h9raqqgb9t1748.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

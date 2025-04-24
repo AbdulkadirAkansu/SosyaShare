@@ -27,6 +27,8 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import kotlinx.coroutines.delay
 import com.akansu.sosyashare.R
+import com.akansu.sosyashare.presentation.components.NetworkErrorDialog
+import com.akansu.sosyashare.util.NetworkUtils
 
 @Composable
 fun LoginScreen(navController: NavController, viewModel: AuthViewModel = hiltViewModel()) {
@@ -38,6 +40,8 @@ fun LoginScreen(navController: NavController, viewModel: AuthViewModel = hiltVie
     )
 
     var currentGradientIndex by remember { mutableStateOf(0) }
+    val context = LocalContext.current
+    var showNetworkError by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         while (true) {
@@ -61,7 +65,15 @@ fun LoginScreen(navController: NavController, viewModel: AuthViewModel = hiltVie
             Spacer(modifier = Modifier.weight(1f))
             TypewriterText()
             Spacer(modifier = Modifier.weight(1f))
-            LoginOptionsBox(navController, viewModel)
+            LoginOptionsBox(
+                navController = navController, 
+                viewModel = viewModel,
+                onNetworkError = { showNetworkError = true }
+            )
+        }
+        
+        if (showNetworkError) {
+            NetworkErrorDialog(onDismiss = { showNetworkError = false })
         }
     }
 }
@@ -129,7 +141,11 @@ fun TypewriterText() {
 }
 
 @Composable
-fun LoginOptionsBox(navController: NavController, viewModel: AuthViewModel) {
+fun LoginOptionsBox(
+    navController: NavController, 
+    viewModel: AuthViewModel,
+    onNetworkError: () -> Unit
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -139,32 +155,67 @@ fun LoginOptionsBox(navController: NavController, viewModel: AuthViewModel) {
             )
             .padding(24.dp)
     ) {
-        LoginOptions(navController, viewModel)
+        LoginOptions(
+            navController = navController, 
+            viewModel = viewModel,
+            onNetworkError = onNetworkError
+        )
     }
 }
 
 @Composable
-fun LoginOptions(navController: NavController, viewModel: AuthViewModel) {
+fun LoginOptions(
+    navController: NavController, 
+    viewModel: AuthViewModel,
+    onNetworkError: () -> Unit
+) {
     val context = LocalContext.current
+    var isLoading by remember { mutableStateOf(false) }
 
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
         try {
+            isLoading = true
+            
+            // Internet bağlantısını kontrol et
+            if (!NetworkUtils.isNetworkAvailable(context)) {
+                isLoading = false
+                onNetworkError()
+                return@rememberLauncherForActivityResult
+            }
+            
+            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
             val account = task.getResult(ApiException::class.java)
+            
             if (account != null) {
+                Log.d("GoogleSignIn", "Google hesabı seçildi: ${account.email}, ID Token: ${account.idToken?.take(10)}...")
+                
+                // Google hesabı seçildikten sonra hemen giriş işlemini başlat
                 viewModel.loginWithGoogle(account,
                     onSuccess = {
-                        navController.navigate("home")
+                        isLoading = false
+                        Log.d("GoogleSignIn", "Google girişi başarılı. Ana sayfaya yönlendiriliyor.")
+                        // Ana sayfaya yönlendir ve login ekranını stack'ten kaldır
+                        navController.navigate("home") {
+                            popUpTo("login") { inclusive = true }
+                        }
                     },
-                    onFailure = {
-                        // Hata durumunda yapılacaklar
+                    onFailure = { error ->
+                        isLoading = false
+                        Log.e("GoogleSignIn", "Google girişi başarısız: ${error.message}")
                     }
                 )
+            } else {
+                isLoading = false
+                Log.e("GoogleSignIn", "Google hesabı null")
             }
         } catch (e: ApiException) {
-            Log.e("GoogleSignInError", "Google Sign-In failed: ${e.statusCode}")
+            isLoading = false
+            Log.e("GoogleSignInError", "Google girişi başarısız. Hata kodu: ${e.statusCode}, Mesaj: ${e.message}")
+        } catch (e: Exception) {
+            isLoading = false
+            Log.e("GoogleSignInError", "Beklenmeyen hata: ${e.message}")
         }
     }
 
@@ -173,31 +224,59 @@ fun LoginOptions(navController: NavController, viewModel: AuthViewModel) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(36.dp),
+                color = Color.White
+            )
+        }
+        
         SocialLoginButton(
             text = "Continue with Google",
             backgroundColor = Color.White,
             textColor = Color.Black,
             onClick = {
-                val googleSignInOptions = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                    .requestIdToken(context.getString(R.string.default_web_client_id))
-                    .requestEmail()
-                    .build()
-                val googleSignInClient = GoogleSignIn.getClient(context, googleSignInOptions)
-                googleSignInClient.signOut().addOnCompleteListener {
-                    googleSignInClient.revokeAccess().addOnCompleteListener {
-                        val signInIntent = googleSignInClient.signInIntent
-                        googleSignInLauncher.launch(signInIntent)
+                // Internet bağlantısını kontrol et
+                if (!NetworkUtils.isNetworkAvailable(context)) {
+                    onNetworkError()
+                    return@SocialLoginButton
+                }
+                
+                try {
+                    val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                        .requestIdToken(context.getString(R.string.default_web_client_id))
+                        .requestEmail()
+                        .build()
+                    
+                    val googleSignInClient = GoogleSignIn.getClient(context, gso)
+                    
+                    // Önce önceki oturumları temizle (gerekli)
+                    googleSignInClient.signOut().addOnCompleteListener {
+                        // Sonra giriş iletişim kutusunu başlat
+                        try {
+                            val signInIntent = googleSignInClient.signInIntent
+                            googleSignInLauncher.launch(signInIntent)
+                        } catch (e: Exception) {
+                            Log.e("GoogleSignIn", "Giriş iletişim kutusu başlatılamadı: ${e.message}", e)
+                        }
                     }
+                } catch (e: Exception) {
+                    Log.e("GoogleSignIn", "Google giriş hazırlığı sırasında hata: ${e.message}", e)
                 }
             }
         )
-
 
         SocialLoginButton(
             text = "Sign up with Email",
             backgroundColor = Color(0xFF404040),
             textColor = Color.White,
             onClick = {
+                // Internet bağlantısını kontrol et
+                if (!NetworkUtils.isNetworkAvailable(context)) {
+                    onNetworkError()
+                    return@SocialLoginButton
+                }
+                
                 navController.navigate("register")
             }
         )
@@ -212,6 +291,12 @@ fun LoginOptions(navController: NavController, viewModel: AuthViewModel) {
 
         OutlinedButton(
             onClick = {
+                // Internet bağlantısını kontrol et
+                if (!NetworkUtils.isNetworkAvailable(context)) {
+                    onNetworkError()
+                    return@OutlinedButton
+                }
+                
                 navController.navigate("sign_in")
             },
             modifier = Modifier

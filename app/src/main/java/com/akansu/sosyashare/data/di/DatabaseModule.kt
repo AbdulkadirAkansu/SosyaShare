@@ -2,6 +2,7 @@
 
 package com.akansu.sosyashare.data.di
 
+import android.content.Context
 import com.akansu.sosyashare.data.remote.*
 import com.akansu.sosyashare.data.repository.*
 import com.akansu.sosyashare.domain.repository.*
@@ -12,6 +13,7 @@ import com.google.firebase.storage.FirebaseStorage
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
@@ -28,7 +30,8 @@ object DatabaseModule {
     fun provideFirebaseFirestore(): FirebaseFirestore {
         val firestore = FirebaseFirestore.getInstance()
         val settings = FirebaseFirestoreSettings.Builder()
-            .setPersistenceEnabled(false)
+            .setPersistenceEnabled(true)
+            .setCacheSizeBytes(FirebaseFirestoreSettings.CACHE_SIZE_UNLIMITED)
             .build()
         firestore.firestoreSettings = settings
         return firestore
@@ -43,8 +46,9 @@ object DatabaseModule {
     fun provideFirebaseAuthService(
         firebaseAuth: FirebaseAuth,
         firestore: FirebaseFirestore,
+        @ApplicationContext context: Context
     ): FirebaseAuthService {
-        return FirebaseAuthService(firebaseAuth, firestore)
+        return FirebaseAuthService(firebaseAuth, firestore, context)
     }
 
     @Provides
@@ -52,9 +56,31 @@ object DatabaseModule {
     fun provideFirebaseUserService(
         firebaseAuth: FirebaseAuth,
         firestore: FirebaseFirestore,
-        firebaseStorage: FirebaseStorage
+        firebaseStorage: FirebaseStorage,
+        @ApplicationContext context: Context
     ): FirebaseUserService {
-        return FirebaseUserService(firebaseAuth, firestore, firebaseStorage)
+        return FirebaseUserService(firebaseAuth, firestore, firebaseStorage, context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideFirebasePostService(
+        firebaseAuth: FirebaseAuth,
+        firestore: FirebaseFirestore,
+        firebaseStorage: FirebaseStorage,
+        @ApplicationContext context: Context
+    ): FirebasePostService {
+        return FirebasePostService(firebaseAuth, firestore, firebaseStorage, context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideFirebaseStorageService(
+        firebaseAuth: FirebaseAuth,
+        firebaseStorage: FirebaseStorage,
+        @ApplicationContext context: Context
+    ): FirebaseStorageService {
+        return FirebaseStorageService(firebaseAuth, firebaseStorage, context)
     }
 
     @Provides

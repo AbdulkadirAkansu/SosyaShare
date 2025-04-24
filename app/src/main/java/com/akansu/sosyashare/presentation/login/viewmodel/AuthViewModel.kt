@@ -11,6 +11,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.firestore.FirebaseFirestoreException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.launch
@@ -28,51 +29,83 @@ class AuthViewModel @Inject constructor(
 
     fun isUsernameUnique(username: String, onResult: (Boolean) -> Unit) {
         viewModelScope.launch {
-            val isUnique = authRepository.isUsernameUnique(username)
-            onResult(isUnique)
+            try {
+                val isUnique = authRepository.isUsernameUnique(username)
+                onResult(isUnique)
+            } catch (e: FirebaseFirestoreException) {
+                if (e.code == FirebaseFirestoreException.Code.UNAVAILABLE) {
+                    // İnternet bağlantısı yok
+                    Log.e("NetworkError", "İnternet bağlantısı kontrolünde hata: ${e.message}")
+                }
+                // Hata durumunda varsayılan olarak false dön (benzersiz değil)
+                onResult(false)
+            } catch (e: Exception) {
+                Log.e("AuthViewModel", "isUsernameUnique hata: ${e.message}")
+                onResult(false)
+            }
         }
     }
 
     fun loginWithGoogle(account: GoogleSignInAccount, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
-        viewModelScope.launch {
-            try {
-                val email = account.email ?: throw Exception("Google account email is null")
-                Log.d("LoginWithGoogle", "Email from Google: $email")
-
-                val existingUser = authRepository.getUserByEmail(email)
-
-                if (existingUser != null) {
-                    Log.d("LoginWithGoogle", "Existing user found. Checking if Google account is already linked.")
-
-                    val currentUser = FirebaseAuth.getInstance().currentUser
-                    if (currentUser == null) {
-                        Log.e("LoginWithGoogle", "No current user to link Google account with.")
-                        signInWithGoogleCredential(account, onSuccess, onFailure)
-                        return@launch
-                    }
-
-                    val isGoogleLinked = currentUser.providerData.any { it.providerId == GoogleAuthProvider.PROVIDER_ID }
-
-                    if (isGoogleLinked) {
-                        Log.d("LoginWithGoogle", "Google account is already linked. Signing in directly.")
-                        saveLoginState(true)
-                        onSuccess()
+        Log.d("GoogleSignIn", "Google hesabı alındı: ${account.email}")
+        
+        val idToken = account.idToken
+        if (idToken == null) {
+            Log.e("GoogleSignIn", "ID Token bulunamadı")
+            onFailure(Exception("Google kimlik bilgileri eksik."))
+            return
+        }
+        
+        val credential = GoogleAuthProvider.getCredential(idToken, null)
+        
+        Log.d("GoogleSignIn", "Firebase kimlik doğrulama başlatılıyor...")
+        
+        FirebaseAuth.getInstance().signInWithCredential(credential)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    Log.d("GoogleSignIn", "Firebase kimlik doğrulama başarılı!")
+                    val user = FirebaseAuth.getInstance().currentUser
+                    
+                    if (user != null) {
+                        viewModelScope.launch {
+                            try {
+                                // Kullanıcı bilgilerini Firestore'a kaydet (eğer yoksa)
+                                val userEntity = authRepository.firebaseAuthWithGoogle(account)
+                                Log.d("GoogleSignIn", "Kullanıcı Firestore'a kaydedildi: ${userEntity.id}")
+                                
+                                // Oturum durumunu kaydet
+                                saveLoginState(true)
+                                
+                                // Başarılı callback'i çağır
+                                onSuccess()
+                            } catch (e: FirebaseFirestoreException) {
+                                // Firestore hatası aldık, internet bağlantısı kontrol et
+                                if (e.code == FirebaseFirestoreException.Code.UNAVAILABLE) {
+                                    Log.e("NetworkError", "İnternet bağlantısı yok, ancak kimlik doğrulama başarılı")
+                                    // Yine de giriş yapabilmesine izin ver
+                                    saveLoginState(true)
+                                    onSuccess()
+                                } else {
+                                    Log.e("FirestoreError", "Firestore işleminde hata: ${e.message}")
+                                    // Diğer Firestore hataları için kullanıcıya bildirim göster
+                                    onFailure(e)
+                                }
+                            } catch (e: Exception) {
+                                Log.e("GoogleSignIn", "Firestore işleminde beklenmeyen hata: ${e.message}")
+                                // Yine de giriş yapabilmesine izin ver
+                                saveLoginState(true)
+                                onSuccess()
+                            }
+                        }
                     } else {
-                        Log.d("LoginWithGoogle", "Google account not linked yet. Linking account.")
-                        linkGoogleAccountWithEmailAccount(account, onSuccess, onFailure)
+                        Log.e("GoogleSignIn", "Firebase kullanıcısı null")
+                        onFailure(Exception("Giriş başarısız: Kullanıcı bulunamadı"))
                     }
                 } else {
-                    Log.d("LoginWithGoogle", "No existing user found. Creating new user with Google.")
-                    val userEntity = authRepository.firebaseAuthWithGoogle(account)
-                    Log.d("LoginWithGoogle", "New user created: ${userEntity.email}")
-                    saveLoginState(true)
-                    onSuccess()
+                    Log.e("GoogleSignIn", "Firebase kimlik doğrulama başarısız: ${task.exception?.message}")
+                    onFailure(task.exception ?: Exception("Google ile giriş yapılamadı"))
                 }
-            } catch (e: Exception) {
-                Log.e("LoginWithGoogle", "Google Sign-In failed: ${e.message}")
-                onFailure(e)
             }
-        }
     }
 
     fun signInWithGoogleCredential(account: GoogleSignInAccount, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
@@ -138,12 +171,18 @@ class AuthViewModel @Inject constructor(
                 // Önce kullanıcı adının benzersiz olup olmadığını kontrol et
                 val isUnique = authRepository.isUsernameUnique(username)
                 if (!isUnique) {
-                    onFailure(Exception("This username is already taken. Please choose a different one."))
+                    onFailure(Exception("Bu kullanıcı adı zaten alınmış. Lütfen farklı bir kullanıcı adı seçin."))
                     return@launch
                 }
 
                 authRepository.registerUser(email, password, username)
                 onSuccess()
+            } catch (e: FirebaseFirestoreException) {
+                if (e.code == FirebaseFirestoreException.Code.UNAVAILABLE) {
+                    onFailure(Exception("İnternet bağlantısı yok. Lütfen internet bağlantınızı kontrol edip tekrar deneyin."))
+                } else {
+                    onFailure(e)
+                }
             } catch (e: Exception) {
                 onFailure(e)
             }
@@ -155,6 +194,12 @@ class AuthViewModel @Inject constructor(
             try {
                 authRepository.sendEmailVerification()
                 onSuccess()
+            } catch (e: FirebaseFirestoreException) {
+                if (e.code == FirebaseFirestoreException.Code.UNAVAILABLE) {
+                    onFailure(Exception("İnternet bağlantısı yok. Lütfen internet bağlantınızı kontrol edip tekrar deneyin."))
+                } else {
+                    onFailure(e)
+                }
             } catch (e: Exception) {
                 onFailure(e)
             }
@@ -166,6 +211,12 @@ class AuthViewModel @Inject constructor(
             try {
                 authRepository.resetPassword(email)
                 onSuccess()
+            } catch (e: FirebaseFirestoreException) {
+                if (e.code == FirebaseFirestoreException.Code.UNAVAILABLE) {
+                    onFailure(Exception("İnternet bağlantısı yok. Lütfen internet bağlantınızı kontrol edip tekrar deneyin."))
+                } else {
+                    onFailure(e)
+                }
             } catch (e: Exception) {
                 onFailure(e)
             }
@@ -174,8 +225,18 @@ class AuthViewModel @Inject constructor(
 
     fun getUserDetails(onResult: (UserEntity?) -> Unit) {
         viewModelScope.launch {
-            val userDetails = authRepository.getUserDetails()
-            onResult(userDetails)
+            try {
+                val userDetails = authRepository.getUserDetails()
+                onResult(userDetails)
+            } catch (e: FirebaseFirestoreException) {
+                if (e.code == FirebaseFirestoreException.Code.UNAVAILABLE) {
+                    Log.e("NetworkError", "İnternet bağlantısı yok, kullanıcı detayları alınamadı")
+                }
+                onResult(null)
+            } catch (e: Exception) {
+                Log.e("AuthViewModel", "getUserDetails hata: ${e.message}")
+                onResult(null)
+            }
         }
     }
 
@@ -184,6 +245,12 @@ class AuthViewModel @Inject constructor(
             try {
                 authRepository.reloadUser()
                 onSuccess()
+            } catch (e: FirebaseFirestoreException) {
+                if (e.code == FirebaseFirestoreException.Code.UNAVAILABLE) {
+                    onFailure(Exception("İnternet bağlantısı yok. Lütfen internet bağlantınızı kontrol edip tekrar deneyin."))
+                } else {
+                    onFailure(e)
+                }
             } catch (e: Exception) {
                 onFailure(e)
             }
@@ -194,7 +261,12 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 authRepository.updateEmailVerifiedStatus(userId)
+            } catch (e: FirebaseFirestoreException) {
+                if (e.code == FirebaseFirestoreException.Code.UNAVAILABLE) {
+                    Log.e("NetworkError", "İnternet bağlantısı yok, email doğrulama durumu güncellenemedi")
+                }
             } catch (e: Exception) {
+                Log.e("AuthViewModel", "updateEmailVerifiedStatus hata: ${e.message}")
             }
         }
     }
@@ -211,6 +283,12 @@ class AuthViewModel @Inject constructor(
                     onSuccess()
                 } else {
                     throw Exception("Email not verified")
+                }
+            } catch (e: FirebaseFirestoreException) {
+                if (e.code == FirebaseFirestoreException.Code.UNAVAILABLE) {
+                    onFailure(Exception("İnternet bağlantısı yok. Lütfen internet bağlantınızı kontrol edip tekrar deneyin."))
+                } else {
+                    onFailure(e)
                 }
             } catch (e: Exception) {
                 onFailure(e)
@@ -235,6 +313,12 @@ class AuthViewModel @Inject constructor(
                     onSuccess()
                 } else {
                     throw Exception("Email not verified")
+                }
+            } catch (e: FirebaseFirestoreException) {
+                if (e.code == FirebaseFirestoreException.Code.UNAVAILABLE) {
+                    onFailure(Exception("İnternet bağlantısı yok. Lütfen internet bağlantınızı kontrol edip tekrar deneyin."))
+                } else {
+                    onFailure(e)
                 }
             } catch (e: Exception) {
                 onFailure(e)

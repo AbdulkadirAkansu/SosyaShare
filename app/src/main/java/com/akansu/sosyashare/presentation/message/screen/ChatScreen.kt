@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
@@ -49,8 +50,8 @@ import com.akansu.sosyashare.domain.model.User
 import com.akansu.sosyashare.presentation.message.viewmodel.ChatColors
 import com.akansu.sosyashare.presentation.message.viewmodel.ChatViewModel
 import com.akansu.sosyashare.presentation.message.viewmodel.getChatColors
-import com.akansu.sosyashare.presentation.postdetail.screen.FullScreenImage
 import com.akansu.sosyashare.util.poppinsFontFamily
+import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -863,3 +864,45 @@ fun CircleAvatar(size: Dp, imageUrl: String?) {
         )
     }
 }
+
+@Composable
+fun FullScreenImage(imageUrl: String, onDismiss: () -> Unit) {
+    val systemUiController = rememberSystemUiController()
+    val isLight = !isSystemInDarkTheme()
+
+    SideEffect {
+        systemUiController.setSystemBarsColor(
+            color = Color.Black.copy(alpha = 0.8f),
+            darkIcons = false
+        )
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.8f))
+                .clickable { onDismiss() }
+        ) {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = "Full Screen Image",
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            systemUiController.setSystemBarsColor(
+                color = Color.Transparent,
+                darkIcons = isLight
+            )
+        }
+    }
+}
+

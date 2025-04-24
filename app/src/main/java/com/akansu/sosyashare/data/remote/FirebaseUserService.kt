@@ -1,5 +1,6 @@
 package com.akansu.sosyashare.data.remote
 
+import android.content.Context
 import android.net.Uri
 import android.util.Log
 import com.akansu.sosyashare.data.mapper.UserMapper
@@ -7,8 +8,10 @@ import com.akansu.sosyashare.data.mapper.toDomainModel
 import com.akansu.sosyashare.data.model.PostEntity
 import com.akansu.sosyashare.data.model.UserEntity
 import com.akansu.sosyashare.domain.model.User
+import com.akansu.sosyashare.util.NetworkUtils
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Source
 import com.google.firebase.storage.FirebaseStorage
@@ -20,26 +23,45 @@ import javax.inject.Inject
 class FirebaseUserService @Inject constructor(
     private val auth: FirebaseAuth,
     private val firestore: FirebaseFirestore,
-    private val firebaseStorage: FirebaseStorage
+    private val firebaseStorage: FirebaseStorage,
+    private val context: Context
 ) {
+    private val offlineErrorMessage = "İnternet bağlantısı yok. Lütfen internet bağlantınızı kontrol edin."
 
+    private fun checkNetworkConnection() {
+        if (!NetworkUtils.isNetworkAvailable(context)) {
+            Log.e("FirebaseUserService", "No internet connection")
+            throw FirebaseFirestoreException("İnternet bağlantısı yok", FirebaseFirestoreException.Code.UNAVAILABLE)
+        }
+    }
 
     suspend fun getCurrentUserName(): String? {
-        val userId = auth.currentUser?.uid ?: return null
-        val document = firestore.collection("users").document(userId).get().await()
-        return document.getString("username")
+        try {
+            val userId = auth.currentUser?.uid ?: return null
+            val document = firestore.collection("users").document(userId).get().await()
+            return document.getString("username")
+        } catch (e: Exception) {
+            Log.e("FirebaseUserService", "Error getting current user name: ${e.message}")
+            return null
+        }
     }
 
     suspend fun updateBackgroundImageUrl(userId: String, backgroundImageUrl: String) {
-        firestore.collection("users").document(userId)
-            .update("backgroundImageUrl", backgroundImageUrl)
-            .await()
+        try {
+            checkNetworkConnection()
+            firestore.collection("users").document(userId)
+                .update("backgroundImageUrl", backgroundImageUrl)
+                .await()
+        } catch (e: Exception) {
+            Log.e("FirebaseUserService", "Error updating background image: ${e.message}")
+            throw e
+        }
     }
-
 
     suspend fun getUserDetails(userId: String): UserEntity? {
         return try {
-            val document = firestore.collection("users").document(userId).get(Source.SERVER).await()
+            // Önce yerel önbellekten deneyelim
+            val document = firestore.collection("users").document(userId).get().await()
             if (document.exists()) {
                 val user = document.toObject(UserEntity::class.java)?.copy(id = userId)
                 user
@@ -47,95 +69,135 @@ class FirebaseUserService @Inject constructor(
                 null
             }
         } catch (e: Exception) {
+            Log.e("FirebaseUserService", "Error getting user details: ${e.message}")
             null
         }
     }
 
     suspend fun updateUsername(userId: String, username: String) {
-        firestore.collection("users").document(userId).update("username", username).await()
+        try {
+            checkNetworkConnection()
+            firestore.collection("users").document(userId).update("username", username).await()
+        } catch (e: Exception) {
+            Log.e("FirebaseUserService", "Error updating username: ${e.message}")
+            throw e
+        }
     }
 
     suspend fun updateBio(userId: String, bio: String) {
-        firestore.collection("users").document(userId).update("bio", bio).await()
+        try {
+            checkNetworkConnection()
+            firestore.collection("users").document(userId).update("bio", bio).await()
+        } catch (e: Exception) {
+            Log.e("FirebaseUserService", "Error updating bio: ${e.message}")
+            throw e
+        }
     }
 
     suspend fun updateUserProfilePicture(userId: String, profilePictureUrl: String) {
-        firestore.collection("users").document(userId)
-            .update("profilePictureUrl", profilePictureUrl)
-            .await()
+        try {
+            checkNetworkConnection()
+            firestore.collection("users").document(userId)
+                .update("profilePictureUrl", profilePictureUrl)
+                .await()
+        } catch (e: Exception) {
+            Log.e("FirebaseUserService", "Error updating profile picture: ${e.message}")
+            throw e
+        }
     }
-
 
     suspend fun searchUsers(query: String): List<User> {
-        val users = mutableListOf<User>()
-        val result = firestore.collection("users")
-            .whereGreaterThanOrEqualTo("username", query)
-            .whereLessThanOrEqualTo("username", query + "\uf8ff")
-            .get()
-            .await()
+        try {
+            checkNetworkConnection()
+            val users = mutableListOf<User>()
+            val result = firestore.collection("users")
+                .whereGreaterThanOrEqualTo("username", query)
+                .whereLessThanOrEqualTo("username", query + "\uf8ff")
+                .get()
+                .await()
 
-        for (document in result.documents) {
-            val userEntity = document.toObject(UserEntity::class.java)?.copy(id = document.id)
-            if (userEntity != null) {
-                users.add(userEntity.toDomainModel())
+            for (document in result.documents) {
+                val userEntity = document.toObject(UserEntity::class.java)?.copy(id = document.id)
+                if (userEntity != null) {
+                    users.add(userEntity.toDomainModel())
+                }
             }
+            return users
+        } catch (e: Exception) {
+            Log.e("FirebaseUserService", "Error searching users: ${e.message}")
+            return emptyList()
         }
-        return users
     }
 
-
     suspend fun followUser(currentUserId: String, followUserId: String) {
-        firestore.runTransaction { transaction ->
-            val currentUserRef = firestore.collection("users").document(currentUserId)
-            val followUserRef = firestore.collection("users").document(followUserId)
+        try {
+            checkNetworkConnection()
+            firestore.runTransaction { transaction ->
+                val currentUserRef = firestore.collection("users").document(currentUserId)
+                val followUserRef = firestore.collection("users").document(followUserId)
 
-            val currentUser = transaction.get(currentUserRef).toObject(UserEntity::class.java)
-            val followUser = transaction.get(followUserRef).toObject(UserEntity::class.java)
+                val currentUser = transaction.get(currentUserRef).toObject(UserEntity::class.java)
+                val followUser = transaction.get(followUserRef).toObject(UserEntity::class.java)
 
-            val currentUserFollowing = currentUser?.following?.toMutableList() ?: mutableListOf()
-            val followUserFollowers = followUser?.followers?.toMutableList() ?: mutableListOf()
+                val currentUserFollowing = currentUser?.following?.toMutableList() ?: mutableListOf()
+                val followUserFollowers = followUser?.followers?.toMutableList() ?: mutableListOf()
 
-            if (!currentUserFollowing.contains(followUserId)) {
-                currentUserFollowing.add(followUserId)
-                followUserFollowers.add(currentUserId)
-            }
+                if (!currentUserFollowing.contains(followUserId)) {
+                    currentUserFollowing.add(followUserId)
+                    followUserFollowers.add(currentUserId)
+                }
 
-            transaction.update(currentUserRef, "following", currentUserFollowing)
-            transaction.update(followUserRef, "followers", followUserFollowers)
-        }.await()
+                transaction.update(currentUserRef, "following", currentUserFollowing)
+                transaction.update(followUserRef, "followers", followUserFollowers)
+            }.await()
+        } catch (e: Exception) {
+            Log.e("FirebaseUserService", "Error following user: ${e.message}")
+            throw e
+        }
     }
 
     suspend fun unfollowUser(currentUserId: String, unfollowUserId: String) {
-        firestore.runTransaction { transaction ->
-            val currentUserRef = firestore.collection("users").document(currentUserId)
-            val unfollowUserRef = firestore.collection("users").document(unfollowUserId)
+        try {
+            checkNetworkConnection()
+            firestore.runTransaction { transaction ->
+                val currentUserRef = firestore.collection("users").document(currentUserId)
+                val unfollowUserRef = firestore.collection("users").document(unfollowUserId)
 
-            val currentUser = transaction.get(currentUserRef).toObject(UserEntity::class.java)
-            val unfollowUser = transaction.get(unfollowUserRef).toObject(UserEntity::class.java)
+                val currentUser = transaction.get(currentUserRef).toObject(UserEntity::class.java)
+                val unfollowUser = transaction.get(unfollowUserRef).toObject(UserEntity::class.java)
 
-            val currentUserFollowing = currentUser?.following?.toMutableList() ?: mutableListOf()
-            val unfollowUserFollowers = unfollowUser?.followers?.toMutableList() ?: mutableListOf()
+                val currentUserFollowing = currentUser?.following?.toMutableList() ?: mutableListOf()
+                val unfollowUserFollowers = unfollowUser?.followers?.toMutableList() ?: mutableListOf()
 
-            if (currentUserFollowing.contains(unfollowUserId)) {
-                currentUserFollowing.remove(unfollowUserId)
-                unfollowUserFollowers.remove(currentUserId)
-            }
+                if (currentUserFollowing.contains(unfollowUserId)) {
+                    currentUserFollowing.remove(unfollowUserId)
+                    unfollowUserFollowers.remove(currentUserId)
+                }
 
-            transaction.update(currentUserRef, "following", currentUserFollowing)
-            transaction.update(unfollowUserRef, "followers", unfollowUserFollowers)
-        }.await()
+                transaction.update(currentUserRef, "following", currentUserFollowing)
+                transaction.update(unfollowUserRef, "followers", unfollowUserFollowers)
+            }.await()
+        } catch (e: Exception) {
+            Log.e("FirebaseUserService", "Error unfollowing user: ${e.message}")
+            throw e
+        }
     }
 
     suspend fun syncAllUsers(): List<UserEntity> {
-        val result = firestore.collection("users").get().await()
-        val users = mutableListOf<UserEntity>()
-        for (document in result.documents) {
-            val user = document.toObject(UserEntity::class.java)?.copy(id = document.id)
-            if (user != null) {
-                users.add(user)
+        try {
+            val result = firestore.collection("users").get().await()
+            val users = mutableListOf<UserEntity>()
+            for (document in result.documents) {
+                val user = document.toObject(UserEntity::class.java)?.copy(id = document.id)
+                if (user != null) {
+                    users.add(user)
+                }
             }
+            return users
+        } catch (e: Exception) {
+            Log.e("FirebaseUserService", "Error syncing users: ${e.message}")
+            return emptyList()
         }
-        return users
     }
 
     suspend fun deletePost(userId: String, postId: String, postImageUrl: String) {
@@ -148,13 +210,11 @@ class FirebaseUserService @Inject constructor(
         }
     }
 
-
     suspend fun uploadProfilePicture(uri: Uri): String {
         val ref = firebaseStorage.reference.child("profile_pictures/${uri.lastPathSegment}")
         ref.putFile(uri).await()
         return ref.downloadUrl.await().toString()
     }
-
 
     suspend fun uploadPostPicture(uri: Uri): String {
         val ref = firebaseStorage.reference.child("post_pictures/${uri.lastPathSegment}")

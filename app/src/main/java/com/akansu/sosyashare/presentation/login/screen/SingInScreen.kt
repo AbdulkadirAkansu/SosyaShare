@@ -24,6 +24,9 @@ import androidx.navigation.NavController
 import com.akansu.sosyashare.R
 import com.akansu.sosyashare.presentation.login.viewmodel.AuthViewModel
 import com.akansu.sosyashare.util.poppinsFontFamily
+import com.akansu.sosyashare.presentation.components.NetworkErrorDialog
+import com.akansu.sosyashare.util.NetworkUtils
+import androidx.compose.ui.platform.LocalContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,6 +35,8 @@ fun SingInScreen(navController: NavController, viewModel: AuthViewModel = hiltVi
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var showNetworkError by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     BoxWithConstraints(
         modifier = Modifier
@@ -137,6 +142,12 @@ fun SingInScreen(navController: NavController, viewModel: AuthViewModel = hiltVi
                     if (email.isEmpty() || password.isEmpty()) {
                         errorMessage = "E-posta ve şifre alanları boş olamaz."
                     } else {
+                        // İnternet bağlantısını kontrol et
+                        if (!NetworkUtils.isNetworkAvailable(context)) {
+                            showNetworkError = true
+                            return@Button
+                        }
+                        
                         viewModel.loginUser(email, password, onSuccess = {
                             navController.navigate("home")
                         }, onFailure = { exception ->
@@ -195,6 +206,12 @@ fun SingInScreen(navController: NavController, viewModel: AuthViewModel = hiltVi
 
             OutlinedButton(
                 onClick = {
+                    // İnternet bağlantısını kontrol et
+                    if (!NetworkUtils.isNetworkAvailable(context)) {
+                        showNetworkError = true
+                        return@OutlinedButton
+                    }
+                    
                     navController.navigate("register")
                 },
                 shape = RoundedCornerShape(50),
@@ -216,6 +233,11 @@ fun SingInScreen(navController: NavController, viewModel: AuthViewModel = hiltVi
             }
 
             Spacer(modifier = Modifier.height(screenHeight * 0.02f))
+        }
+        
+        // İnternet hatası dialog'u
+        if (showNetworkError) {
+            NetworkErrorDialog(onDismiss = { showNetworkError = false })
         }
     }
 }

@@ -37,6 +37,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
 import coil.compose.rememberAsyncImagePainter
 import com.akansu.sosyashare.R
 import com.akansu.sosyashare.domain.model.User
@@ -48,6 +49,8 @@ import com.akansu.sosyashare.presentation.userprofile.viewmodel.UserProfileViewM
 import com.akansu.sosyashare.util.FileUtils
 import com.akansu.sosyashare.util.poppinsFontFamily
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
 
 
 @Composable
@@ -194,7 +197,7 @@ fun UserProfileScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = paddingValues.calculateBottomPadding() + 72.dp)
+                .padding(bottom = paddingValues.calculateBottomPadding())
         ) {
             item {
                 BackgroundWithProfile(
@@ -258,66 +261,66 @@ fun UserProfileScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                PostGrid(
-                    posts = sortedPosts.mapNotNull { it.imageUrl },
-                    userId = currentUser?.uid ?: "",
-                    navController = navController,
-                    gridHeight = 500.dp
-                )
-            }
-        }
-    }
-}
-
-
-@Composable
-fun PostGrid(
-    posts: List<String>,
-    userId: String,
-    navController: NavHostController,
-    gridHeight: Dp
-) {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(3),
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(gridHeight),
-        contentPadding = PaddingValues(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        if (posts.isEmpty()) {
-            item {
-                Box(
+                val postUrls = sortedPosts.mapNotNull { it.imageUrl }
+                Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(1f),
-                    contentAlignment = Alignment.Center
+                        .padding(horizontal = 16.dp)
                 ) {
-                    Text(text = "No posts yet")
-                }
-            }
-        } else {
-            items(posts.size) { index ->
-                Box(
-                    modifier = Modifier
-                        .aspectRatio(1f)
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable {
-                            navController.navigate("post_detail/${userId}/${index}/false")
+                    if (postUrls.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(100.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(text = "No posts yet")
                         }
-                ) {
-                    AsyncImage(
-                        model = posts[index],
-                        contentDescription = "Post",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
-                    )
+                    } else {
+                        val chunkedPosts = postUrls.chunked(3)
+                        chunkedPosts.forEach { rowPosts ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                for (i in 0 until 3) {
+                                    if (i < rowPosts.size) {
+                                        val index = chunkedPosts.indexOf(rowPosts) * 3 + i
+                                        Card(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .aspectRatio(1f)
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .clickable {
+                                                    navController.navigate("post_detail/${currentUser?.uid ?: ""}/${index}/false")
+                                                },
+                                            colors = CardDefaults.cardColors(
+                                                containerColor = MaterialTheme.colorScheme.surface
+                                            ),
+                                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                        ) {
+                                            AsyncImage(
+                                                model = rowPosts[i],
+                                                contentDescription = "Post",
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier.fillMaxSize()
+                                            )
+                                        }
+                                    } else {
+                                        Spacer(modifier = Modifier.weight(1f))
+                                    }
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
                 }
             }
         }
     }
 }
+
 
 @Composable
 fun ActionButtons(navController: NavHostController) {
@@ -438,7 +441,6 @@ fun BackgroundWithProfile(
             )
         }
 
-        // Geri ve ayarlar ikonları
         Row(
             modifier = Modifier
                 .fillMaxWidth()

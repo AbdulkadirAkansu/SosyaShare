@@ -15,12 +15,19 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -95,86 +102,147 @@ fun HomeScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TopBar(currentUsername: String?, currentUserId: String?, navController: NavHostController) {
-    Row(
+fun TopBar(
+    currentUsername: String?,
+    currentUserId: String?,
+    navController: NavHostController
+) {
+    // Poppins fontunu yükle
+    val poppinsFont = FontFamily(
+        Font(R.font.poppins_medium, FontWeight.Normal),
+        Font(R.font.poppins_bold, FontWeight.Bold)
+    )
+    
+    // Gradient yazı için brush oluştur
+    val gradientBrush = Brush.horizontalGradient(
+        colors = listOf(
+            Color(0xFF6654F1), // Zengin mor
+            Color(0xFF00BCD4)  // Turkuaz
+        )
+    )
+    
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
-        Text(
-            text = currentUsername ?: "Menu",
-            color = MaterialTheme.colorScheme.onBackground,
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.weight(1f)
-        )
-
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(50))
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .padding(horizontal = 6.dp, vertical = 6.dp)
-        ) {
+        Column {
+            // Karşılama Metni ve Kullanıcı Adı
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.surface,
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clickable {
-                            Log.d(
-                                "Navigation",
-                                "Navigating to notifications screen with userId: $currentUserId"
-                            )
-                            currentUserId?.let {
-                                navController.navigate("notifications/$it")
-                            } ?: Log.e(
-                                "Navigation",
-                                "User ID is null, cannot navigate to notifications."
-                            )
-                        }
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.notification),
-                        contentDescription = "Notifications",
-                        tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier
-                            .size(18.dp)
-                            .padding(4.dp)
+                Column(modifier = Modifier.weight(1f)) {
+                    Box {
+                        // Gradient Welcome yazısı
+                        Text(
+                            text = "Welcome",
+                            style = TextStyle(
+                                fontFamily = poppinsFont,
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 16.sp
+                            ),
+                            modifier = Modifier.graphicsLayer(alpha = 0.99f)
+                                .drawWithContent {
+                                    drawContent()
+                                    drawRect(brush = gradientBrush, blendMode = BlendMode.SrcAtop)
+                                }
+                        )
+                    }
+                    
+                    Text(
+                        text = currentUsername ?: "Kullanıcı",
+                        style = TextStyle(
+                            fontFamily = poppinsFont,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 22.sp,
+                            letterSpacing = (-0.5).sp,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
                     )
                 }
-
-
-                // Messenger icon
-                Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.inverseSurface,
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clickable {
-                            navController.navigate("messages")
-                        }
+                
+                // İkonlar Bölümü - Daha kompakt
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.messenger),
-                        contentDescription = "Messages",
-                        tint = MaterialTheme.colorScheme.onPrimary,
+                    // Bildirim İkonu - Daha küçük tasarım
+                    Box(
                         modifier = Modifier
-                            .size(18.dp)
-                            .padding(4.dp)
-                    )
+                            .size(35.dp)
+                            .shadow(elevation = 2.dp, shape = RoundedCornerShape(12.dp), clip = true)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                brush = Brush.linearGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0f)
+                                    )
+                                )
+                            )
+                            .clickable { 
+                                currentUserId?.let { navController.navigate("notifications/$it") }
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.notification),
+                            contentDescription = "Bildirimler",
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    
+                    // Mesaj İkonu - Daha küçük tasarım
+                    Box(
+                        modifier = Modifier
+                            .size(35.dp)
+                            .shadow(elevation = 2.dp, shape = RoundedCornerShape(12.dp), clip = true)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                brush = Brush.linearGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0f)
+                                    )
+                                )
+                            )
+                            .clickable { navController.navigate("messages") },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.messenger),
+                            contentDescription = "Mesajlar",
+                            tint = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
             }
+            
+            // Zarif Ayırıcı Çizgi
+            Spacer(modifier = Modifier.height(12.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                            )
+                        )
+                    )
+            )
         }
     }
 }
-
 
 @Composable
 fun PostsSection(
